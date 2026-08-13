@@ -48,6 +48,12 @@ Si dice `inactive`, arrancalo:
 ```bash
 sudo systemctl start nix-daemon
 ```
+```bash
+Para apagar el deamon 
+sudo systemctl stop nix-daemon
+
+```
+
 
 Esto **no es permanente** — si reiniciás la PC, hay que volver a correrlo. (Si preferís que arranque solo en cada boot: `sudo systemctl enable --now nix-daemon`.)
 
