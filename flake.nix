@@ -34,7 +34,7 @@
           runtimeInputs = [ pkgs.dotnet-sdk_9 pkgs.nixgl.nixGLIntel pkgs.git ];
           text = ''
             repo_root="$(git rev-parse --show-toplevel)"
-            cd "$repo_root/csharp"
+            cd "$repo_root/ParadigmasLenguajePropio"
             export DOTNET_CLI_TELEMETRY_OPTOUT=1
             export LD_LIBRARY_PATH="${graphicsLibPath}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
             echo "Compilando y levantando ParadigmasLenguajePropio..."

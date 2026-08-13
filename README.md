@@ -1,6 +1,6 @@
 # Paradigmas de Lenguaje - GGEZ / C#
 
-Proyecto comparativo de paradigmas de programación. Este README cubre la parte en **C#** (`csharp/`), con gráficos vía [Raylib-cs](https://github.com/ChrisDill/Raylib-cs).
+Proyecto comparativo de paradigmas de programación. Este README cubre la parte en **C#** (`ParadigmasLenguajePropio/`), con gráficos vía [Raylib-cs](https://github.com/ChrisDill/Raylib-cs).
 
 ## Estructura del proyecto
 
@@ -9,7 +9,7 @@ Paradigmas_lenguaje_GGEZ/
 ├── flake.nix                    # entorno reproducible para Linux (SDK .NET + nixGL)
 ├── flake.lock                   # versiones fijadas, generado por nix
 ├── .gitignore
-└── csharp/
+└── ParadigmasLenguajePropio/
     ├── ParadigmasLenguajePropio.sln     # solución, agrupa proyectos
     └── src/ParadigmasLenguajePropio/
         ├── ParadigmasLenguajePropio.csproj   # dependencias y config del proyecto
@@ -18,7 +18,7 @@ Paradigmas_lenguaje_GGEZ/
         └── obj/                      ← GENERADO por dotnet, no se versiona
 ```
 
-Para agregar más código, sumá archivos `.cs` dentro de `csharp/src/ParadigmasLenguajePropio/` — el SDK de .NET los incluye automáticamente en la compilación, no hace falta listarlos en ningún lado.
+Para agregar más código, sumá archivos `.cs` dentro de `ParadigmasLenguajePropio/src/ParadigmasLenguajePropio/` — el SDK de .NET los incluye automáticamente en la compilación, no hace falta listarlos en ningún lado.
 
 ## Qué hay en `.gitignore` y por qué
 
@@ -73,7 +73,7 @@ Para cerrar la app: click en la X de la ventana, o `Ctrl+C` en la terminal donde
 
 ```bash
 nix develop              # entra al entorno con dotnet + libs graficas
-cd csharp
+cd ParadigmasLenguajePropio
 dotnet build              # solo compila, chequea errores
 nixGLIntel dotnet run --project src/ParadigmasLenguajePropio   # compila y corre con GL
 exit                       # sale del entorno nix
@@ -96,10 +96,10 @@ dotnet --version
 
 ### 2. Compilar y correr
 
-Desde una terminal (PowerShell o cmd), parado en `csharp/`:
+Desde una terminal (PowerShell o cmd), parado en `ParadigmasLenguajePropio/`:
 
 ```powershell
-cd csharp
+cd ParadigmasLenguajePropio
 dotnet run --project src\ParadigmasLenguajePropio
 ```
 
