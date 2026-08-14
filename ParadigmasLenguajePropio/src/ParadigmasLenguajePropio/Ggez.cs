@@ -31,9 +31,9 @@ var iconoLupa = CargarIcono("Icon_Lupa.png");
 var iconoCarpetaCerrada = CargarIcono("Icon_CapertaCerrada.png");
 var iconoCarpetaAbierta = CargarIcono("Icon_CarpetaAbierta.png");
 
-const int ladoBoton = 36;
+const int ladoBoton = 24;
 const int margen = 4;
-const int espacio = 4;
+const int espacio = 3;
 int y = AppTitleBar.Height + margen;
 
 var botonNuevo = new Button(margen, y, ladoBoton, ladoBoton, "") { Icon = iconoNuevo };
