@@ -30,6 +30,7 @@ var iconoPausa = CargarIcono("Icon_Pausa.png");
 var iconoLupa = CargarIcono("Icon_Lupa.png");
 var iconoCarpetaCerrada = CargarIcono("Icon_CapertaCerrada.png");
 var iconoCarpetaAbierta = CargarIcono("Icon_CarpetaAbierta.png");
+var iconoTerminal = CargarIcono("Icon_Terminal.png");
 
 const int ladoBoton = 24;
 const int margen = 4;
@@ -42,8 +43,9 @@ var botonPlay = new Button(margen + (ladoBoton + espacio) * 2, y, ladoBoton, lad
 var botonPausa = new Button(margen + (ladoBoton + espacio) * 3, y, ladoBoton, ladoBoton, "") { Icon = iconoPausa };
 var botonLupa = new Button(margen + (ladoBoton + espacio) * 4, y, ladoBoton, ladoBoton, "") { Icon = iconoLupa };
 var botonCarpeta = new Button(margen + (ladoBoton + espacio) * 5, y, ladoBoton, ladoBoton, "") { Icon = iconoCarpetaCerrada };
+var botonTerminal = new Button(margen + (ladoBoton + espacio) * 6, y, ladoBoton, ladoBoton, "") { Icon = iconoTerminal };
 
-var botonesToolbar = new[] { botonNuevo, botonGuardar, botonPlay, botonPausa, botonLupa, botonCarpeta };
+var botonesToolbar = new[] { botonNuevo, botonGuardar, botonPlay, botonPausa, botonLupa, botonCarpeta, botonTerminal };
 bool carpetaAbierta = false;
 
 while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
@@ -61,6 +63,7 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
         botonCarpeta.Icon = carpetaAbierta ? iconoCarpetaAbierta : iconoCarpetaCerrada;
         Console.WriteLine(carpetaAbierta ? "Abrir carpeta" : "Cerrar carpeta");
     }
+    if (botonTerminal.IsClicked()) Console.WriteLine("Terminal");
 
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Win95Style.Background);
@@ -79,4 +82,5 @@ Raylib.UnloadTexture(iconoPausa);
 Raylib.UnloadTexture(iconoLupa);
 Raylib.UnloadTexture(iconoCarpetaCerrada);
 Raylib.UnloadTexture(iconoCarpetaAbierta);
+Raylib.UnloadTexture(iconoTerminal);
 Raylib.CloseWindow();
