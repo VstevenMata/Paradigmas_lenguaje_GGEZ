@@ -18,8 +18,8 @@ public class Panel
     Rectangle TitleBarBounds => new(Bounds.X, Bounds.Y, Bounds.Width, TitleBarHeight);
 
     Rectangle CloseButton => new(Bounds.X + Bounds.Width - TitleButtonSize - 4, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
-    Rectangle MaximizeButton => new(CloseButton.X - TitleButtonSize - 2, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
-    Rectangle MinimizeButton => new(MaximizeButton.X - TitleButtonSize - 2, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
+    Rectangle MaximizeButton => new(CloseButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
+    Rectangle MinimizeButton => new(MaximizeButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
 
     public Panel(int x, int y, int width, int height, string title)
     {

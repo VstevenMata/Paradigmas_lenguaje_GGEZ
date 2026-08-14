@@ -32,7 +32,7 @@ public static class Win95Style
     {
         bool hover = Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), r);
         Raylib.DrawRectangleRec(r, hover ? Color.LightGray : Background);
-        DrawBevel(r, sunken: false, thickness: 1);
+        DrawBevel(r, sunken: hover, thickness: 1);
     }
 
     public static void DrawMinimizeIcon(Rectangle r)

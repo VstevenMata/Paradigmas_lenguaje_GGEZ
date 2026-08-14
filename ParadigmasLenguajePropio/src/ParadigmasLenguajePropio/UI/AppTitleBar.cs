@@ -17,8 +17,8 @@ public class AppTitleBar
 
     Rectangle Bounds => new(0, 0, Raylib.GetScreenWidth(), Height);
     Rectangle CloseButton => new(Bounds.Width - ButtonSize - 4, 3, ButtonSize, ButtonSize);
-    Rectangle MaximizeButton => new(CloseButton.X - ButtonSize - 2, 3, ButtonSize, ButtonSize);
-    Rectangle MinimizeButton => new(MaximizeButton.X - ButtonSize - 2, 3, ButtonSize, ButtonSize);
+    Rectangle MaximizeButton => new(CloseButton.X - ButtonSize - 5, 3, ButtonSize, ButtonSize);
+    Rectangle MinimizeButton => new(MaximizeButton.X - ButtonSize - 5, 3, ButtonSize, ButtonSize);
 
     public AppTitleBar(string title)
     {
