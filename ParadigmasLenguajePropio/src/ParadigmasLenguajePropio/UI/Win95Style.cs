@@ -28,6 +28,26 @@ public static class Win95Style
         }
     }
 
+    public static void DrawDivisorHorizontal(int x, int y, int width, int thickness = 1)
+    {
+        for (int i = 0; i < thickness; i++)
+        {
+            int lineY = y + i * 2;
+            Raylib.DrawLine(x, lineY, x + width, lineY, BevelDark);
+            Raylib.DrawLine(x, lineY + 1, x + width, lineY + 1, BevelLight);
+        }
+    }
+
+    public static void DrawDivisorVertical(int x, int y, int height, int thickness = 1)
+    {
+        for (int i = 0; i < thickness; i++)
+        {
+            int lineX = x + i * 2;
+            Raylib.DrawLine(lineX, y, lineX, y + height, BevelDark);
+            Raylib.DrawLine(lineX + 1, y, lineX + 1, y + height, BevelLight);
+        }
+    }
+
     public static void DrawTitleButtonBase(Rectangle r)
     {
         bool hover = Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), r);
