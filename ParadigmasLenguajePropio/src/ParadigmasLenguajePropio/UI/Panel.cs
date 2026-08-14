@@ -4,22 +4,9 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class Panel
 {
+    // VARIABLES CONSTANTES
     const int TitleBarHeight = 22;
     const int TitleButtonSize = 16;
-
-    public Rectangle Bounds;
-    public string Title;
-    public bool Visible = true;
-    public bool Minimized = false;
-    public bool Maximized = false;
-
-    Rectangle boundsBeforeMaximize;
-
-    Rectangle TitleBarBounds => new(Bounds.X, Bounds.Y, Bounds.Width, TitleBarHeight);
-
-    Rectangle CloseButton => new(Bounds.X + Bounds.Width - TitleButtonSize - 4, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
-    Rectangle MaximizeButton => new(CloseButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
-    Rectangle MinimizeButton => new(MaximizeButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
 
     public Panel(int x, int y, int width, int height, string title)
     {
@@ -76,7 +63,7 @@ public class Panel
         }
 
         Raylib.DrawRectangleRec(TitleBarBounds, Win95Style.TitleBar);
-        Raylib.DrawText(Title, (int)Bounds.X + 4, (int)Bounds.Y + 4, 14, Color.White);
+        Win95Style.DrawText(Title, (int)Bounds.X + 4, (int)Bounds.Y + 4, 14, Color.White);
 
         Win95Style.DrawMinimizeIcon(MinimizeButton);
         Win95Style.DrawMaximizeIcon(MaximizeButton);
@@ -87,4 +74,18 @@ public class Panel
     {
         return Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), r) && Raylib.IsMouseButtonPressed(MouseButton.Left);
     }
+
+    public Rectangle Bounds;
+    public string Title;
+    public bool Visible = true;
+    public bool Minimized = false;
+    public bool Maximized = false;
+
+    Rectangle boundsBeforeMaximize;
+
+    Rectangle TitleBarBounds => new(Bounds.X, Bounds.Y, Bounds.Width, TitleBarHeight);
+
+    Rectangle CloseButton => new(Bounds.X + Bounds.Width - TitleButtonSize - 4, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
+    Rectangle MaximizeButton => new(CloseButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
+    Rectangle MinimizeButton => new(MaximizeButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
 }

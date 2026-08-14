@@ -4,13 +4,9 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class ExploradorArchivos
 {
+    // VARIABLES CONSTANTES
     const int AltoTitulo = 18;
     const int AnchoScroll = 16;
-
-    public Rectangle Bounds;
-    public string Titulo = "Explorador";
-
-    readonly ScrollBarWin95 scroll = new();
 
     public void Update()
     {
@@ -22,8 +18,8 @@ public class ExploradorArchivos
     public void Draw()
     {
         // sin marco propio el panel flota directo sobre el gris compartido de la app
-      
-        Raylib.DrawText(Titulo, (int)Bounds.X + 4, (int)Bounds.Y + 3, 12, Color.Black);
+
+        Win95Style.DrawText(Titulo, (int)Bounds.X + 6, (int)Bounds.Y + 4, 12, Color.Black);
 
         var areaContenido = AreaContenido();
         Raylib.DrawRectangleRec(areaContenido, Color.White);
@@ -41,4 +37,9 @@ public class ExploradorArchivos
             Bounds.X + 2, Bounds.Y + AltoTitulo,
             Bounds.Width - 6 - AnchoScroll, Bounds.Height - AltoTitulo - 2);
     }
+
+    public Rectangle Bounds;
+    public string Titulo = "Explorador";
+
+    readonly ScrollBarWin95 scroll = new();
 }

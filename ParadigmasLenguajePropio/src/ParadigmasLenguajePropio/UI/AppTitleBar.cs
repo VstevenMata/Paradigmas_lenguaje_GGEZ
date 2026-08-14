@@ -5,20 +5,9 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class AppTitleBar
 {
+    // VARIABLES CONSTANTES
     public const int Height = 26;
     const int ButtonSize = 16;
-
-    public string Title;
-    public bool ShouldClose { get; private set; }
-
-    bool arrastrando;
-    Vector2 mouseGlobalAlIniciarArrastre;
-    Vector2 posicionVentanaAlIniciarArrastre;
-
-    Rectangle Bounds => new(0, 0, Raylib.GetScreenWidth(), Height);
-    Rectangle CloseButton => new(Bounds.Width - ButtonSize - 4, 3, ButtonSize, ButtonSize);
-    Rectangle MaximizeButton => new(CloseButton.X - ButtonSize - 5, 3, ButtonSize, ButtonSize);
-    Rectangle MinimizeButton => new(MaximizeButton.X - ButtonSize - 5, 3, ButtonSize, ButtonSize);
 
     public AppTitleBar(string title)
     {
@@ -88,10 +77,22 @@ public class AppTitleBar
     public void Draw()
     {
         Raylib.DrawRectangleRec(Bounds, Win95Style.TitleBar);
-        Raylib.DrawText(Title, 6, 5, 14, Color.White);
+        Win95Style.DrawText(Title, 6, 5, 14, Color.White);
 
         Win95Style.DrawMinimizeIcon(MinimizeButton);
         Win95Style.DrawMaximizeIcon(MaximizeButton);
         Win95Style.DrawCloseIcon(CloseButton);
     }
+
+    public string Title;
+    public bool ShouldClose { get; private set; }
+
+    bool arrastrando;
+    Vector2 mouseGlobalAlIniciarArrastre;
+    Vector2 posicionVentanaAlIniciarArrastre;
+
+    Rectangle Bounds => new(0, 0, Raylib.GetScreenWidth(), Height);
+    Rectangle CloseButton => new(Bounds.Width - ButtonSize - 4, 3, ButtonSize, ButtonSize);
+    Rectangle MaximizeButton => new(CloseButton.X - ButtonSize - 5, 3, ButtonSize, ButtonSize);
+    Rectangle MinimizeButton => new(MaximizeButton.X - ButtonSize - 5, 3, ButtonSize, ButtonSize);
 }

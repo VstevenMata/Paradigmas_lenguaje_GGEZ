@@ -4,19 +4,8 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class ScrollBarWin95
 {
+    // VARIABLES CONSTANTES
     const int LadoBoton = 16;
-
-    public Rectangle Bounds;
-    public float Valor; // 0 = arriba del todo, 1 = abajo del todo
-    public float ProporcionThumb = 0.3f;
-
-    bool arrastrandoThumb;
-    float mouseYAlIniciarArrastre;
-    float valorAlIniciarArrastre;
-
-    Rectangle BotonArriba => new(Bounds.X, Bounds.Y, Bounds.Width, LadoBoton);
-    Rectangle BotonAbajo => new(Bounds.X, Bounds.Y + Bounds.Height - LadoBoton, Bounds.Width, LadoBoton);
-    Rectangle Pista => new(Bounds.X, Bounds.Y + LadoBoton, Bounds.Width, Bounds.Height - LadoBoton * 2);
 
     Rectangle ThumbBounds()
     {
@@ -74,7 +63,7 @@ public class ScrollBarWin95
 
         float cx = r.X + r.Width / 2;
         float cy = r.Y + r.Height / 2;
-        
+
         if (arribaOAbajo)
             Raylib.DrawTriangle(new(cx, cy - 4), new(cx - 4, cy + 3), new(cx + 4, cy + 3), Color.Black);
         else
@@ -85,4 +74,16 @@ public class ScrollBarWin95
     {
         return Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), r) && Raylib.IsMouseButtonPressed(MouseButton.Left);
     }
+
+    public Rectangle Bounds;
+    public float Valor; // 0 = arriba del todo, 1 = abajo del todo
+    public float ProporcionThumb = 0.3f;
+
+    bool arrastrandoThumb;
+    float mouseYAlIniciarArrastre;
+    float valorAlIniciarArrastre;
+
+    Rectangle BotonArriba => new(Bounds.X, Bounds.Y, Bounds.Width, LadoBoton);
+    Rectangle BotonAbajo => new(Bounds.X, Bounds.Y + Bounds.Height - LadoBoton, Bounds.Width, LadoBoton);
+    Rectangle Pista => new(Bounds.X, Bounds.Y + LadoBoton, Bounds.Width, Bounds.Height - LadoBoton * 2);
 }

@@ -1,19 +1,21 @@
 using Raylib_cs;
 using ParadigmasLenguajePropio.UI;
 
+// VARIABLES CONSTANTES
 const int anchoInicial = 1500;
 const int altoInicial = 900;
 const int anchoMinimo = 800;
 const int altoMinimo = 450;
+const int ladoBoton = 24;
+const int margen = 4;
+const int espacio = 3;
+const int altoDivisor = 2;
+const int anchoManijaResize = 6;
+const int anchoExploradorMinimo = 100;
+const int anchoExploradorMaximo = 400;
+const int altoTerminal = 160;
 
-Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.UndecoratedWindow);
-Raylib.InitWindow(anchoInicial, altoInicial, "Paradigmas GGEZ");
-Raylib.SetWindowMinSize(anchoMinimo, altoMinimo);
-Raylib.SetTargetFPS(60);
-
-var barraApp = new AppTitleBar("Paradigmas GGEZ");
-var barraMenu = new MenuBar();
-
+// FUNCIONES
 Texture2D CargarIcono(string archivo)
 {
     var ruta = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", archivo);
@@ -21,6 +23,16 @@ Texture2D CargarIcono(string archivo)
     Raylib.SetTextureFilter(textura, TextureFilter.Point);
     return textura;
 }
+
+Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.UndecoratedWindow);
+Raylib.InitWindow(anchoInicial, altoInicial, "Paradigmas GGEZ");
+Raylib.SetWindowMinSize(anchoMinimo, altoMinimo);
+Raylib.SetTargetFPS(60);
+
+Win95Style.CargarFuente(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "MSSansSerif.ttf"));
+
+var barraApp = new AppTitleBar("Paradigmas GGEZ");
+var barraMenu = new MenuBar();
 
 var iconoNuevo = CargarIcono("Icon_Documento.png");
 var iconoGuardar = CargarIcono("Icon_NewDocumento.png");
@@ -30,11 +42,6 @@ var iconoLupa = CargarIcono("Icon_Lupa.png");
 var iconoCarpetaCerrada = CargarIcono("Icon_CapertaCerrada.png");
 var iconoCarpetaAbierta = CargarIcono("Icon_CarpetaAbierta.png");
 var iconoTerminal = CargarIcono("Icon_Terminal.png");
-
-const int ladoBoton = 24;
-const int margen = 4;
-const int espacio = 3;
-const int altoDivisor = 2;
 
 int yToolbar = AppTitleBar.Height + MenuBar.Height + altoDivisor + margen;
 
@@ -73,13 +80,15 @@ var botonesToolbar = gruposToolbar.SelectMany(g => g).ToArray();
 bool carpetaAbierta = false;
 
 int anchoExplorador = 150;
-const int anchoManijaResize = 6;
-const int anchoExploradorMinimo = 100;
-const int anchoExploradorMaximo = 400;
 bool arrastrandoExplorador = false;
 int anchoExploradorAlIniciarArrastre = 0;
 float mouseXAlIniciarArrastreExplorador = 0f;
 var explorador = new ExploradorArchivos();
+
+bool terminalVisible = false;
+var panelTerminal = new PanelTerminal();
+
+var barraEstado = new StatusBar();
 
 while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 {
@@ -96,16 +105,29 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
         botonCarpeta.Icon = carpetaAbierta ? iconoCarpetaAbierta : iconoCarpetaCerrada;
         Console.WriteLine(carpetaAbierta ? "Abrir carpeta" : "Cerrar carpeta");
     }
-    if (botonTerminal.IsClicked()) Console.WriteLine("Terminal");
+    if (botonTerminal.IsClicked())
+    {
+        terminalVisible = !terminalVisible;
+        Console.WriteLine(terminalVisible ? "Abrir terminal" : "Cerrar terminal");
+    }
 
     int anchoActual = Raylib.GetScreenWidth();
     int altoActual = Raylib.GetScreenHeight();
     barraMenu.Bounds = new Rectangle(0, AppTitleBar.Height, anchoActual, MenuBar.Height);
+    barraEstado.Bounds = new Rectangle(0, altoActual - StatusBar.Height, anchoActual, StatusBar.Height);
 
-    explorador.Bounds = new Rectangle(margen, alturaHeader + margen, anchoExplorador, altoActual - alturaHeader - margen * 2);
+    int altoDisponible = altoActual - StatusBar.Height;
+    int altoContenido = altoDisponible - alturaHeader - margen * 2 - (terminalVisible ? altoTerminal + margen : 0);
+    explorador.Bounds = new Rectangle(margen, alturaHeader + margen, anchoExplorador, altoContenido);
     explorador.Update();
 
-    // manija invisible: el hueco entre el explorador y el contenido de al lado se puede arrastrar
+    if (terminalVisible)
+    {
+        panelTerminal.Bounds = new Rectangle(margen, explorador.Bounds.Y + explorador.Bounds.Height + margen, anchoActual - margen * 2, altoTerminal);
+        panelTerminal.Update();
+    }
+
+    // hueco entre el explorador y el contenido de al lado se puede arrastrar
     var manijaResizeExplorador = new Rectangle(explorador.Bounds.X + explorador.Bounds.Width, explorador.Bounds.Y, anchoManijaResize, explorador.Bounds.Height);
     bool mouseSobreManija = Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), manijaResizeExplorador);
 
@@ -144,10 +166,20 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     explorador.Draw();
 
-    // línea fina que separa el explorador del centro (no un panel, solo el trazo grabado)
+    // línea que separa el explorador del centro
     int xDivisorCentro = (int)(explorador.Bounds.X + explorador.Bounds.Width + anchoManijaResize / 2);
     Win95Style.DrawDivisorVertical(xDivisorCentro, (int)explorador.Bounds.Y, (int)explorador.Bounds.Height);
 
+    if (terminalVisible)
+    {
+        // línea que separa la terminal del contenido de arriba, en el medio del hueco
+        int yDivisorTerminal = (int)(explorador.Bounds.Y + explorador.Bounds.Height + margen / 2);
+        Win95Style.DrawDivisorHorizontal(0, yDivisorTerminal, anchoActual);
+
+        panelTerminal.Draw();
+    }
+
+    barraEstado.Draw();
     barraApp.Draw();
     Raylib.EndDrawing();
 }
@@ -160,4 +192,5 @@ Raylib.UnloadTexture(iconoLupa);
 Raylib.UnloadTexture(iconoCarpetaCerrada);
 Raylib.UnloadTexture(iconoCarpetaAbierta);
 Raylib.UnloadTexture(iconoTerminal);
+Raylib.UnloadFont(Win95Style.Fuente);
 Raylib.CloseWindow();

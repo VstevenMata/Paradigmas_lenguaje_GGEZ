@@ -4,10 +4,28 @@ namespace ParadigmasLenguajePropio.UI;
 
 public static class Win95Style
 {
+    // VARIABLES CONSTANTES
     public static readonly Color Background = new(192, 192, 192, 255);
     public static readonly Color TitleBar = new(0, 0, 128, 255);
     public static readonly Color BevelLight = Color.White;
     public static readonly Color BevelDark = new(64, 64, 64, 255);
+
+    public static void CargarFuente(string ruta, int tamanoBase = 16)
+    {
+        
+        Fuente = Raylib.LoadFontEx(ruta, tamanoBase, null, 0);
+          Raylib.SetTextureFilter(Fuente.Texture, TextureFilter.Bilinear);
+    }
+
+    public static void DrawText(string texto, int posX, int posY, int fontSize, Color color)
+    {
+        Raylib.DrawTextEx(Fuente, texto, new System.Numerics.Vector2(posX, posY), fontSize, 1, color);
+    }
+
+    public static int MeasureText(string texto, int fontSize)
+    {
+        return (int)Raylib.MeasureTextEx(Fuente, texto, fontSize, 1).X;
+    }
 
     public static void DrawBevel(Rectangle bounds, bool sunken, int thickness = 2)
     {
@@ -74,4 +92,6 @@ public static class Win95Style
         Raylib.DrawLine((int)r.X + 3, (int)r.Y + 3, (int)(r.X + r.Width - 3), (int)(r.Y + r.Height - 3), Color.Black);
         Raylib.DrawLine((int)(r.X + r.Width - 3), (int)r.Y + 3, (int)r.X + 3, (int)(r.Y + r.Height - 3), Color.Black);
     }
+
+    public static Font Fuente;
 }

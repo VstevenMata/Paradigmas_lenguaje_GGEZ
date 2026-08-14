@@ -5,12 +5,6 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class Button
 {
-    public Rectangle Bounds;
-    public string Text;
-    public Color BackgroundColor;
-    public Color TextColor;
-    public Texture2D? Icon;
-
     public Button(int x, int y, int width, int height, string text)
     {
         Bounds = new Rectangle(x, y, width, height);
@@ -59,8 +53,14 @@ public class Button
         }
 
         int fontSize = 20;
-        int textWidth = Raylib.MeasureText(Text, fontSize);
+        int textWidth = Win95Style.MeasureText(Text, fontSize);
         var posicionTexto = new Vector2(Bounds.X + (Bounds.Width - textWidth) / 2, Bounds.Y + (Bounds.Height - fontSize) / 2) + desplazamiento;
-        Raylib.DrawText(Text, (int)posicionTexto.X, (int)posicionTexto.Y, fontSize, TextColor);
+        Win95Style.DrawText(Text, (int)posicionTexto.X, (int)posicionTexto.Y, fontSize, TextColor);
     }
+
+    public Rectangle Bounds;
+    public string Text;
+    public Color BackgroundColor;
+    public Color TextColor;
+    public Texture2D? Icon;
 }
