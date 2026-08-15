@@ -11,6 +11,7 @@ const int margen = 4;
 const int espacio = 3;
 const int altoDivisor = 2;
 const int anchoManijaResize = 6;
+const int margenExplorador = 2;
 const int anchoExploradorMinimo = 100;
 const int anchoExploradorMaximo = 400;
 const int altoTerminal = 160;
@@ -79,11 +80,12 @@ int alturaHeader = yToolbar + ladoBoton + margen + altoDivisor;
 var botonesToolbar = gruposToolbar.SelectMany(g => g).ToArray();
 bool carpetaAbierta = false;
 
-int anchoExplorador = 150;
+int anchoExplorador = divisoresToolbar[^1] - margen;
 bool arrastrandoExplorador = false;
 int anchoExploradorAlIniciarArrastre = 0;
 float mouseXAlIniciarArrastreExplorador = 0f;
 var explorador = new ExploradorArchivos();
+var panelCentral = new PanelCentral { IconoArchivo = iconoNuevo };
 
 bool terminalVisible = false;
 var panelTerminal = new PanelTerminal();
@@ -118,8 +120,12 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     int altoDisponible = altoActual - StatusBar.Height;
     int altoContenido = altoDisponible - alturaHeader - margen * 2 - (terminalVisible ? altoTerminal + margen : 0);
-    explorador.Bounds = new Rectangle(margen, alturaHeader + margen, anchoExplorador, altoContenido);
+    explorador.Bounds = new Rectangle(margenExplorador, alturaHeader + margen, anchoExplorador, altoContenido);
     explorador.Update();
+
+    int xCentral = margenExplorador + anchoExplorador + anchoManijaResize;
+    panelCentral.Bounds = new Rectangle(xCentral, alturaHeader + margen, anchoActual - xCentral - margen, altoContenido);
+    panelCentral.Update();
 
     if (terminalVisible)
     {
@@ -169,6 +175,8 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
     // línea que separa el explorador del centro
     int xDivisorCentro = (int)(explorador.Bounds.X + explorador.Bounds.Width + anchoManijaResize / 2);
     Win95Style.DrawDivisorVertical(xDivisorCentro, (int)explorador.Bounds.Y, (int)explorador.Bounds.Height);
+
+    panelCentral.Draw();
 
     if (terminalVisible)
     {

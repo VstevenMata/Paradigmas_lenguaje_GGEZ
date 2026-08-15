@@ -6,6 +6,7 @@ public static class Win95Style
 {
     // VARIABLES CONSTANTES
     public static readonly Color Background = new(192, 192, 192, 255);
+    public static readonly Color ScrollTrack = new(160, 160, 160, 255);
     public static readonly Color TitleBar = new(0, 0, 128, 255);
     public static readonly Color BevelLight = Color.White;
     public static readonly Color BevelDark = new(64, 64, 64, 255);
@@ -27,7 +28,7 @@ public static class Win95Style
         return (int)Raylib.MeasureTextEx(Fuente, texto, fontSize, 1).X;
     }
 
-    public static void DrawBevel(Rectangle bounds, bool sunken, int thickness = 2)
+    public static void DrawBevel(Rectangle bounds, bool sunken, int thickness = 2, bool bordeInferior = true)
     {
         Color top = sunken ? BevelDark : BevelLight;
         Color bottom = sunken ? BevelLight : BevelDark;
@@ -42,7 +43,8 @@ public static class Win95Style
             Raylib.DrawLine((int)x, (int)y, (int)(x + w), (int)y, top);
             Raylib.DrawLine((int)x, (int)y, (int)x, (int)(y + h), top);
             Raylib.DrawLine((int)(x + w), (int)y, (int)(x + w), (int)(y + h), bottom);
-            Raylib.DrawLine((int)x, (int)(y + h), (int)(x + w), (int)(y + h), bottom);
+            if (bordeInferior)
+                Raylib.DrawLine((int)x, (int)(y + h), (int)(x + w), (int)(y + h), bottom);
         }
     }
 
