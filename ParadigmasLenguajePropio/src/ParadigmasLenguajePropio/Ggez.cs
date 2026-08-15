@@ -15,6 +15,8 @@ const int margenExplorador = 2;
 const int anchoExploradorMinimo = 100;
 const int anchoExploradorMaximo = 400;
 const int altoTerminal = 160;
+const int anchoPanelDerecho = 340;
+const int espacioPanelDerecho = 8;
 
 // FUNCIONES
 Texture2D CargarIcono(string archivo)
@@ -43,6 +45,9 @@ var iconoLupa = CargarIcono("Icon_Lupa.png");
 var iconoCarpetaCerrada = CargarIcono("Icon_CapertaCerrada.png");
 var iconoCarpetaAbierta = CargarIcono("Icon_CarpetaAbierta.png");
 var iconoTerminal = CargarIcono("Icon_Terminal.png");
+var iconoPersonaje = CargarIcono("Icon_Personaje.png");
+var iconoPuertaAbierta = CargarIcono("Icon_PuertaAbierta.png");
+var iconoPuertaCerrada = CargarIcono("Icon_PuertaCerrada.png");
 
 int yToolbar = AppTitleBar.Height + MenuBar.Height + altoDivisor + margen;
 
@@ -86,6 +91,8 @@ int anchoExploradorAlIniciarArrastre = 0;
 float mouseXAlIniciarArrastreExplorador = 0f;
 var explorador = new ExploradorArchivos();
 var panelCentral = new PanelCentral { IconoArchivo = iconoNuevo };
+var panelJuego = new PanelJuego(iconoPersonaje, iconoPuertaAbierta, iconoPuertaCerrada);
+var panelInspeccion = new PanelInspeccion(iconoPuertaAbierta, iconoPuertaCerrada);
 
 bool terminalVisible = false;
 var panelTerminal = new PanelTerminal();
@@ -124,7 +131,22 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
     explorador.Update();
 
     int xCentral = margenExplorador + anchoExplorador + anchoManijaResize;
-    panelCentral.Bounds = new Rectangle(xCentral, alturaHeader + margen, anchoActual - xCentral - margen, altoContenido);
+    int xPanelDerecho = anchoActual - margen - anchoPanelDerecho;
+
+    // el juego y la inspección se reparten todo el alto disponible, proporcional a lo que cada uno necesita
+    int alturaColumnaDerecha = altoContenido - espacioPanelDerecho;
+    int alturaJuego = alturaColumnaDerecha * panelJuego.AlturaSugerida / (panelJuego.AlturaSugerida + panelInspeccion.AlturaSugerida);
+    int alturaInspeccion = alturaColumnaDerecha - alturaJuego;
+
+    panelJuego.Bounds = new Rectangle(xPanelDerecho, alturaHeader + margen, anchoPanelDerecho, alturaJuego);
+    panelJuego.Update();
+
+    panelInspeccion.Bounds = new Rectangle(xPanelDerecho, panelJuego.Bounds.Y + panelJuego.Bounds.Height + espacioPanelDerecho, anchoPanelDerecho, alturaInspeccion);
+    panelInspeccion.Update();
+
+    // el panel central recupera el espacio de lo que esté colapsado a su derecha
+    float xColumnaDerechaActual = Math.Min(panelJuego.BordeIzquierdoActual, panelInspeccion.BordeIzquierdoActual);
+    panelCentral.Bounds = new Rectangle(xCentral, alturaHeader + margen, xColumnaDerechaActual - espacioPanelDerecho - xCentral, altoContenido);
     panelCentral.Update();
 
     if (terminalVisible)
@@ -178,6 +200,13 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     panelCentral.Draw();
 
+    // línea que separa el centro de la columna derecha
+    int xDivisorDerecho = (int)(panelCentral.Bounds.X + panelCentral.Bounds.Width + espacioPanelDerecho / 2);
+    Win95Style.DrawDivisorVertical(xDivisorDerecho, (int)panelCentral.Bounds.Y, (int)panelCentral.Bounds.Height);
+
+    panelJuego.Draw();
+    panelInspeccion.Draw();
+
     if (terminalVisible)
     {
         // línea que separa la terminal del contenido de arriba, en el medio del hueco
@@ -200,5 +229,8 @@ Raylib.UnloadTexture(iconoLupa);
 Raylib.UnloadTexture(iconoCarpetaCerrada);
 Raylib.UnloadTexture(iconoCarpetaAbierta);
 Raylib.UnloadTexture(iconoTerminal);
+Raylib.UnloadTexture(iconoPersonaje);
+Raylib.UnloadTexture(iconoPuertaAbierta);
+Raylib.UnloadTexture(iconoPuertaCerrada);
 Raylib.UnloadFont(Win95Style.Fuente);
 Raylib.CloseWindow();

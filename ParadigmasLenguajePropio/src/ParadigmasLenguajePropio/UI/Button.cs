@@ -38,29 +38,65 @@ public class Button
         // Al hacer click se hunde
         var desplazamiento = presionado ? new Vector2(1, 1) : Vector2.Zero;
 
-        if (Icon.HasValue)
+        if (Icon.HasValue && string.IsNullOrEmpty(Text))
         {
-            var icon = Icon.Value;
-
-            float escalaMaxima = Math.Min((Bounds.Width - 2) / icon.Width, (Bounds.Height - 2) / icon.Height);
-            float escala = escalaMaxima >= 1f ? MathF.Floor(escalaMaxima) : 1f / MathF.Ceiling(1f / escalaMaxima);
-            float anchoIcono = icon.Width * escala;
-            float altoIcono = icon.Height * escala;
-            var posicion = new Vector2(Bounds.X + (Bounds.Width - anchoIcono) / 2, Bounds.Y + (Bounds.Height - altoIcono) / 2) + desplazamiento;
-            posicion = new Vector2(MathF.Round(posicion.X), MathF.Round(posicion.Y));
-            Raylib.DrawTextureEx(icon, posicion, 0f, escala, Color.White);
+            DibujarIconoCentrado(desplazamiento);
             return;
         }
 
-        int fontSize = 20;
-        int textWidth = Win95Style.MeasureText(Text, fontSize);
-        var posicionTexto = new Vector2(Bounds.X + (Bounds.Width - textWidth) / 2, Bounds.Y + (Bounds.Height - fontSize) / 2) + desplazamiento;
-        Win95Style.DrawText(Text, (int)posicionTexto.X, (int)posicionTexto.Y, fontSize, TextColor);
+        if (Icon.HasValue)
+        {
+            DibujarIconoYTexto(desplazamiento);
+            return;
+        }
+
+        DibujarTexto(Bounds.X + (Bounds.Width - Win95Style.MeasureText(Text, FontSize)) / 2, desplazamiento);
     }
+
+    void DibujarIconoCentrado(Vector2 desplazamiento)
+    {
+        var icon = Icon!.Value;
+
+        float escalaMaxima = Math.Min((Bounds.Width - 2) / icon.Width, (Bounds.Height - 2) / icon.Height);
+        float escala = escalaMaxima >= 1f ? MathF.Floor(escalaMaxima) : 1f / MathF.Ceiling(1f / escalaMaxima);
+        float anchoIcono = icon.Width * escala;
+        float altoIcono = icon.Height * escala;
+        var posicion = new Vector2(Bounds.X + (Bounds.Width - anchoIcono) / 2, Bounds.Y + (Bounds.Height - altoIcono) / 2) + desplazamiento;
+        posicion = new Vector2(MathF.Round(posicion.X), MathF.Round(posicion.Y));
+        Raylib.DrawTextureEx(icon, posicion, 0f, escala, Color.White);
+    }
+
+    void DibujarIconoYTexto(Vector2 desplazamiento)
+    {
+        var icon = Icon!.Value;
+        float ladoIcono = MathF.Min(Bounds.Height - 6, 12);
+        float escala = ladoIcono / icon.Width;
+        float anchoIcono = icon.Width * escala;
+        float altoIcono = icon.Height * escala;
+
+        int anchoTexto = Win95Style.MeasureText(Text, FontSize);
+        float anchoTotal = anchoIcono + EspacioIconoTexto + anchoTexto;
+        float xInicio = Bounds.X + (Bounds.Width - anchoTotal) / 2;
+
+        var posicionIcono = new Vector2(xInicio, Bounds.Y + (Bounds.Height - altoIcono) / 2) + desplazamiento;
+        posicionIcono = new Vector2(MathF.Round(posicionIcono.X), MathF.Round(posicionIcono.Y));
+        Raylib.DrawTextureEx(icon, posicionIcono, 0f, escala, Color.White);
+
+        DibujarTexto(xInicio + anchoIcono + EspacioIconoTexto, desplazamiento);
+    }
+
+    void DibujarTexto(float x, Vector2 desplazamiento)
+    {
+        var posicionTexto = new Vector2(x, Bounds.Y + (Bounds.Height - FontSize) / 2) + desplazamiento;
+        Win95Style.DrawText(Text, (int)posicionTexto.X, (int)posicionTexto.Y, FontSize, TextColor);
+    }
+
+    const int EspacioIconoTexto = 4;
 
     public Rectangle Bounds;
     public string Text;
     public Color BackgroundColor;
     public Color TextColor;
     public Texture2D? Icon;
+    public int FontSize = 20;
 }

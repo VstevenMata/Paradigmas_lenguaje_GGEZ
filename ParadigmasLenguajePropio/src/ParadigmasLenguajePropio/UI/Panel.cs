@@ -5,7 +5,7 @@ namespace ParadigmasLenguajePropio.UI;
 public class Panel
 {
     // VARIABLES CONSTANTES
-    const int TitleBarHeight = 22;
+    public const int TitleBarHeight = 22;
     const int TitleButtonSize = 16;
 
     public Panel(int x, int y, int width, int height, string title)
@@ -18,18 +18,18 @@ public class Panel
     {
         if (!Visible) return;
 
-        if (WasClicked(CloseButton))
+        if (MostrarCerrar && WasClicked(CloseButton))
         {
             Visible = false;
             return;
         }
 
-        if (WasClicked(MinimizeButton))
+        if (MostrarMinimizar && WasClicked(MinimizeButton))
         {
             Minimized = !Minimized;
         }
 
-        if (WasClicked(MaximizeButton))
+        if (MostrarMaximizar && WasClicked(MaximizeButton))
         {
             Maximized = !Maximized;
             if (Maximized)
@@ -55,19 +55,43 @@ public class Panel
 
             if (drawContent != null)
             {
-                var contentArea = new Rectangle(
-                    Bounds.X + 4, Bounds.Y + TitleBarHeight + 4,
-                    Bounds.Width - 8, Bounds.Height - TitleBarHeight - 8);
-                drawContent(contentArea);
+                drawContent(ContentArea());
             }
         }
 
         Raylib.DrawRectangleRec(TitleBarBounds, Win95Style.TitleBar);
-        Win95Style.DrawText(Title, (int)Bounds.X + 4, (int)Bounds.Y + 4, 14, Color.White);
 
-        Win95Style.DrawMinimizeIcon(MinimizeButton);
-        Win95Style.DrawMaximizeIcon(MaximizeButton);
-        Win95Style.DrawCloseIcon(CloseButton);
+        if (!Minimized)
+        {
+            int xTitulo = (int)Bounds.X + 4;
+            if (IconoTitulo != null)
+            {
+                IconoTitulo(new Rectangle(Bounds.X + 3, Bounds.Y + 3, 16, 16));
+                xTitulo += 20;
+            }
+            Win95Style.DrawText(Title, xTitulo, (int)Bounds.Y + 4, 14, Color.White);
+        }
+
+        if (MostrarMinimizar) Win95Style.DrawMinimizeIcon(MinimizeButton);
+        if (MostrarMaximizar) Win95Style.DrawMaximizeIcon(MaximizeButton);
+        if (MostrarCerrar) Win95Style.DrawCloseIcon(CloseButton);
+        if (MostrarBotonExtra)
+        {
+            Win95Style.DrawTitleButtonBase(BotonExtra);
+            IconoBotonExtra?.Invoke(BotonExtra);
+        }
+    }
+
+    public bool BotonExtraClickeado()
+    {
+        return Visible && MostrarBotonExtra && WasClicked(BotonExtra);
+    }
+
+    public Rectangle ContentArea()
+    {
+        return new Rectangle(
+            Bounds.X + 4, Bounds.Y + TitleBarHeight + 4,
+            Bounds.Width - 8, Bounds.Height - TitleBarHeight - 8);
     }
 
     bool WasClicked(Rectangle r)
@@ -80,12 +104,26 @@ public class Panel
     public bool Visible = true;
     public bool Minimized = false;
     public bool Maximized = false;
+    public Action<Rectangle>? IconoTitulo;
+    public bool MostrarMinimizar = true;
+    public bool MostrarMaximizar = true;
+    public bool MostrarCerrar = true;
+    public bool MostrarBotonExtra = false;
+    public Action<Rectangle>? IconoBotonExtra;
 
     Rectangle boundsBeforeMaximize;
 
     Rectangle TitleBarBounds => new(Bounds.X, Bounds.Y, Bounds.Width, TitleBarHeight);
 
-    Rectangle CloseButton => new(Bounds.X + Bounds.Width - TitleButtonSize - 4, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
-    Rectangle MaximizeButton => new(CloseButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
-    Rectangle MinimizeButton => new(MaximizeButton.X - TitleButtonSize - 5, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
+    // los botones se acomodan desde la derecha; si alguno está oculto, el siguiente ocupa su lugar
+    Rectangle CloseButton => PosicionBoton(0);
+    Rectangle MaximizeButton => PosicionBoton(MostrarCerrar ? 1 : 0);
+    Rectangle MinimizeButton => PosicionBoton((MostrarCerrar ? 1 : 0) + (MostrarMaximizar ? 1 : 0));
+    Rectangle BotonExtra => PosicionBoton((MostrarCerrar ? 1 : 0) + (MostrarMaximizar ? 1 : 0) + (MostrarMinimizar ? 1 : 0));
+
+    Rectangle PosicionBoton(int indiceDesdeLaDerecha)
+    {
+        float x = Bounds.X + Bounds.Width - TitleButtonSize - 4 - indiceDesdeLaDerecha * (TitleButtonSize + 5);
+        return new Rectangle(x, Bounds.Y + 3, TitleButtonSize, TitleButtonSize);
+    }
 }
