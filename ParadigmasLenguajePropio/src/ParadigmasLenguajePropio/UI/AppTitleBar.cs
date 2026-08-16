@@ -77,7 +77,7 @@ public class AppTitleBar
     public void Draw()
     {
         Raylib.DrawRectangleRec(Bounds, Win95Style.TitleBar);
-        Win95Style.DrawText(Title, 6, 5, 14, Color.White);
+        Win95Style.DrawText(Title, 6, 5, 18, Color.White);
 
         Win95Style.DrawMinimizeIcon(MinimizeButton);
         Win95Style.DrawMaximizeIcon(MaximizeButton);

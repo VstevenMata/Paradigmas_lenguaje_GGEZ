@@ -7,13 +7,14 @@ public class PanelJuego
 {
     // VARIABLES CONSTANTES
     const int AltoViewportSugerido = 90;
-    const int AltoBarraNivel = 16;
+    const int AltoBarraNivel = 20;
     const int SegmentosNivel = 24;
-    const int AnchoBoton = 62;
-    const int AltoBoton = 20;
-    const int FontSizeBoton = 12;
+    const int AnchoBoton = 72;
+    const int AltoBoton = 24;
+    const int FontSizeBoton = 16;
     const int Margen = 8;
     const int AnchoPestana = 28;
+    const int LadoPersonaje = 48;
     const float VelocidadAnimacion = 1400f;
 
     public void Update()
@@ -54,13 +55,14 @@ public class PanelJuego
         var viewport = new Rectangle(area.X, area.Y, area.Width, alturaViewport);
         Raylib.DrawRectangleRec(viewport, Color.White);
         Win95Style.DrawBevel(viewport, sunken: true, thickness: 2);
+        DibujarPersonaje(viewport);
 
         DibujarBarraNivel(new Rectangle(area.X, viewport.Y + viewport.Height + Margen, area.Width, AltoBarraNivel));
 
         var filaBotones = FilaBotones(area, alturaViewport);
         if (EnPausa)
         {
-            Win95Style.DrawText("En pausa", (int)filaBotones.X, (int)filaBotones.Y + 3, 13, Color.Black);
+            Win95Style.DrawText("En pausa", (int)filaBotones.X, (int)filaBotones.Y + 3, 17, Color.Black);
         }
 
         botonOk.Draw();
@@ -72,11 +74,19 @@ public class PanelJuego
         return area.Height - Margen - AltoBarraNivel - Margen - AltoBoton;
     }
 
+    void DibujarPersonaje(Rectangle viewport)
+    {
+        int lado = Math.Min(LadoPersonaje, (int)MathF.Min(viewport.Width, viewport.Height));
+        float escala = lado / (float)iconoPersonaje64px.Width;
+        var posicion = new Vector2(viewport.X + (viewport.Width - lado) / 2f, viewport.Y + (viewport.Height - lado) / 2f);
+        Raylib.DrawTextureEx(iconoPersonaje64px, posicion, 0f, escala, Color.White);
+    }
+
     void DibujarBarraNivel(Rectangle fila)
     {
-        Win95Style.DrawText("Nivel:", (int)fila.X, (int)fila.Y + 2, 12, Color.Black);
+        Win95Style.DrawText("Nivel:", (int)fila.X, (int)fila.Y + 2, 16, Color.Black);
 
-        int anchoEtiqueta = Win95Style.MeasureText("Nivel:", 12) + 8;
+        int anchoEtiqueta = Win95Style.MeasureText("Nivel:", 16) + 8;
         var pista = new Rectangle(fila.X + anchoEtiqueta, fila.Y, fila.Width - anchoEtiqueta, fila.Height);
         Raylib.DrawRectangleRec(pista, Color.White);
         Win95Style.DrawBevel(pista, sunken: true, thickness: 1);
@@ -115,22 +125,20 @@ public class PanelJuego
     float anchoActual;
 
     readonly Panel panel;
+    readonly Texture2D iconoPersonaje64px;
     readonly Button botonOk = new(0, 0, AnchoBoton, AltoBoton, "OK") { FontSize = FontSizeBoton };
     readonly Button botonCancel = new(0, 0, AnchoBoton, AltoBoton, "Cancel") { FontSize = FontSizeBoton };
 
-    public PanelJuego(Texture2D iconoPersonaje, Texture2D iconoPuertaAbierta, Texture2D iconoPuertaCerrada)
+    public PanelJuego(Texture2D iconoPersonaje64px, Texture2D iconoPuertaAbierta, Texture2D iconoPuertaCerrada)
     {
+        this.iconoPersonaje64px = iconoPersonaje64px;
+
         panel = new Panel(0, 0, 0, 0, "Innvacion")
         {
             MostrarMinimizar = false,
             MostrarMaximizar = false,
             MostrarCerrar = false,
             MostrarBotonExtra = true,
-            IconoTitulo = r =>
-            {
-                float escala = r.Width / iconoPersonaje.Width;
-                Raylib.DrawTextureEx(iconoPersonaje, new Vector2(r.X, r.Y), 0f, escala, Color.White);
-            },
             IconoBotonExtra = r =>
             {
                 var icono = Oculto ? iconoPuertaCerrada : iconoPuertaAbierta;

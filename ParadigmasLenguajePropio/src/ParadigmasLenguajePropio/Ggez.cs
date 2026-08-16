@@ -6,7 +6,7 @@ const int anchoInicial = 1500;
 const int altoInicial = 900;
 const int anchoMinimo = 800;
 const int altoMinimo = 450;
-const int ladoBoton = 24;
+const int ladoBoton = 28;
 const int margen = 4;
 const int espacio = 3;
 const int altoDivisor = 2;
@@ -46,8 +46,12 @@ var iconoCarpetaCerrada = CargarIcono("Icon_CapertaCerrada.png");
 var iconoCarpetaAbierta = CargarIcono("Icon_CarpetaAbierta.png");
 var iconoTerminal = CargarIcono("Icon_Terminal.png");
 var iconoPersonaje = CargarIcono("Icon_Personaje.png");
+var iconoPersonaje64px = CargarIcono("Icon_Personaje64px.png");
 var iconoPuertaAbierta = CargarIcono("Icon_PuertaAbierta.png");
 var iconoPuertaCerrada = CargarIcono("Icon_PuertaCerrada.png");
+var iconoDocumentoGgez = CargarIcono("Icon_Documentoggez.png");
+var iconoImagenes = CargarIcono("Icon_Imagenes.png");
+var iconoDocumentoMd = CargarIcono("Icon_DocumentoMD.png");
 
 int yToolbar = AppTitleBar.Height + MenuBar.Height + altoDivisor + margen;
 
@@ -89,9 +93,17 @@ int anchoExplorador = divisoresToolbar[^1] - margen;
 bool arrastrandoExplorador = false;
 int anchoExploradorAlIniciarArrastre = 0;
 float mouseXAlIniciarArrastreExplorador = 0f;
-var explorador = new ExploradorArchivos();
+var explorador = new ExploradorArchivos
+{
+    IconoCarpetaAbierta = iconoCarpetaAbierta,
+    IconoCarpetaCerrada = iconoCarpetaCerrada,
+    IconoDocumento = iconoNuevo,
+    IconoDocumentoGgez = iconoDocumentoGgez,
+    IconoImagenes = iconoImagenes,
+    IconoDocumentoMd = iconoDocumentoMd,
+};
 var panelCentral = new PanelCentral { IconoArchivo = iconoNuevo };
-var panelJuego = new PanelJuego(iconoPersonaje, iconoPuertaAbierta, iconoPuertaCerrada);
+var panelJuego = new PanelJuego(iconoPersonaje64px, iconoPuertaAbierta, iconoPuertaCerrada);
 var panelInspeccion = new PanelInspeccion(iconoPuertaAbierta, iconoPuertaCerrada);
 
 bool terminalVisible = false;
@@ -232,5 +244,8 @@ Raylib.UnloadTexture(iconoTerminal);
 Raylib.UnloadTexture(iconoPersonaje);
 Raylib.UnloadTexture(iconoPuertaAbierta);
 Raylib.UnloadTexture(iconoPuertaCerrada);
+Raylib.UnloadTexture(iconoDocumentoGgez);
+Raylib.UnloadTexture(iconoImagenes);
+Raylib.UnloadTexture(iconoDocumentoMd);
 Raylib.UnloadFont(Win95Style.Fuente);
 Raylib.CloseWindow();

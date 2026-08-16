@@ -5,7 +5,7 @@ namespace ParadigmasLenguajePropio.UI;
 public class Panel
 {
     // VARIABLES CONSTANTES
-    public const int TitleBarHeight = 22;
+    public const int TitleBarHeight = 26;
     const int TitleButtonSize = 16;
 
     public Panel(int x, int y, int width, int height, string title)
@@ -69,7 +69,7 @@ public class Panel
                 IconoTitulo(new Rectangle(Bounds.X + 3, Bounds.Y + 3, 16, 16));
                 xTitulo += 20;
             }
-            Win95Style.DrawText(Title, xTitulo, (int)Bounds.Y + 4, 14, Color.White);
+            Win95Style.DrawText(Title, xTitulo, (int)Bounds.Y + 4, 18, Color.White);
         }
 
         if (MostrarMinimizar) Win95Style.DrawMinimizeIcon(MinimizeButton);

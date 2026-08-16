@@ -98,5 +98,5 @@ public class Button
     public Color BackgroundColor;
     public Color TextColor;
     public Texture2D? Icon;
-    public int FontSize = 20;
+    public int FontSize = 24;
 }

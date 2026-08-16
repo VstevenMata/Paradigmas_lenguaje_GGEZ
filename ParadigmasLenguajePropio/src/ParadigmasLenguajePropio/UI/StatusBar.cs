@@ -5,8 +5,8 @@ namespace ParadigmasLenguajePropio.UI;
 public class StatusBar
 {
     // VARIABLES CONSTANTES
-    public const int Height = 22;
-    const int FontSize = 11;
+    public const int Height = 26;
+    const int FontSize = 15;
 
     public void Draw()
     {

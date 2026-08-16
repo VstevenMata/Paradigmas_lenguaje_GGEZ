@@ -8,11 +8,11 @@ public class PanelCentral
     // VARIABLES CONSTANTES
     const int AnchoScroll = 16;
     const int AltoScrollHorizontal = 16;
-    const int AnchoNumeros = 34;
-    const int FontSize = 14;
-    const int AltoLinea = 16;
+    const int AnchoNumeros = 40;
+    const int FontSize = 18;
+    const int AltoLinea = 20;
     const int AltoTabs = 24;
-    const int FontSizeTabs = 12;
+    const int FontSizeTabs = 16;
     const int LadoIconoTab = 16;
     const int PaddingTab = 8;
     const int EspacioIconoTexto = 4;

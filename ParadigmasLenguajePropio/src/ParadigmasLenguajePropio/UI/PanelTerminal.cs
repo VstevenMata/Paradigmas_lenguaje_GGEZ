@@ -4,7 +4,7 @@ namespace ParadigmasLenguajePropio.UI;
 public class PanelTerminal
 {
     // VARIABLES CONSTANTES
-    const int AltoTabs = 18;
+    const int AltoTabs = 22;
     const int AnchoScroll = 16;
     const int AnchoTab = 70;
     const int MargenArribaTabs = 4;
@@ -32,7 +32,7 @@ public class PanelTerminal
             bool activa = i == TabActiva;
             Raylib.DrawRectangleRec(tabRect, Win95Style.Background);
             Win95Style.DrawBevel(tabRect, sunken: !activa, thickness: 2);
-            Win95Style.DrawText(Tabs[i], (int)tabRect.X + 8, (int)tabRect.Y + 5, 12, Color.Black);
+            Win95Style.DrawText(Tabs[i], (int)tabRect.X + 8, (int)tabRect.Y + 5, 16, Color.Black);
         }
 
         var areaContenido = AreaContenido();
@@ -43,7 +43,7 @@ public class PanelTerminal
         var colorTexto = TabActiva == 0 ? Color.Lime : Color.White;
         for (int i = 0; i < lineas.Count; i++)
         {
-            Win95Style.DrawText(lineas[i], (int)areaContenido.X + 10, (int)areaContenido.Y + 10 + i * 14, 12, colorTexto);
+            Win95Style.DrawText(lineas[i], (int)areaContenido.X + 10, (int)areaContenido.Y + 10 + i * 18, 16, colorTexto);
         }
 
         scroll.Draw();

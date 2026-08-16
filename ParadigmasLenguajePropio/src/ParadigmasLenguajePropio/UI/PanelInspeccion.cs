@@ -6,8 +6,8 @@ namespace ParadigmasLenguajePropio.UI;
 public class PanelInspeccion
 {
     // VARIABLES CONSTANTES
-    const int AltoEncabezado = 18;
-    const int AltoFila = 18;
+    const int AltoEncabezado = 22;
+    const int AltoFila = 22;
     const int AnchoColumnaVariable = 90;
     const int AnchoPestana = 28;
     const float VelocidadAnimacion = 1400f;
@@ -38,14 +38,14 @@ public class PanelInspeccion
         var encabezado = new Rectangle(area.X + 2, area.Y + 2, area.Width - 4, AltoEncabezado);
         Raylib.DrawRectangleRec(encabezado, Win95Style.Background);
         Win95Style.DrawBevel(encabezado, sunken: false, thickness: 1);
-        Win95Style.DrawText("Variable", (int)encabezado.X + 6, (int)encabezado.Y + 3, 12, Color.Black);
-        Win95Style.DrawText("Valor", (int)encabezado.X + AnchoColumnaVariable + 6, (int)encabezado.Y + 3, 12, Color.Black);
+        Win95Style.DrawText("Variable", (int)encabezado.X + 6, (int)encabezado.Y + 3, 16, Color.Black);
+        Win95Style.DrawText("Valor", (int)encabezado.X + AnchoColumnaVariable + 6, (int)encabezado.Y + 3, 16, Color.Black);
 
         float y = encabezado.Y + encabezado.Height;
         foreach (var (nombre, valor) in Variables)
         {
-            Win95Style.DrawText(nombre, (int)area.X + 8, (int)y + 3, 12, Color.Black);
-            Win95Style.DrawText(valor, (int)area.X + AnchoColumnaVariable + 6, (int)y + 3, 12, new Color(0, 0, 200, 255));
+            Win95Style.DrawText(nombre, (int)area.X + 8, (int)y + 3, 16, Color.Black);
+            Win95Style.DrawText(valor, (int)area.X + AnchoColumnaVariable + 6, (int)y + 3, 16, new Color(0, 0, 200, 255));
             y += AltoFila;
             Win95Style.DrawDivisorHorizontal((int)area.X + 2, (int)y, (int)area.Width - 4);
         }

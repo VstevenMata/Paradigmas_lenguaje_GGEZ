@@ -5,7 +5,7 @@ namespace ParadigmasLenguajePropio.UI;
 public class MenuBar
 {
     // VARIABLES CONSTANTES
-    public const int Height = 20;
+    public const int Height = 24;
 
     public void Draw()
     {
@@ -14,8 +14,8 @@ public class MenuBar
         int x = (int)Bounds.X + 6;
         foreach (var item in Items)
         {
-            Win95Style.DrawText(item, x, (int)Bounds.Y + 4, 12, Color.Black);
-            x += Win95Style.MeasureText(item, 12) + 18;
+            Win95Style.DrawText(item, x, (int)Bounds.Y + 4, 16, Color.Black);
+            x += Win95Style.MeasureText(item, 16) + 18;
         }
     }
 
