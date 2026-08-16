@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Raylib_cs;
 using ParadigmasLenguajePropio.UI;
 
@@ -27,6 +28,32 @@ Texture2D CargarIcono(string archivo)
     return textura;
 }
 
+// abre el selector de carpetas nativo del escritorio (zenity) null si se canceló o no está disponible
+string? ElegirCarpeta()
+{
+    try
+    {
+        var info = new ProcessStartInfo
+        {
+            FileName = "zenity",
+            Arguments = "--file-selection --directory --title=\"Elegir una carpeta\"",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+        using var proceso = Process.Start(info);
+        if (proceso == null) return null;
+
+        string salida = proceso.StandardOutput.ReadToEnd().Trim();
+        proceso.WaitForExit();
+        return proceso.ExitCode == 0 && salida.Length > 0 ? salida : null;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"No se pudo abrir el selector de carpetas: {ex.Message}");
+        return null;
+    }
+}
+
 Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.UndecoratedWindow);
 Raylib.InitWindow(anchoInicial, altoInicial, "Paradigmas GGEZ");
 Raylib.SetWindowMinSize(anchoMinimo, altoMinimo);
@@ -39,8 +66,9 @@ var barraMenu = new MenuBar();
 
 var iconoNuevo = CargarIcono("Icon_Documento.png");
 var iconoGuardar = CargarIcono("Icon_NewDocumento.png");
+var iconoConstruir = CargarIcono("Icon_Build.png");
 var iconoPlay = CargarIcono("Icon_Play.png");
-var iconoPausa = CargarIcono("Icon_Pausa.png");
+var iconoDetener = CargarIcono("Icon_Detener.png");
 var iconoLupa = CargarIcono("Icon_Lupa.png");
 var iconoCarpetaCerrada = CargarIcono("Icon_CapertaCerrada.png");
 var iconoCarpetaAbierta = CargarIcono("Icon_CarpetaAbierta.png");
@@ -57,8 +85,9 @@ int yToolbar = AppTitleBar.Height + MenuBar.Height + altoDivisor + margen;
 
 var botonNuevo = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoNuevo };
 var botonGuardar = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoGuardar };
+var botonConstruir = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoConstruir };
 var botonPlay = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoPlay };
-var botonPausa = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoPausa };
+var botonDetener = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoDetener };
 var botonLupa = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoLupa };
 var botonCarpeta = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoCarpetaCerrada };
 var botonTerminal = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = iconoTerminal };
@@ -67,7 +96,7 @@ var botonTerminal = new Button(0, yToolbar, ladoBoton, ladoBoton, "") { Icon = i
 var gruposToolbar = new[]
 {
     new[] { botonNuevo, botonGuardar },
-    new[] { botonPlay, botonPausa },
+    new[] { botonConstruir, botonPlay, botonDetener },
     new[] { botonLupa, botonCarpeta, botonTerminal },
 };
 
@@ -87,7 +116,6 @@ foreach (var grupo in gruposToolbar)
 
 int alturaHeader = yToolbar + ladoBoton + margen + altoDivisor;
 var botonesToolbar = gruposToolbar.SelectMany(g => g).ToArray();
-bool carpetaAbierta = false;
 
 int anchoExplorador = divisoresToolbar[^1] - margen;
 bool arrastrandoExplorador = false;
@@ -102,12 +130,25 @@ var explorador = new ExploradorArchivos
     IconoImagenes = iconoImagenes,
     IconoDocumentoMd = iconoDocumentoMd,
 };
-var panelCentral = new PanelCentral { IconoArchivo = iconoNuevo };
+var panelCentral = new PanelCentral
+{
+    IconoDocumento = iconoNuevo,
+    IconoDocumentoGgez = iconoDocumentoGgez,
+    IconoImagenes = iconoImagenes,
+    IconoDocumentoMd = iconoDocumentoMd,
+};
 var panelJuego = new PanelJuego(iconoPersonaje64px, iconoPuertaAbierta, iconoPuertaCerrada);
 var panelInspeccion = new PanelInspeccion(iconoPuertaAbierta, iconoPuertaCerrada);
 
 bool terminalVisible = false;
+bool focoEnTerminal = false;
 var panelTerminal = new PanelTerminal();
+
+explorador.OnAbrirArchivo = nodo =>
+{
+    panelCentral.AbrirArchivo(nodo.Nombre, nodo.RutaCompleta);
+    panelTerminal.RegistrarAperturaArchivo(nodo.RutaCompleta);
+};
 
 var barraEstado = new StatusBar();
 
@@ -117,14 +158,19 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     if (botonNuevo.IsClicked()) Console.WriteLine("Nuevo documento");
     if (botonGuardar.IsClicked()) Console.WriteLine("Guardar documento");
+    if (botonConstruir.IsClicked()) Console.WriteLine("Construir");
     if (botonPlay.IsClicked()) Console.WriteLine("Correr");
-    if (botonPausa.IsClicked()) Console.WriteLine("Pausar");
+    if (botonDetener.IsClicked()) Console.WriteLine("Detener");
     if (botonLupa.IsClicked()) Console.WriteLine("Buscar");
     if (botonCarpeta.IsClicked())
     {
-        carpetaAbierta = !carpetaAbierta;
-        botonCarpeta.Icon = carpetaAbierta ? iconoCarpetaAbierta : iconoCarpetaCerrada;
-        Console.WriteLine(carpetaAbierta ? "Abrir carpeta" : "Cerrar carpeta");
+        var rutaElegida = ElegirCarpeta();
+        if (rutaElegida != null)
+        {
+            explorador.AbrirCarpeta(rutaElegida);
+            botonCarpeta.Icon = iconoCarpetaAbierta;
+            Console.WriteLine($"Carpeta abierta: {rutaElegida}");
+        }
     }
     if (botonTerminal.IsClicked())
     {
@@ -135,6 +181,7 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
     int anchoActual = Raylib.GetScreenWidth();
     int altoActual = Raylib.GetScreenHeight();
     barraMenu.Bounds = new Rectangle(0, AppTitleBar.Height, anchoActual, MenuBar.Height);
+    barraMenu.Update();
     barraEstado.Bounds = new Rectangle(0, altoActual - StatusBar.Height, anchoActual, StatusBar.Height);
 
     int altoDisponible = altoActual - StatusBar.Height;
@@ -159,11 +206,25 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
     // el panel central recupera el espacio de lo que esté colapsado a su derecha
     float xColumnaDerechaActual = Math.Min(panelJuego.BordeIzquierdoActual, panelInspeccion.BordeIzquierdoActual);
     panelCentral.Bounds = new Rectangle(xCentral, alturaHeader + margen, xColumnaDerechaActual - espacioPanelDerecho - xCentral, altoContenido);
+
+    if (terminalVisible)
+        panelTerminal.Bounds = new Rectangle(margen, explorador.Bounds.Y + explorador.Bounds.Height + margen, anchoActual - margen * 2, altoTerminal);
+    else
+        focoEnTerminal = false; // si la terminal está cerrada, el teclado siempre es del editor
+
+    // el panel donde se hace click se queda con el foco del teclado el otro se congela sin perder lo escrito
+    if (Raylib.IsMouseButtonPressed(MouseButton.Left))
+    {
+        if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), panelCentral.Bounds)) focoEnTerminal = false;
+        else if (terminalVisible && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), panelTerminal.Bounds)) focoEnTerminal = true;
+    }
+
+    panelCentral.TieneFoco = !focoEnTerminal;
     panelCentral.Update();
 
     if (terminalVisible)
     {
-        panelTerminal.Bounds = new Rectangle(margen, explorador.Bounds.Y + explorador.Bounds.Height + margen, anchoActual - margen * 2, altoTerminal);
+        panelTerminal.TieneFoco = focoEnTerminal;
         panelTerminal.Update();
     }
 
@@ -230,13 +291,18 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     barraEstado.Draw();
     barraApp.Draw();
+
+    // al final de todo, así el desplegable del menú queda encima del explorador/editor/terminal
+    barraMenu.DrawMenuAbierto();
+
     Raylib.EndDrawing();
 }
 
 Raylib.UnloadTexture(iconoNuevo);
 Raylib.UnloadTexture(iconoGuardar);
+Raylib.UnloadTexture(iconoConstruir);
 Raylib.UnloadTexture(iconoPlay);
-Raylib.UnloadTexture(iconoPausa);
+Raylib.UnloadTexture(iconoDetener);
 Raylib.UnloadTexture(iconoLupa);
 Raylib.UnloadTexture(iconoCarpetaCerrada);
 Raylib.UnloadTexture(iconoCarpetaAbierta);

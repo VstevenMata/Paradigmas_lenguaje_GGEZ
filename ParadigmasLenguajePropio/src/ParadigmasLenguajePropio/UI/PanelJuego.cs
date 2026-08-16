@@ -133,7 +133,7 @@ public class PanelJuego
     {
         this.iconoPersonaje64px = iconoPersonaje64px;
 
-        panel = new Panel(0, 0, 0, 0, "Innvacion")
+        panel = new Panel(0, 0, 0, 0, "Resistir, persistir, resistir y nunca desistir")
         {
             MostrarMinimizar = false,
             MostrarMaximizar = false,

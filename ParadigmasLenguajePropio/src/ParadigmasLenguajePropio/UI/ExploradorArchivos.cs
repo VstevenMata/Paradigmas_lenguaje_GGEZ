@@ -11,6 +11,7 @@ public class ExploradorArchivos
     const int AltoFila = 22;
     const int IndentacionPorNivel = 14;
     const int LadoIcono = 16;
+    const int LadoIconoCarpeta = 20;
     const int FontSize = 12;
     static readonly Color ColorGuia = new(190, 190, 190, 255);
 
@@ -59,8 +60,8 @@ public class ExploradorArchivos
         foreach (var hijo in nodo.Hijos)
             DibujarNodo(hijo, nivel + 1, area, ref fila);
 
-        // guía vertical, como en VS Code conecta la carpeta con todos sus hijos visibles
-        float xGuia = area.X + 4 + nivel * IndentacionPorNivel + LadoIcono / 2f;
+        // guía vertical conecta la carpeta con todos sus hijos visibles
+        float xGuia = area.X + 4 + nivel * IndentacionPorNivel + LadoIconoCarpeta / 2f;
         float yInicio = area.Y + 2 + filaInicioHijos * AltoFila;
         float yFin = area.Y + 2 + fila * AltoFila;
         Raylib.DrawLine((int)xGuia, (int)yInicio, (int)xGuia, (int)yFin, ColorGuia);
@@ -74,11 +75,13 @@ public class ExploradorArchivos
         var icono = IconoPara(nodo);
         if (icono.HasValue)
         {
-            var posicionIcono = new Vector2(x, y + (AltoFila - LadoIcono) / 2f);
-            Raylib.DrawTextureEx(icono.Value, posicionIcono, 0f, (float)LadoIcono / icono.Value.Width, Color.White);
+            int lado = nodo.EsCarpeta ? LadoIconoCarpeta : LadoIcono;
+            var posicionIcono = new Vector2(x, y + (AltoFila - lado) / 2f);
+            Raylib.DrawTextureEx(icono.Value, posicionIcono, 0f, (float)lado / icono.Value.Width, Color.White);
         }
 
-        Win95Style.DrawText(nodo.Nombre, (int)(x + LadoIcono + 4), (int)(y + (AltoFila - FontSize) / 2f), FontSize, Color.Black);
+        // el texto arranca siempre después del ícono más ancho, para que quede alineado en columna
+        Win95Style.DrawText(nodo.Nombre, (int)(x + LadoIconoCarpeta + 4), (int)(y + (AltoFila - FontSize) / 2f), FontSize, Color.Black);
     }
 
     Texture2D? IconoPara(NodoArchivos nodo)
@@ -104,10 +107,17 @@ public class ExploradorArchivos
         foreach (var (nodo, _) in NodosVisibles())
         {
             var filaRect = new Rectangle(area.X, area.Y + 2 + fila * AltoFila, area.Width, AltoFila);
-            if (nodo.EsCarpeta && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), filaRect))
+            if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), filaRect))
             {
-                nodo.Expandido = !nodo.Expandido;
-                if (nodo.Expandido) nodo.Expandir();
+                if (nodo.EsCarpeta)
+                {
+                    nodo.Expandido = !nodo.Expandido;
+                    if (nodo.Expandido) nodo.Expandir();
+                }
+                else if (!string.IsNullOrEmpty(nodo.RutaCompleta))
+                {
+                    OnAbrirArchivo?.Invoke(nodo);
+                }
                 return;
             }
             fila++;
@@ -134,6 +144,13 @@ public class ExploradorArchivos
             Bounds.Width - 6 - AnchoScroll, Bounds.Height - AltoTitulo - 2);
     }
 
+    // reemplaza la raíz por una carpeta real arranca cerrada, así el primer clic dispara el lazy load
+    public void AbrirCarpeta(string ruta)
+    {
+        raiz = NodoArchivos.CarpetaDesdeDisco(ruta);
+        Titulo = raiz.Nombre;
+    }
+
     public Rectangle Bounds;
     public string Titulo = "Explorador";
     public Texture2D? IconoCarpetaAbierta;
@@ -142,22 +159,9 @@ public class ExploradorArchivos
     public Texture2D? IconoDocumentoGgez;
     public Texture2D? IconoImagenes;
     public Texture2D? IconoDocumentoMd;
+    public Action<NodoArchivos>? OnAbrirArchivo;
 
     readonly ScrollBarWin95 scroll = new();
 
-    readonly NodoArchivos raiz = NodoArchivos.Carpeta("C:\\RUNNER",
-        NodoArchivos.Carpeta("SRC",NodoArchivos.Carpeta("UI",
-                NodoArchivos.Archivo("Button.cs"),
-                NodoArchivos.Archivo("AppTitleBar.cs")),
-            NodoArchivos.Archivo("LOBBY.GGEZ"),
-            NodoArchivos.Archivo("SPRITES.png"),
-            NodoArchivos.Archivo("INPUT.GGEZ")
-            ,
-            NodoArchivos.Archivo("PHYSICS.md")),
-        NodoArchivos.Carpeta("ASSETS",
-            NodoArchivos.Archivo("HERO.GGEZ"),
-            NodoArchivos.Archivo("GROUND.jpg"),
-            NodoArchivos.Archivo("RULES.txt")),
-        NodoArchivos.Archivo("MAKEFILE.md"),
-        NodoArchivos.Archivo("README.TXT"));
+    NodoArchivos raiz = NodoArchivos.Archivo("Ninguna carpeta abierta");
 }
