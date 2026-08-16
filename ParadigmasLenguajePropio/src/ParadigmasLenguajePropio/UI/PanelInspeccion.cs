@@ -1,4 +1,3 @@
-using System.Numerics;
 using Raylib_cs;
 
 namespace ParadigmasLenguajePropio.UI;
@@ -9,7 +8,7 @@ public class PanelInspeccion
     const int AltoEncabezado = 22;
     const int AltoFila = 22;
     const int AnchoColumnaVariable = 90;
-    const int AnchoPestana = 28;
+    const int AnchoPestana = 0; // sin puerta propia ya no hace falta dejar una franja visible al colapsar
     const float VelocidadAnimacion = 1400f;
 
     public void Update()
@@ -77,20 +76,16 @@ public class PanelInspeccion
 
     readonly Panel panel;
 
-    public PanelInspeccion(Texture2D iconoPuertaAbierta, Texture2D iconoPuertaCerrada)
+    public PanelInspeccion()
     {
+        // sin botón de puerta propio: Oculto lo controla Ggez.cs, en espejo con el de PanelJuego,
+        // así una sola puerta abre/cierra las dos ventanas de la columna derecha a la vez
         panel = new Panel(0, 0, 0, 0, "Inspeccion")
         {
             MostrarMinimizar = false,
             MostrarMaximizar = false,
             MostrarCerrar = false,
-            MostrarBotonExtra = true,
-            IconoBotonExtra = r =>
-            {
-                var icono = Oculto ? iconoPuertaCerrada : iconoPuertaAbierta;
-                float escala = r.Width / icono.Width;
-                Raylib.DrawTextureEx(icono, new Vector2(r.X, r.Y), 0f, escala, Color.White);
-            }
+            MostrarBotonExtra = false,
         };
     }
 }

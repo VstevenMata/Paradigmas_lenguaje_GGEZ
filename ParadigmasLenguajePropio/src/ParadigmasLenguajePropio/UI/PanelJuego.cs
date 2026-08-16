@@ -13,7 +13,7 @@ public class PanelJuego
     const int AltoBoton = 24;
     const int FontSizeBoton = 16;
     const int Margen = 8;
-    const int AnchoPestana = 28;
+    const int AnchoPestana = 0; // sin puerta propia ya no hace falta dejar una franja visible al colapsar
     const int LadoPersonaje = 48;
     const float VelocidadAnimacion = 1400f;
 
@@ -129,22 +129,18 @@ public class PanelJuego
     readonly Button botonOk = new(0, 0, AnchoBoton, AltoBoton, "OK") { FontSize = FontSizeBoton };
     readonly Button botonCancel = new(0, 0, AnchoBoton, AltoBoton, "Cancel") { FontSize = FontSizeBoton };
 
-    public PanelJuego(Texture2D iconoPersonaje64px, Texture2D iconoPuertaAbierta, Texture2D iconoPuertaCerrada)
+    public PanelJuego(Texture2D iconoPersonaje64px)
     {
         this.iconoPersonaje64px = iconoPersonaje64px;
 
-        panel = new Panel(0, 0, 0, 0, "Resistir, persistir, resistir y nunca desistir")
+        // sin botón de puerta propio: Oculto lo controla Ggez.cs, con una sola puerta compartida
+        // ubicada entre esta ventana y PanelInspeccion, para que se note que cierra las dos juntas
+        panel = new Panel(0, 0, 0, 0, "Juego")
         {
             MostrarMinimizar = false,
             MostrarMaximizar = false,
             MostrarCerrar = false,
-            MostrarBotonExtra = true,
-            IconoBotonExtra = r =>
-            {
-                var icono = Oculto ? iconoPuertaCerrada : iconoPuertaAbierta;
-                float escala = r.Width / icono.Width;
-                Raylib.DrawTextureEx(icono, new Vector2(r.X, r.Y), 0f, escala, Color.White);
-            }
+            MostrarBotonExtra = false,
         };
     }
 }

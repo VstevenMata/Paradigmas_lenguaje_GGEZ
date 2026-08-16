@@ -29,6 +29,7 @@ public class PanelCentral
     const float PixelesPorRuedaTabs = 40f;
     const float PixelesPorRuedaHorizontal = 40f;
     static readonly Color ColorSeleccion = new(51, 153, 255, 110);
+    static readonly Color ColorLineaActual = new(235, 235, 235, 255);
 
     public void Update()
     {
@@ -175,8 +176,23 @@ public class PanelCentral
         return total;
     }
 
-    // cierra la pestaña si era la activa, pasa a la que quede en su lugar sin resetear el cursor de las demás
+    // si hay cambios sin guardar pregunta antes de cerrar; si no, cierra directo
     void CerrarArchivo(int indice)
+    {
+        if (archivos[indice].Modificado && Dialogo != null)
+        {
+            string nombre = archivos[indice].Nombre;
+            Dialogo.Mostrar("Confirmar", $"Cerrar \"{nombre}\" sin guardar los cambios?", new[] { "Si", "No" }, eleccion =>
+            {
+                if (eleccion == 0) CerrarArchivoInterno(indice);
+            });
+            return;
+        }
+        CerrarArchivoInterno(indice);
+    }
+
+    // cierra la pestaña si era la activa, pasa a la que quede en su lugar sin resetear el cursor de las demás
+    void CerrarArchivoInterno(int indice)
     {
         archivos.RemoveAt(indice);
 
@@ -537,6 +553,8 @@ public class PanelCentral
     void GuardarEstadoParaDeshacer(TipoEdicion tipo)
     {
         // escritura y borrado se agrupan mientras se repiten, así deshacer no va letra por letra
+        archivos[ArchivoActivo].Modificado = true;
+
         bool seAgrupaConLaAnterior = (tipo == TipoEdicion.Escritura || tipo == TipoEdicion.Borrado) && tipo == ultimoTipoEdicion;
         if (seAgrupaConLaAnterior) return;
 
@@ -712,6 +730,13 @@ public class PanelCentral
         for (int i = primeraLinea; i <= ultimaLinea; i++)
         {
             int y = (int)areaContenido.Y + 4 + (i - primeraLinea) * AltoLinea;
+
+            // franja sutil sobre la línea donde está el cursor, como en cualquier editor moderno;
+            // mismo Y/alto que el rectángulo de selección, para que coincidan si la línea tiene ambas cosas.
+            // recortada 3px de cada lado para no tapar el bevel hundido del borde del panel
+            if (i == filaCursor)
+                Raylib.DrawRectangleRec(new Rectangle(areaContenido.X + 3, y, areaContenido.Width - 6, AltoLinea), ColorLineaActual);
+
             DibujarSeleccionEnLinea(i, areaContenido, y, desplazH);
             Win95Style.DrawText(lineas[i], (int)(areaContenido.X + 4 - desplazH), y, FontSize, Color.Black);
         }
@@ -791,6 +816,11 @@ public class PanelCentral
             }
 
             float xContenido = tabRect.X + PaddingTab;
+
+            // punto de "modificado" a la izquierda, pegado al documento, antes del ícono
+            if (archivos[i].Modificado)
+                Raylib.DrawCircleV(new Vector2(tabRect.X + 5, tabRect.Y + tabRect.Height / 2f), 2, Color.Black);
+
             var iconoTab = archivos[i].Icono;
             if (iconoTab.HasValue)
             {
@@ -875,7 +905,11 @@ public class PanelCentral
     public Texture2D? IconoDocumentoGgez;
     public Texture2D? IconoImagenes;
     public Texture2D? IconoDocumentoMd;
+    public DialogoModal? Dialogo; // si está asignado, confirma antes de cerrar una pestaña con cambios sin guardar
     public string Texto => archivos.Count > 0 ? string.Join('\n', lineas) : "";
+    public bool HayArchivosAbiertos => archivos.Count > 0;
+    public int LineaCursor => filaCursor + 1;
+    public int ColumnaCursor => columnaCursor + 1;
 
     int filaCursor;
     int columnaCursor;
@@ -907,6 +941,7 @@ public class PanelCentral
         public List<(List<string> Lineas, int Fila, int Columna)> HistorialDeshacer = new();
         public TipoEdicion UltimoTipoEdicion = TipoEdicion.Ninguna;
         public Texture2D? Icono;
+        public bool Modificado;
     }
 
     // arranca sin pestañas se van agregando al abrir archivos desde el explorador

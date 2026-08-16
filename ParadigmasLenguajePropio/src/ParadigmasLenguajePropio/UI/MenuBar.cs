@@ -17,6 +17,20 @@ public class MenuBar
     {
         if (Raylib.IsKeyPressed(KeyboardKey.Escape)) menuAbierto = -1;
 
+        // mnemonics: Alt + letra subrayada abre ese menú, sin necesidad del mouse
+        bool alt = Raylib.IsKeyDown(KeyboardKey.LeftAlt) || Raylib.IsKeyDown(KeyboardKey.RightAlt);
+        if (alt)
+        {
+            for (int i = 0; i < Items.Length; i++)
+            {
+                if (Raylib.IsKeyPressed((KeyboardKey)(int)Mnemonico(i)))
+                {
+                    menuAbierto = menuAbierto == i ? -1 : i;
+                    return;
+                }
+            }
+        }
+
         var mouse = Raylib.GetMousePosition();
         var rects = RectsItems();
 
@@ -54,7 +68,7 @@ public class MenuBar
             var filaRect = RectFilaSubmenu(areaSubmenu, i);
             if (Raylib.CheckCollisionPointRec(mouse, filaRect))
             {
-                Console.WriteLine($"Menú: {opciones[i]}");
+                OnOpcionElegida?.Invoke(opciones[i]);
                 menuAbierto = -1;
                 return;
             }
@@ -78,9 +92,20 @@ public class MenuBar
                 // hundido y sin borde inferior: queda egado al submenú que se abre debajo
                 Win95Style.DrawBevel(rects[i], sunken: true, thickness: 1, bordeInferior: false);
             }
-            Win95Style.DrawText(Items[i], (int)rects[i].X + 6, (int)Bounds.Y + 4, 16, Color.Black);
+            int xTexto = (int)rects[i].X + 6;
+            int yTexto = (int)Bounds.Y + 4;
+            Win95Style.DrawText(Items[i], xTexto, yTexto, 16, Color.Black);
+
+            // subraya la letra mnemónica (Alt+letra), como en el Windows clásico
+            int indiceMnemonico = MnemonicIndices[i];
+            int xAntes = Win95Style.MeasureText(Items[i][..indiceMnemonico], 16);
+            int anchoLetra = Win95Style.MeasureText(Items[i][indiceMnemonico].ToString(), 16);
+            int yLinea = yTexto + 16;
+            Raylib.DrawLine(xTexto + xAntes, yLinea, xTexto + xAntes + anchoLetra, yLinea, Color.Black);
         }
     }
+
+    char Mnemonico(int indice) => char.ToUpperInvariant(Items[indice][MnemonicIndices[indice]]);
 
    public void DrawMenuAbierto()
     {
@@ -141,6 +166,9 @@ public class MenuBar
 
     public string[] Items = { "Archivo", "Editar", "Ejecutar", "Ayuda" };
 
+    // índice de la letra subrayada por ítem: Archivo=A, Editar=E, eJecutar=J (la E ya la usa Editar), aYuda=Y (la A ya la usa Archivo)
+    public int[] MnemonicIndices = { 0, 0, 1, 1 };
+
     // cada encabezado con sus acciones
     public string[][] Submenus =
     {
@@ -151,6 +179,8 @@ public class MenuBar
     };
 
     public Rectangle Bounds;
+    public Action<string>? OnOpcionElegida;
+    public bool MenuAbierto => menuAbierto >= 0;
 
     int menuAbierto = -1;
 }

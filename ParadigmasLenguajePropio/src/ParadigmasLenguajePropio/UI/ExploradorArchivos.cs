@@ -13,14 +13,47 @@ public class ExploradorArchivos
     const int LadoIcono = 16;
     const int LadoIconoCarpeta = 20;
     const int FontSize = 12;
+    const double UmbralDobleClick = 0.4;
+    const int AnchoMenuContextual = 150;
+    const int AltoFilaContextual = 20;
     static readonly Color ColorGuia = new(190, 190, 190, 255);
+    static readonly string[] OpcionesContextuales = { "Nuevo archivo", "Nueva carpeta", "Renombrar", "Eliminar" };
 
     public void Update()
     {
         var areaContenido = AreaContenido();
-        ManejarClicks(areaContenido);
+
+        int totalFilas = NodosVisibles().Count();
+        int filasVisibles = Math.Max(1, (int)(areaContenido.Height / AltoFila));
+        int maxPrimeraFila = Math.Max(0, totalFilas - filasVisibles);
+
+        // rueda del mouse (o gesto del touchpad) sobre el árbol: sube/baja sin arrastrar el thumb
+        if (maxPrimeraFila > 0 && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), areaContenido))
+        {
+            float rueda = Raylib.GetMouseWheelMove();
+            if (rueda != 0)
+            {
+                int primeraActual = PrimeraFilaVisible(areaContenido);
+                int primeraNueva = Math.Clamp(primeraActual - (int)MathF.Round(rueda * 3), 0, maxPrimeraFila);
+                scroll.Valor = primeraNueva / (float)maxPrimeraFila;
+            }
+        }
+
+        int primeraFila = PrimeraFilaVisible(areaContenido);
+
+        // con el menú contextual abierto, el click se usa para elegir una opción o cerrarlo, no para lo de siempre
+        if (nodoMenuContextual != null)
+        {
+            ManejarMenuContextual();
+        }
+        else
+        {
+            ManejarClicks(areaContenido, primeraFila);
+            ManejarClickDerecho(areaContenido, primeraFila);
+        }
 
         scroll.Bounds = new Rectangle(areaContenido.X + areaContenido.Width + 2, areaContenido.Y, AnchoScroll, areaContenido.Height);
+        scroll.ProporcionThumb = Math.Clamp(filasVisibles / (float)Math.Max(1, totalFilas), 0.05f, 1f);
         scroll.Update();
     }
 
@@ -33,8 +66,10 @@ public class ExploradorArchivos
         Raylib.DrawRectangleRec(areaContenido, Color.White);
         Win95Style.DrawBevel(areaContenido, sunken: true, thickness: 3);
 
+        int primeraFila = PrimeraFilaVisible(areaContenido);
+
         Raylib.BeginScissorMode((int)areaContenido.X + 2, (int)areaContenido.Y + 2, (int)areaContenido.Width - 4, (int)areaContenido.Height - 4);
-        DibujarNodos(areaContenido);
+        DibujarNodos(areaContenido, primeraFila);
         Raylib.EndScissorMode();
 
         scroll.Draw();
@@ -43,27 +78,35 @@ public class ExploradorArchivos
         Win95Style.DrawDivisorVertical((int)(areaContenido.X + areaContenido.Width) + 1, (int)areaContenido.Y, (int)areaContenido.Height, thickness: 2);
     }
 
-    void DibujarNodos(Rectangle area)
+    int PrimeraFilaVisible(Rectangle areaContenido)
     {
-        int fila = 0;
-        DibujarNodo(raiz, 0, area, ref fila);
+        int totalFilas = NodosVisibles().Count();
+        int filasVisibles = Math.Max(1, (int)(areaContenido.Height / AltoFila));
+        int maxPrimeraFila = Math.Max(0, totalFilas - filasVisibles);
+        return maxPrimeraFila == 0 ? 0 : (int)MathF.Round(scroll.Valor * maxPrimeraFila);
     }
 
-    void DibujarNodo(NodoArchivos nodo, int nivel, Rectangle area, ref int fila)
+    void DibujarNodos(Rectangle area, int primeraFila)
     {
-        DibujarFila(nodo, nivel, area, fila);
+        int fila = 0;
+        DibujarNodo(raiz, 0, area, primeraFila, ref fila);
+    }
+
+    void DibujarNodo(NodoArchivos nodo, int nivel, Rectangle area, int primeraFila, ref int fila)
+    {
+        DibujarFila(nodo, nivel, area, fila - primeraFila);
         fila++;
 
         if (!nodo.EsCarpeta || !nodo.Expandido || nodo.Hijos.Count == 0) return;
 
         int filaInicioHijos = fila;
         foreach (var hijo in nodo.Hijos)
-            DibujarNodo(hijo, nivel + 1, area, ref fila);
+            DibujarNodo(hijo, nivel + 1, area, primeraFila, ref fila);
 
         // guía vertical conecta la carpeta con todos sus hijos visibles
         float xGuia = area.X + 4 + nivel * IndentacionPorNivel + LadoIconoCarpeta / 2f;
-        float yInicio = area.Y + 2 + filaInicioHijos * AltoFila;
-        float yFin = area.Y + 2 + fila * AltoFila;
+        float yInicio = area.Y + 2 + (filaInicioHijos - primeraFila) * AltoFila;
+        float yFin = area.Y + 2 + (fila - primeraFila) * AltoFila;
         Raylib.DrawLine((int)xGuia, (int)yInicio, (int)xGuia, (int)yFin, ColorGuia);
     }
 
@@ -71,6 +114,11 @@ public class ExploradorArchivos
     {
         float x = area.X + 4 + nivel * IndentacionPorNivel;
         float y = area.Y + 2 + fila * AltoFila;
+
+        // fila seleccionada: azul marino con texto blanco, como el explorador real de Win95
+        bool seleccionado = nodo == nodoSeleccionado;
+        if (seleccionado)
+            Raylib.DrawRectangleRec(new Rectangle(area.X, y, area.Width, AltoFila), Win95Style.TitleBar);
 
         var icono = IconoPara(nodo);
         if (icono.HasValue)
@@ -81,7 +129,7 @@ public class ExploradorArchivos
         }
 
         // el texto arranca siempre después del ícono más ancho, para que quede alineado en columna
-        Win95Style.DrawText(nodo.Nombre, (int)(x + LadoIconoCarpeta + 4), (int)(y + (AltoFila - FontSize) / 2f), FontSize, Color.Black);
+        Win95Style.DrawText(nodo.Nombre, (int)(x + LadoIconoCarpeta + 4), (int)(y + (AltoFila - FontSize) / 2f), FontSize, seleccionado ? Color.White : Color.Black);
     }
 
     Texture2D? IconoPara(NodoArchivos nodo)
@@ -99,30 +147,104 @@ public class ExploradorArchivos
         return extensiones.Any(ext => nombre.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }
 
-    void ManejarClicks(Rectangle area)
+    // un solo click selecciona (como en el explorador real de Win95); recién el doble click abre/expande
+    void ManejarClicks(Rectangle area, int primeraFila)
     {
         if (!Raylib.IsMouseButtonPressed(MouseButton.Left)) return;
 
+        var mouse = Raylib.GetMousePosition();
         int fila = 0;
         foreach (var (nodo, _) in NodosVisibles())
         {
-            var filaRect = new Rectangle(area.X, area.Y + 2 + fila * AltoFila, area.Width, AltoFila);
-            if (Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), filaRect))
+            var filaRect = new Rectangle(area.X, area.Y + 2 + (fila - primeraFila) * AltoFila, area.Width, AltoFila);
+            if (Raylib.CheckCollisionPointRec(mouse, filaRect))
             {
-                if (nodo.EsCarpeta)
+                bool esDobleClick = nodo == nodoUltimoClick && Raylib.GetTime() - tiempoUltimoClick < UmbralDobleClick;
+                nodoSeleccionado = nodo;
+                nodoUltimoClick = nodo;
+                tiempoUltimoClick = Raylib.GetTime();
+
+                if (esDobleClick)
                 {
-                    nodo.Expandido = !nodo.Expandido;
-                    if (nodo.Expandido) nodo.Expandir();
-                }
-                else if (!string.IsNullOrEmpty(nodo.RutaCompleta))
-                {
-                    OnAbrirArchivo?.Invoke(nodo);
+                    if (nodo.EsCarpeta)
+                    {
+                        nodo.Expandido = !nodo.Expandido;
+                        if (nodo.Expandido) nodo.Expandir();
+                    }
+                    else if (!string.IsNullOrEmpty(nodo.RutaCompleta))
+                    {
+                        OnAbrirArchivo?.Invoke(nodo);
+                    }
                 }
                 return;
             }
             fila++;
         }
+
+        nodoSeleccionado = null; // click en el vacío: se pierde la selección
     }
+
+    // click derecho: selecciona la fila y abre el menú contextual anclado al mouse
+    void ManejarClickDerecho(Rectangle area, int primeraFila)
+    {
+        if (!Raylib.IsMouseButtonPressed(MouseButton.Right)) return;
+
+        var mouse = Raylib.GetMousePosition();
+        int fila = 0;
+        foreach (var (nodo, _) in NodosVisibles())
+        {
+            var filaRect = new Rectangle(area.X, area.Y + 2 + (fila - primeraFila) * AltoFila, area.Width, AltoFila);
+            if (Raylib.CheckCollisionPointRec(mouse, filaRect))
+            {
+                nodoSeleccionado = nodo;
+                nodoMenuContextual = nodo;
+                posicionMenuContextual = mouse;
+                return;
+            }
+            fila++;
+        }
+    }
+
+    void ManejarMenuContextual()
+    {
+        if (!Raylib.IsMouseButtonPressed(MouseButton.Left)) return;
+
+        var mouse = Raylib.GetMousePosition();
+        var area = RectMenuContextual();
+        for (int i = 0; i < OpcionesContextuales.Length; i++)
+        {
+            if (Raylib.CheckCollisionPointRec(mouse, RectFilaContextual(area, i)))
+            {
+                Console.WriteLine($"Explorador: {OpcionesContextuales[i]} → {nodoMenuContextual!.Nombre}");
+                break;
+            }
+        }
+
+        nodoMenuContextual = null; // se cierra al elegir una opción o al clickear afuera
+    }
+
+    // aparte de Draw() a propósito: hay que llamarla al final del frame, encima de todo lo demás
+    public void DrawMenuContextual()
+    {
+        if (nodoMenuContextual == null) return;
+
+        var area = RectMenuContextual();
+        Raylib.DrawRectangleRec(area, Win95Style.Background);
+        Win95Style.DrawBevel(area, sunken: false, thickness: 2);
+
+        var mouse = Raylib.GetMousePosition();
+        for (int i = 0; i < OpcionesContextuales.Length; i++)
+        {
+            var filaRect = RectFilaContextual(area, i);
+            bool hover = Raylib.CheckCollisionPointRec(mouse, filaRect);
+            if (hover) Raylib.DrawRectangleRec(filaRect, Win95Style.TitleBar);
+            Win95Style.DrawText(OpcionesContextuales[i], (int)filaRect.X + 8, (int)filaRect.Y + 3, 14, hover ? Color.White : Color.Black);
+        }
+    }
+
+    Rectangle RectMenuContextual() => new(posicionMenuContextual.X, posicionMenuContextual.Y, AnchoMenuContextual, OpcionesContextuales.Length * AltoFilaContextual + 4);
+
+    Rectangle RectFilaContextual(Rectangle area, int indice) => new(area.X + 2, area.Y + 2 + indice * AltoFilaContextual, area.Width - 4, AltoFilaContextual);
 
     IEnumerable<(NodoArchivos nodo, int nivel)> NodosVisibles() => Recorrer(raiz, 0);
 
@@ -148,11 +270,13 @@ public class ExploradorArchivos
     public void AbrirCarpeta(string ruta)
     {
         raiz = NodoArchivos.CarpetaDesdeDisco(ruta);
-        Titulo = raiz.Nombre;
+        nodoSeleccionado = null;
+        nodoUltimoClick = null;
+        nodoMenuContextual = null;
     }
 
     public Rectangle Bounds;
-    public string Titulo = "Explorador";
+    public string Titulo = "Archivos";
     public Texture2D? IconoCarpetaAbierta;
     public Texture2D? IconoCarpetaCerrada;
     public Texture2D? IconoDocumento;
@@ -164,4 +288,9 @@ public class ExploradorArchivos
     readonly ScrollBarWin95 scroll = new();
 
     NodoArchivos raiz = NodoArchivos.Archivo("Ninguna carpeta abierta");
+    NodoArchivos? nodoSeleccionado;
+    NodoArchivos? nodoUltimoClick;
+    double tiempoUltimoClick = -1;
+    NodoArchivos? nodoMenuContextual;
+    Vector2 posicionMenuContextual;
 }

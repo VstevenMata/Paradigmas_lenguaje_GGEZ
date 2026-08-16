@@ -10,6 +10,8 @@ public static class Win95Style
     public static readonly Color TitleBar = new(0, 0, 128, 255);
     public static readonly Color BevelLight = Color.White;
     public static readonly Color BevelDark = new(64, 64, 64, 255);
+    public static readonly Color TooltipFondo = new(255, 255, 225, 255);
+    public static readonly Color TextoDeshabilitado = new(128, 128, 128, 255);
 
     public static void CargarFuente(string ruta, int tamanoBase = 16)
     {
@@ -93,6 +95,23 @@ public static class Win95Style
         DrawTitleButtonBase(r);
         Raylib.DrawLine((int)r.X + 3, (int)r.Y + 3, (int)(r.X + r.Width - 3), (int)(r.Y + r.Height - 3), Color.Black);
         Raylib.DrawLine((int)(r.X + r.Width - 3), (int)r.Y + 3, (int)r.X + 3, (int)(r.Y + r.Height - 3), Color.Black);
+    }
+
+    // globo amarillo clásico de Win95: fondo pálido, borde negro fino, sin bevel
+    public static void DrawTooltip(string texto, int x, int y)
+    {
+        int ancho = MeasureText(texto, 14) + 8;
+        var r = new Rectangle(x, y, ancho, 18);
+        Raylib.DrawRectangleRec(r, TooltipFondo);
+        Raylib.DrawRectangleLinesEx(r, 1, Color.Black);
+        DrawText(texto, x + 4, y + 2, 14, Color.Black);
+    }
+
+    // texto "grabado": una copia clara desplazada 1px y la gris encima, como los controles inactivos de Win95
+    public static void DrawTextDeshabilitado(string texto, int x, int y, int fontSize)
+    {
+        DrawText(texto, x + 1, y + 1, fontSize, BevelLight);
+        DrawText(texto, x, y, fontSize, TextoDeshabilitado);
     }
 
     public static Font Fuente;

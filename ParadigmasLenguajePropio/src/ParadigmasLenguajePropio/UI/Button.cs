@@ -15,7 +15,7 @@ public class Button
 
     public bool IsHovered()
     {
-        return Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), Bounds);
+        return Habilitado && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), Bounds);
     }
 
     public bool IsPressed()
@@ -63,7 +63,8 @@ public class Button
         float altoIcono = icon.Height * escala;
         var posicion = new Vector2(Bounds.X + (Bounds.Width - anchoIcono) / 2, Bounds.Y + (Bounds.Height - altoIcono) / 2) + desplazamiento;
         posicion = new Vector2(MathF.Round(posicion.X), MathF.Round(posicion.Y));
-        Raylib.DrawTextureEx(icon, posicion, 0f, escala, Color.White);
+        // deshabilitado: ícono desvanecido, como los controles inactivos de Win95
+        Raylib.DrawTextureEx(icon, posicion, 0f, escala, Habilitado ? Color.White : new Color(255, 255, 255, 100));
     }
 
     void DibujarIconoYTexto(Vector2 desplazamiento)
@@ -80,7 +81,7 @@ public class Button
 
         var posicionIcono = new Vector2(xInicio, Bounds.Y + (Bounds.Height - altoIcono) / 2) + desplazamiento;
         posicionIcono = new Vector2(MathF.Round(posicionIcono.X), MathF.Round(posicionIcono.Y));
-        Raylib.DrawTextureEx(icon, posicionIcono, 0f, escala, Color.White);
+        Raylib.DrawTextureEx(icon, posicionIcono, 0f, escala, Habilitado ? Color.White : new Color(255, 255, 255, 100));
 
         DibujarTexto(xInicio + anchoIcono + EspacioIconoTexto, desplazamiento);
     }
@@ -88,7 +89,10 @@ public class Button
     void DibujarTexto(float x, Vector2 desplazamiento)
     {
         var posicionTexto = new Vector2(x, Bounds.Y + (Bounds.Height - FontSize) / 2) + desplazamiento;
-        Win95Style.DrawText(Text, (int)posicionTexto.X, (int)posicionTexto.Y, FontSize, TextColor);
+        if (Habilitado)
+            Win95Style.DrawText(Text, (int)posicionTexto.X, (int)posicionTexto.Y, FontSize, TextColor);
+        else
+            Win95Style.DrawTextDeshabilitado(Text, (int)posicionTexto.X, (int)posicionTexto.Y, FontSize);
     }
 
     const int EspacioIconoTexto = 4;
@@ -99,4 +103,6 @@ public class Button
     public Color TextColor;
     public Texture2D? Icon;
     public int FontSize = 24;
+    public bool Habilitado = true;
+    public string? Tooltip;
 }

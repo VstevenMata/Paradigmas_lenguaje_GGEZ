@@ -25,6 +25,18 @@ public class StatusBar
             x -= 2;
         }
 
+        // posición del cursor del editor, separada de los segmentos fijos porque solo aparece con un archivo abierto
+        if (!string.IsNullOrEmpty(PosicionCursor))
+        {
+            int ancho = Win95Style.MeasureText(PosicionCursor, FontSize) + 12;
+            x -= ancho;
+            var r = new Rectangle(x, Bounds.Y + 2, ancho, Bounds.Height - 4);
+            Raylib.DrawRectangleRec(r, Win95Style.Background);
+            Win95Style.DrawBevel(r, sunken: true, thickness: 1);
+            Win95Style.DrawText(PosicionCursor, (int)r.X + 6, (int)r.Y + 4, FontSize, Color.Black);
+            x -= 2;
+        }
+
         var rMensaje = new Rectangle(Bounds.X + 2, Bounds.Y + 2, x - Bounds.X - 4, Bounds.Height - 4);
         Raylib.DrawRectangleRec(rMensaje, Win95Style.Background);
         Win95Style.DrawBevel(rMensaje, sunken: true, thickness: 1);
@@ -34,4 +46,5 @@ public class StatusBar
     public Rectangle Bounds;
     public string Mensaje = "If it's not fun, why do it?";
     public string[] Segmentos = { "Steven", "Maikel", "Tiso" };
+    public string PosicionCursor = "";
 }
