@@ -4,9 +4,9 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class MenuBar
 {
-    public const int Height = 24;
-    const int FontSizeItem = 14;
-    const int PaddingItem = 20;
+    public const int Height = 26;
+    const int FontSizeItem = 16;
+    const int PaddingItem = 22;
     const int AnchoSubmenu = 190;
     const int AltoFilaSubmenu = 22;
     const int PaddingFilaSubmenu = 10;
@@ -179,7 +179,7 @@ public class MenuBar
 
     public string[][] Submenus =
     {
-        new[] { "Nuevo", "Abrir carpeta", Separador, "Guardar", "Guardar como", "Guardar todo", Separador, "Salir" },
+        new[] { "Nuevo", "Abrir carpeta", "Cerrar carpeta", Separador, "Guardar", "Guardar como", "Guardar todo", Separador, "Salir" },
         new[] { "Deshacer", "Rehacer", Separador, "Cortar", "Copiar", "Pegar", Separador, "Buscar", "Buscar y reemplazar", "Ir a línea" },
         new[] { "Explorador", "Terminal", "Panel derecho" },
         new[] { "Construir", "Pausar / Reanudar", Separador, "Ver salida" },

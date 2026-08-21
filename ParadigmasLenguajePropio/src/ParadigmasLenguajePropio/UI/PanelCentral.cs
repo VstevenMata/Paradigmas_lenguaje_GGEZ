@@ -23,6 +23,8 @@ public class PanelCentral
     const int EspacioBotonCerrar = 6;
     const int MargenArribaTabs = 4;
     const int MargenDebajoTabs = 4;
+    const int LadoIconoFantasma = 128;
+    const int EspacioIconoFantasma = 12;
     const string EspaciosTab = "    ";
     const int LimiteHistorial = 200;
     const int AnchoMaximoTab = 130;
@@ -97,10 +99,21 @@ public class PanelCentral
     void DibujarSinArchivos(Rectangle areaContenido)
     {
         const string mensaje = "Sin archivos abiertos";
-        int ancho = Win95Style.MeasureText(mensaje, FontSize);
-        int x = (int)(areaContenido.X + (areaContenido.Width - ancho) / 2);
-        int y = (int)(areaContenido.Y + (areaContenido.Height - FontSize) / 2);
-        Win95Style.DrawText(mensaje, x, y, FontSize, Color.Gray);
+        int anchoTexto = Win95Style.MeasureText(mensaje, FontSize);
+        int ladoIcono = IconoFantasma.HasValue ? LadoIconoFantasma : 0;
+        int espacio = IconoFantasma.HasValue ? EspacioIconoFantasma : 0;
+        int altoTotal = ladoIcono + espacio + FontSize;
+        int yInicio = (int)(areaContenido.Y + (areaContenido.Height - altoTotal) / 2);
+
+        if (IconoFantasma.HasValue)
+        {
+            float escala = (float)ladoIcono / IconoFantasma.Value.Width;
+            var posicion = new Vector2(areaContenido.X + (areaContenido.Width - ladoIcono) / 2f, yInicio);
+            Raylib.DrawTextureEx(IconoFantasma.Value, posicion, 0f, escala, Color.White);
+        }
+
+        int xTexto = (int)(areaContenido.X + (areaContenido.Width - anchoTexto) / 2);
+        Win95Style.DrawText(mensaje, xTexto, yInicio + ladoIcono + espacio, FontSize, Color.Gray);
     }
 
     void ManejarClickTabs()
@@ -450,23 +463,225 @@ public class PanelCentral
         filaCursor++;
     }
 
-    void Copiar()
+    public void Copiar()
     {
+        if (archivos.Count == 0) return;
         if (haySeleccion) Raylib.SetClipboardText(TextoSeleccionado());
     }
 
-    void Cortar()
+    public void Cortar()
     {
-        if (!haySeleccion) return;
+        if (archivos.Count == 0 || !haySeleccion) return;
         Raylib.SetClipboardText(TextoSeleccionado());
         GuardarEstadoParaDeshacer(TipoEdicion.Otro);
         BorrarSeleccion();
     }
 
-    void Pegar()
+    public void Pegar()
     {
+        if (archivos.Count == 0) return;
         string texto = Raylib.GetClipboardText_();
         if (!string.IsNullOrEmpty(texto)) InsertarTexto(texto);
+    }
+
+    // deja el cursor al inicio de esa línea (1-based, como se le muestra al usuario)
+    public void IrALinea(int numeroLinea)
+    {
+        if (archivos.Count == 0) return;
+        filaCursor = Math.Clamp(numeroLinea - 1, 0, lineas.Count - 1);
+        columnaCursor = 0;
+        columnaDeseada = 0;
+        haySeleccion = false;
+        AsegurarCursorVisible(AreaContenido());
+    }
+
+    // busca patron a partir de la posición actual del cursor/selección y da la vuelta si llega al final
+    public (int actual, int total) Buscar(string patron, bool distingueMayus, bool siguiente)
+    {
+        if (archivos.Count == 0 || string.IsNullOrEmpty(patron))
+        {
+            haySeleccion = false;
+            return (0, 0);
+        }
+
+        var coincidencias = EncontrarCoincidencias(Texto, patron, distingueMayus);
+        if (coincidencias.Count == 0)
+        {
+            haySeleccion = false;
+            return (0, 0);
+        }
+
+        int offsetCursor = OffsetDesdePosicion(filaCursor, columnaCursor);
+        int offsetAncla = haySeleccion ? OffsetDesdePosicion(selFila, selColumna) : offsetCursor;
+        int offsetInicio = Math.Min(offsetAncla, offsetCursor);
+        int offsetFin = Math.Max(offsetAncla, offsetCursor);
+
+        int indiceElegido = siguiente
+            ? coincidencias.FindIndex(o => o >= offsetFin)
+            : coincidencias.FindLastIndex(o => o < offsetInicio);
+        if (indiceElegido < 0) indiceElegido = siguiente ? 0 : coincidencias.Count - 1; // da la vuelta
+
+        int offsetMatch = coincidencias[indiceElegido];
+        var inicio = PosicionDesdeOffset(offsetMatch);
+        var fin = PosicionDesdeOffset(offsetMatch + patron.Length);
+
+        selFila = inicio.fila;
+        selColumna = inicio.columna;
+        filaCursor = fin.fila;
+        columnaCursor = fin.columna;
+        columnaDeseada = columnaCursor;
+        haySeleccion = true;
+
+        AsegurarCursorVisible(AreaContenido());
+        return (indiceElegido + 1, coincidencias.Count);
+    }
+
+    // si la selección actual ya es una coincidencia, la reemplaza y salta a la próxima
+    public (int actual, int total) Reemplazar(string patron, string reemplazo, bool distingueMayus)
+    {
+        if (archivos.Count == 0 || string.IsNullOrEmpty(patron)) return (0, 0);
+        if (haySeleccion && CoincideSeleccionConPatron(patron, distingueMayus))
+            InsertarTexto(reemplazo);
+        return Buscar(patron, distingueMayus, siguiente: true);
+    }
+
+    public int ReemplazarTodo(string patron, string reemplazo, bool distingueMayus)
+    {
+        if (archivos.Count == 0 || string.IsNullOrEmpty(patron)) return 0;
+
+        var comparacion = distingueMayus ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        string texto = Texto;
+        var sb = new StringBuilder();
+        int idx = 0;
+        int total = 0;
+        while (true)
+        {
+            int encontrado = texto.IndexOf(patron, idx, comparacion);
+            if (encontrado < 0)
+            {
+                sb.Append(texto, idx, texto.Length - idx);
+                break;
+            }
+            sb.Append(texto, idx, encontrado - idx);
+            sb.Append(reemplazo);
+            idx = encontrado + patron.Length;
+            total++;
+        }
+        if (total == 0) return 0;
+
+        GuardarEstadoParaDeshacer(TipoEdicion.Otro);
+        lineas.Clear();
+        lineas.AddRange(sb.ToString().Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'));
+        filaCursor = Math.Clamp(filaCursor, 0, lineas.Count - 1);
+        columnaCursor = Math.Clamp(columnaCursor, 0, lineas[filaCursor].Length);
+        haySeleccion = false;
+        return total;
+    }
+
+    bool CoincideSeleccionConPatron(string patron, bool distingueMayus)
+    {
+        var comparacion = distingueMayus ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        return string.Equals(TextoSeleccionado(), patron, comparacion);
+    }
+
+    static List<int> EncontrarCoincidencias(string texto, string patron, bool distingueMayus)
+    {
+        var resultado = new List<int>();
+        var comparacion = distingueMayus ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        int idx = 0;
+        while (true)
+        {
+            int encontrado = texto.IndexOf(patron, idx, comparacion);
+            if (encontrado < 0) break;
+            resultado.Add(encontrado);
+            idx = encontrado + patron.Length;
+        }
+        return resultado;
+    }
+
+    (int fila, int columna) PosicionDesdeOffset(int offset)
+    {
+        int restante = offset;
+        for (int f = 0; f < lineas.Count; f++)
+        {
+            if (restante <= lineas[f].Length) return (f, restante);
+            restante -= lineas[f].Length + 1; // +1 por el salto de línea que junta el Texto
+        }
+        return (lineas.Count - 1, lineas[^1].Length);
+    }
+
+    int OffsetDesdePosicion(int fila, int columna)
+    {
+        int offset = 0;
+        for (int f = 0; f < fila; f++)
+            offset += lineas[f].Length + 1;
+        return offset + columna;
+    }
+
+    // si ese archivo está abierto en una pestaña, la sincroniza con su nueva ruta (ej: se renombró desde el explorador)
+    public void ActualizarRutaSiEstaAbierta(string rutaVieja, string rutaNueva, string nombreNuevo)
+    {
+        var archivo = archivos.FirstOrDefault(a => a.RutaCompleta == rutaVieja);
+        if (archivo == null) return;
+        archivo.RutaCompleta = rutaNueva;
+        archivo.Nombre = nombreNuevo;
+        archivo.Icono = IconoPara(nombreNuevo);
+    }
+
+    // crea una pestaña nueva sin ruta: recién se asigna un archivo real al guardarla
+    public void NuevoArchivo()
+    {
+        archivos.Add(new ArchivoAbierto { Nombre = NombreNuevoDisponible(), RutaCompleta = "", Lineas = new List<string> { "" }, Icono = IconoDocumento });
+        CambiarArchivoActivo(archivos.Count - 1);
+    }
+
+    string NombreNuevoDisponible()
+    {
+        const string baseNombre = "Sin título";
+        if (archivos.All(a => a.Nombre != baseNombre)) return baseNombre;
+
+        int n = 2;
+        while (archivos.Any(a => a.Nombre == $"{baseNombre} {n}")) n++;
+        return $"{baseNombre} {n}";
+    }
+
+    // guarda la pestaña activa; si todavía no tiene ruta (o se fuerza), pide dónde antes
+    public void Guardar(bool forzarElegirRuta = false)
+    {
+        if (archivos.Count == 0) return;
+        GuardarIndice(ArchivoActivo, forzarElegirRuta);
+    }
+
+    public void GuardarTodo()
+    {
+        for (int i = 0; i < archivos.Count; i++)
+            if (archivos[i].Modificado || string.IsNullOrEmpty(archivos[i].RutaCompleta))
+                GuardarIndice(i, forzarElegirRuta: false);
+    }
+
+    void GuardarIndice(int indice, bool forzarElegirRuta)
+    {
+        var archivo = archivos[indice];
+
+        if (forzarElegirRuta || string.IsNullOrEmpty(archivo.RutaCompleta))
+        {
+            string? rutaElegida = ElegirRutaGuardar?.Invoke(archivo.Nombre);
+            if (string.IsNullOrEmpty(rutaElegida)) return; // cancelado por el usuario
+
+            archivo.RutaCompleta = rutaElegida;
+            archivo.Nombre = Path.GetFileName(rutaElegida);
+            archivo.Icono = IconoPara(archivo.Nombre);
+        }
+
+        try
+        {
+            File.WriteAllText(archivo.RutaCompleta, string.Join('\n', archivo.Lineas));
+            archivo.Modificado = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"No se pudo guardar {archivo.RutaCompleta}: {ex.Message}");
+        }
     }
 
     void SeleccionarTodo()
@@ -556,7 +771,7 @@ public class PanelCentral
 
     public void Deshacer()
     {
-        if (historialDeshacer.Count == 0) return;
+        if (archivos.Count == 0 || historialDeshacer.Count == 0) return;
 
         historialRehacer.Add((new List<string>(lineas), filaCursor, columnaCursor));
 
@@ -574,7 +789,7 @@ public class PanelCentral
 
     public void Rehacer()
     {
-        if (historialRehacer.Count == 0) return;
+        if (archivos.Count == 0 || historialRehacer.Count == 0) return;
 
         historialDeshacer.Add((new List<string>(lineas), filaCursor, columnaCursor));
 
@@ -903,7 +1118,9 @@ public class PanelCentral
     public Texture2D? IconoDocumentoGgez;
     public Texture2D? IconoImagenes;
     public Texture2D? IconoDocumentoMd;
+    public Texture2D? IconoFantasma; // se muestra cuando no hay ningún archivo abierto
     public DialogoModal? Dialogo; // si está asignado, confirma antes de cerrar una pestaña con cambios sin guardar
+    public Func<string, string?>? ElegirRutaGuardar; // nombre sugerido → ruta elegida por el usuario, o null si canceló
     public string Texto => archivos.Count > 0 ? string.Join('\n', lineas) : "";
     public bool HayArchivosAbiertos => archivos.Count > 0;
     public int LineaCursor => filaCursor + 1;

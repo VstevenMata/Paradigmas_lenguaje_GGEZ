@@ -13,6 +13,8 @@ public class AppTitleBar
     const int LadoIconoBusqueda = 12;
     const double RetrasoTooltip = 0.5;
 
+    public void Cerrar() => ShouldClose = true;
+
     public void Update()
     {
         if (WasClicked(CloseButton))
@@ -36,12 +38,71 @@ public class AppTitleBar
 
         campoBusqueda.Bounds = AreaTextoBusqueda();
         campoBusqueda.Update();
+        ActualizarResultadosBusqueda();
+        ManejarTecladoResultados();
+        ManejarClickResultados();
 
         if (WasClicked(BotonMenuCampo)) Console.WriteLine("Menú del buscador");
         if (WasClicked(BotonDiseno)) Console.WriteLine("Alternar diseño");
 
         ActualizarHoverTooltip();
         UpdateArrastre();
+    }
+
+    // como en VSCode: la lista de archivos se actualiza sola con cada letra, sin esperar Enter
+    void ActualizarResultadosBusqueda()
+    {
+        if (campoBusqueda.Texto == ultimaConsultaBuscada) return;
+        ultimaConsultaBuscada = campoBusqueda.Texto;
+
+        resultados = string.IsNullOrWhiteSpace(campoBusqueda.Texto) || BuscarArchivos == null
+            ? new List<(string Nombre, string RutaMostrada, string RutaCompleta)>()
+            : BuscarArchivos.Invoke(campoBusqueda.Texto);
+        indiceSeleccionado = resultados.Count > 0 ? 0 : -1;
+    }
+
+    void ManejarTecladoResultados()
+    {
+        if (resultados.Count == 0 || !campoBusqueda.TieneFoco) return;
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Down)) indiceSeleccionado = Math.Min(indiceSeleccionado + 1, resultados.Count - 1);
+        if (Raylib.IsKeyPressed(KeyboardKey.Up)) indiceSeleccionado = Math.Max(indiceSeleccionado - 1, 0);
+        if (Raylib.IsKeyPressed(KeyboardKey.Enter) && indiceSeleccionado >= 0) AbrirResultado(indiceSeleccionado);
+        if (Raylib.IsKeyPressed(KeyboardKey.Escape)) CerrarResultados();
+    }
+
+    void ManejarClickResultados()
+    {
+        if (resultados.Count == 0 || !Raylib.IsMouseButtonPressed(MouseButton.Left)) return;
+
+        var mouse = Raylib.GetMousePosition();
+        var area = RectResultados();
+        for (int i = 0; i < Math.Min(resultados.Count, MaxResultadosMostrados); i++)
+        {
+            if (Raylib.CheckCollisionPointRec(mouse, RectFilaResultado(area, i)))
+            {
+                AbrirResultado(i);
+                return;
+            }
+        }
+
+        // click afuera del campo y de la lista: se cierra sin elegir nada
+        if (!Raylib.CheckCollisionPointRec(mouse, CampoBusquedaBounds) && !Raylib.CheckCollisionPointRec(mouse, area))
+            CerrarResultados();
+    }
+
+    void AbrirResultado(int indice)
+    {
+        OnAbrirResultado?.Invoke(resultados[indice].RutaCompleta);
+        campoBusqueda.Limpiar();
+        ultimaConsultaBuscada = "";
+        CerrarResultados();
+    }
+
+    void CerrarResultados()
+    {
+        resultados.Clear();
+        indiceSeleccionado = -1;
     }
 
     // mismo mecanismo que los botones de la barra lateral: aparece tras un ratito quieto encima
@@ -70,6 +131,7 @@ public class AppTitleBar
             || Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), BotonMenuCampo)
             || Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), BotonDiseno)
             || Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), CampoBusquedaBounds)
+            || ResultadosVisibles
             || (ZonaExcluidaDelArrastre.HasValue && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), ZonaExcluidaDelArrastre.Value));
 
         if (!arrastrando && !sobreControl && Raylib.IsMouseButtonPressed(MouseButton.Left)
@@ -120,6 +182,48 @@ public class AppTitleBar
         DibujarTooltip();
     }
 
+    // aparte de Draw() a propósito: se dibuja al final del frame para quedar encima del editor
+    public void DrawResultadosBusqueda()
+    {
+        if (resultados.Count == 0) return;
+
+        var area = RectResultados();
+        Raylib.DrawRectangleRec(area, Win95Style.Background);
+        Win95Style.DrawBevel(area, sunken: false, thickness: 2);
+
+        var mouse = Raylib.GetMousePosition();
+        for (int i = 0; i < Math.Min(resultados.Count, MaxResultadosMostrados); i++)
+        {
+            var fila = RectFilaResultado(area, i);
+            bool activa = i == indiceSeleccionado || Raylib.CheckCollisionPointRec(mouse, fila);
+            if (activa) Raylib.DrawRectangleRec(fila, Win95Style.TitleBar);
+
+            var color = activa ? Color.White : Color.Black;
+            var colorRuta = activa ? new Color(220, 220, 255, 255) : Win95Style.TextoDeshabilitado;
+
+            // recortado a la fila: una ruta larga nunca se sale de la caja, aunque no entre entera
+            Raylib.BeginScissorMode((int)fila.X, (int)fila.Y, (int)fila.Width, (int)fila.Height);
+
+            int xNombre = (int)fila.X + 6;
+            Win95Style.DrawText(resultados[i].Nombre, xNombre, (int)fila.Y + 4, FontSizeResultado, color);
+
+            int xRuta = xNombre + Win95Style.MeasureText(resultados[i].Nombre, FontSizeResultado) + 12;
+            Win95Style.DrawText(resultados[i].RutaMostrada, xRuta, (int)fila.Y + 5, FontSizeResultado - 1, colorRuta);
+
+            Raylib.EndScissorMode();
+        }
+    }
+
+    Rectangle RectResultados()
+    {
+        var campo = CampoBusquedaBounds;
+        int filas = Math.Min(resultados.Count, MaxResultadosMostrados);
+        float centroX = campo.X + campo.Width / 2f;
+        return new Rectangle(centroX - AnchoResultados / 2f, campo.Y + campo.Height + 2, AnchoResultados, filas * AltoFilaResultado + 4);
+    }
+
+    Rectangle RectFilaResultado(Rectangle area, int indice) => new(area.X + 2, area.Y + 2 + indice * AltoFilaResultado, area.Width - 4, AltoFilaResultado);
+
     void DibujarTooltip()
     {
         if (tooltipTexto == null || !tooltipBounds.HasValue) return;
@@ -149,7 +253,6 @@ public class AppTitleBar
         Raylib.DrawTextureEx(textura, posicion, 0f, escala, Color.White);
     }
 
-    // todavía no busca nada, solo se puede escribir en el campo
     void DibujarCampoBusqueda()
     {
         var area = CampoBusquedaBounds;
@@ -179,6 +282,9 @@ public class AppTitleBar
     public Texture2D? IconoBusqueda;
     public Texture2D? IconoMenu;
     public Texture2D? IconoDiseno;
+    public Func<string, List<(string Nombre, string RutaMostrada, string RutaCompleta)>>? BuscarArchivos; // consulta → resultados
+    public Action<string>? OnAbrirResultado; // ruta completa del resultado elegido
+    public bool ResultadosVisibles => resultados.Count > 0;
     public bool ShouldClose { get; private set; }
     public bool TieneFocoEnCampo => campoBusqueda.TieneFoco;
 
@@ -190,6 +296,13 @@ public class AppTitleBar
     public Rectangle? ZonaExcluidaDelArrastre;
 
     readonly CampoTexto campoBusqueda = new();
+    List<(string Nombre, string RutaMostrada, string RutaCompleta)> resultados = new();
+    string ultimaConsultaBuscada = "";
+    int indiceSeleccionado = -1;
+    const int AnchoResultados = 480;
+    const int AltoFilaResultado = 22;
+    const int MaxResultadosMostrados = 10;
+    const int FontSizeResultado = 14;
 
     bool arrastrando;
     Vector2 mouseGlobalAlIniciarArrastre;

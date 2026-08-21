@@ -2,7 +2,6 @@ using Raylib_cs;
 
 namespace ParadigmasLenguajePropio.UI;
 
-// todavía no busca ni reemplaza nada: solo captura lo escrito en los campos
 public class BarraBusqueda
 {
     const int Alto = 28;
@@ -23,6 +22,35 @@ public class BarraBusqueda
         if (botonCerrar.IsClicked()) { Visible = false; return; }
         if (botonExpandir.IsClicked()) MostrarReemplazo = !MostrarReemplazo;
         if (botonMayusMinus.IsClicked()) DistingueMayusculas = !DistingueMayusculas;
+
+        // reaccionar cuando cambia lo escrito o el toggle de mayúsculas, así busca "en vivo"
+        bool cambioPatron = campoBuscar.Texto != ultimoPatronBuscado || DistingueMayusculas != ultimoDistingueMayus;
+        if (cambioPatron)
+        {
+            ultimoPatronBuscado = campoBuscar.Texto;
+            ultimoDistingueMayus = DistingueMayusculas;
+            if (Editor != null) (contadorActual, contadorTotal) = Editor.Buscar(campoBuscar.Texto, DistingueMayusculas, siguiente: true);
+        }
+
+        bool shift = Raylib.IsKeyDown(KeyboardKey.LeftShift) || Raylib.IsKeyDown(KeyboardKey.RightShift);
+        if (campoBuscar.TieneFoco && Raylib.IsKeyPressed(KeyboardKey.Enter) && Editor != null)
+            (contadorActual, contadorTotal) = Editor.Buscar(campoBuscar.Texto, DistingueMayusculas, siguiente: !shift);
+
+        if (botonAnterior.IsClicked() && Editor != null)
+            (contadorActual, contadorTotal) = Editor.Buscar(campoBuscar.Texto, DistingueMayusculas, siguiente: false);
+        if (botonSiguiente.IsClicked() && Editor != null)
+            (contadorActual, contadorTotal) = Editor.Buscar(campoBuscar.Texto, DistingueMayusculas, siguiente: true);
+
+        if (MostrarReemplazo && Editor != null)
+        {
+            if (botonReemplazar.IsClicked())
+                (contadorActual, contadorTotal) = Editor.Reemplazar(campoBuscar.Texto, campoReemplazar.Texto, DistingueMayusculas);
+            if (botonReemplazarTodo.IsClicked())
+            {
+                Editor.ReemplazarTodo(campoBuscar.Texto, campoReemplazar.Texto, DistingueMayusculas);
+                (contadorActual, contadorTotal) = Editor.Buscar(campoBuscar.Texto, DistingueMayusculas, siguiente: true);
+            }
+        }
     }
 
     // se pega a la esquina del área de texto (no del panel entero), antes de la scrollbar
@@ -93,7 +121,7 @@ public class BarraBusqueda
 
         campoBuscar.Draw("Buscar");
 
-        Win95Style.DrawText("0/0", (int)xContador, (int)yContador, 14, Win95Style.TextoDeshabilitado);
+        Win95Style.DrawText($"{contadorActual}/{contadorTotal}", (int)xContador, (int)yContador, 14, Win95Style.TextoDeshabilitado);
 
         bool hundidoMayusMinus = botonMayusMinus.IsPressed() || DistingueMayusculas;
         Raylib.DrawRectangleRec(botonMayusMinus.Bounds, botonMayusMinus.IsHovered() ? Color.LightGray : Win95Style.Background);
@@ -153,10 +181,15 @@ public class BarraBusqueda
     public bool Visible;
     public bool MostrarReemplazo;
     public bool DistingueMayusculas;
+    public PanelCentral? Editor;
     public Rectangle Bounds { get; private set; }
     public bool TieneFocoEnCampo => campoBuscar.TieneFoco || campoReemplazar.TieneFoco;
 
     float xContador, yContador;
+    string ultimoPatronBuscado = "";
+    bool ultimoDistingueMayus;
+    int contadorActual;
+    int contadorTotal;
 
     readonly CampoTexto campoBuscar = new();
     readonly CampoTexto campoReemplazar = new();

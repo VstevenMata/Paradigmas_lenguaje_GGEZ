@@ -112,6 +112,140 @@ ProcessStartInfo InfoSelectorCarpetaWindows()
     return info;
 }
 
+// mismo patrón que ElegirCarpeta(), pero para "Guardar como": deja escribir nombre y extensión (ej: nuevo.txt, nuevo.ggez)
+string? ElegirRutaGuardarArchivo(string nombreSugerido)
+{
+    try
+    {
+        var info = OperatingSystem.IsWindows() ? InfoSelectorGuardarWindows(nombreSugerido) : InfoSelectorGuardarLinux(nombreSugerido);
+        using var proceso = Process.Start(info);
+        if (proceso == null) return null;
+
+        string salida = proceso.StandardOutput.ReadToEnd().Trim();
+        proceso.WaitForExit();
+        return proceso.ExitCode == 0 && salida.Length > 0 ? salida : null;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"No se pudo abrir el selector de guardado: {ex.Message}");
+        return null;
+    }
+}
+
+ProcessStartInfo InfoSelectorGuardarLinux(string nombreSugerido)
+{
+    var info = new ProcessStartInfo
+    {
+        FileName = "zenity",
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+    };
+    info.ArgumentList.Add("--file-selection");
+    info.ArgumentList.Add("--save");
+    info.ArgumentList.Add("--confirm-overwrite");
+    info.ArgumentList.Add("--title=Guardar como");
+    info.ArgumentList.Add($"--filename={nombreSugerido}");
+    return info;
+}
+
+ProcessStartInfo InfoSelectorGuardarWindows(string nombreSugerido)
+{
+    var info = new ProcessStartInfo
+    {
+        FileName = "powershell",
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+        CreateNoWindow = true,
+    };
+    string nombreEscapado = nombreSugerido.Replace("'", "''");
+    info.ArgumentList.Add("-NoProfile");
+    info.ArgumentList.Add("-Command");
+    info.ArgumentList.Add(
+        "Add-Type -AssemblyName System.Windows.Forms; " +
+        "$dialogo = New-Object System.Windows.Forms.SaveFileDialog; " +
+        "$dialogo.Title = 'Guardar como'; " +
+        $"$dialogo.FileName = '{nombreEscapado}'; " +
+        "$dialogo.Filter = 'Todos los archivos (*.*)|*.*'; " +
+        "if ($dialogo.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialogo.FileName }");
+    return info;
+}
+
+// mismo patrón que ElegirCarpeta(): usado para pedir nombres (nuevo archivo/carpeta, renombrar)
+string? PedirTexto(string titulo, string mensaje, string valorInicial)
+{
+    try
+    {
+        var info = OperatingSystem.IsWindows() ? InfoEntradaTextoWindows(titulo, mensaje, valorInicial) : InfoEntradaTextoLinux(titulo, mensaje, valorInicial);
+        using var proceso = Process.Start(info);
+        if (proceso == null) return null;
+
+        string salida = proceso.StandardOutput.ReadToEnd().Trim();
+        proceso.WaitForExit();
+        return proceso.ExitCode == 0 && salida.Length > 0 ? salida : null;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"No se pudo abrir el cuadro de texto: {ex.Message}");
+        return null;
+    }
+}
+
+ProcessStartInfo InfoEntradaTextoLinux(string titulo, string mensaje, string valorInicial)
+{
+    var info = new ProcessStartInfo
+    {
+        FileName = "zenity",
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+    };
+    info.ArgumentList.Add("--entry");
+    info.ArgumentList.Add($"--title={titulo}");
+    info.ArgumentList.Add($"--text={mensaje}");
+    info.ArgumentList.Add($"--entry-text={valorInicial}");
+    return info;
+}
+
+ProcessStartInfo InfoEntradaTextoWindows(string titulo, string mensaje, string valorInicial)
+{
+    var info = new ProcessStartInfo
+    {
+        FileName = "powershell",
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+        CreateNoWindow = true,
+    };
+    string tituloEscapado = titulo.Replace("'", "''");
+    string mensajeEscapado = mensaje.Replace("'", "''");
+    string valorEscapado = valorInicial.Replace("'", "''");
+    info.ArgumentList.Add("-NoProfile");
+    info.ArgumentList.Add("-Command");
+    info.ArgumentList.Add(
+        "Add-Type -AssemblyName Microsoft.VisualBasic; " +
+        $"$r = [Microsoft.VisualBasic.Interaction]::InputBox('{mensajeEscapado}', '{tituloEscapado}', '{valorEscapado}'); " +
+        "if ($r -ne '') { Write-Output $r }");
+    return info;
+}
+
+// como el "Go to File" de VSCode: filtra por nombre de archivo entre todo lo que hay bajo la carpeta abierta
+List<(string Nombre, string RutaMostrada, string RutaCompleta)> BuscarArchivosPorNombre(string carpetaRaiz, string consulta)
+{
+    if (string.IsNullOrEmpty(carpetaRaiz)) return new();
+
+    try
+    {
+        return Directory.EnumerateFiles(carpetaRaiz, "*", SearchOption.AllDirectories)
+            .Where(ruta => Path.GetFileName(ruta).Contains(consulta, StringComparison.OrdinalIgnoreCase))
+            .Take(10)
+            .Select(ruta => (Path.GetFileName(ruta), Path.GetRelativePath(carpetaRaiz, Path.GetDirectoryName(ruta) ?? carpetaRaiz), ruta))
+            .ToList();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"No se pudo recorrer el proyecto: {ex.Message}");
+        return new();
+    }
+}
+
 Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.UndecoratedWindow);
 Raylib.InitWindow(anchoInicial, altoInicial, "Paradigmas GGEZ");
 Raylib.SetWindowMinSize(anchoMinimo, altoMinimo);
@@ -139,6 +273,9 @@ var iconoPuertaCerrada = CargarIcono("Icon_PuertaCerrada.png");
 var iconoDocumentoGgez = CargarIcono("Icon_Documentoggez.png");
 var iconoImagenes = CargarIcono("Icon_Imagenes.png");
 var iconoDocumentoMd = CargarIcono("Icon_DocumentoMD.png");
+var iconoCarpetaNueva = CargarIcono("Icon_CarpetaNueva.png");
+var iconoFantasma32 = CargarIcono("Icon_Fantasma32px.png");
+var iconoFantasma128 = CargarIcono("Icon_Fantasma128px.png");
 
 // "<" y ">" no tienen glifo en la fuente: se reemplazan por los íconos de puerta
 Win95Style.GlifoMenor = iconoPuertaAbierta;
@@ -152,7 +289,7 @@ while (Raylib.GetTime() - inicioCarga < duracionMinimaCarga)
 }
 
 var barraApp = new AppTitleBar { IconoBusqueda = iconoLupa, IconoMenu = iconoMenu, IconoDiseno = iconoDiseno };
-var barraMenu = new MenuBar { Bounds = new Rectangle(6, 1, 0, MenuBar.Height) };
+var barraMenu = new MenuBar { Bounds = new Rectangle(6, 0, 0, MenuBar.Height) };
 barraApp.ZonaExcluidaDelArrastre = barraMenu.AreaOcupada;
 
 // el menú vive dentro de la barra de título (donde antes iba el título de la app), como en VSCode
@@ -165,6 +302,7 @@ var botonConstruir = new Button(margen, 0, ladoBoton, ladoBoton, "") { Icon = ic
 var botonPausa = new Button(margen, 0, ladoBoton, ladoBoton, "") { Icon = iconoPausa, Tooltip = "Pausar / Reanudar" };
 var botonLupa = new Button(margen, 0, ladoBoton, ladoBoton, "") { Icon = iconoLupa, Tooltip = "Buscar" };
 var botonCarpeta = new Button(margen, 0, ladoBoton, ladoBoton, "") { Icon = iconoCarpetaCerrada, Tooltip = "Abrir carpeta" };
+var botonCrearCarpeta = new Button(margen, 0, ladoBoton, ladoBoton, "") { Icon = iconoCarpetaNueva, Tooltip = "Crear carpeta" };
 var botonTerminal = new Button(margen, 0, ladoBoton, ladoBoton, "") { Icon = iconoTerminal, Tooltip = "Terminal" };
 
 var gruposToolbar = new[]
@@ -172,7 +310,7 @@ var gruposToolbar = new[]
     new[] { botonExplorador },
     new[] { botonNuevo, botonGuardar },
     new[] { botonConstruir, botonPausa },
-    new[] { botonLupa, botonCarpeta, botonTerminal },
+    new[] { botonLupa, botonCarpeta, botonCrearCarpeta, botonTerminal },
 };
 
 int alturaHeader = yToolbar;
@@ -214,6 +352,7 @@ var explorador = new ExploradorArchivos
     IconoDocumentoGgez = iconoDocumentoGgez,
     IconoImagenes = iconoImagenes,
     IconoDocumentoMd = iconoDocumentoMd,
+    IconoFantasma = iconoFantasma32,
 };
 var dialogoModal = new DialogoModal();
 var panelCentral = new PanelCentral
@@ -222,13 +361,36 @@ var panelCentral = new PanelCentral
     IconoDocumentoGgez = iconoDocumentoGgez,
     IconoImagenes = iconoImagenes,
     IconoDocumentoMd = iconoDocumentoMd,
+    IconoFantasma = iconoFantasma128,
     Dialogo = dialogoModal,
+    ElegirRutaGuardar = ElegirRutaGuardarArchivo,
 };
+
+explorador.Dialogo = dialogoModal;
+explorador.PedirTexto = PedirTexto;
+explorador.ElegirCarpetaBase = ElegirCarpeta;
+explorador.OnArchivoRenombrado = panelCentral.ActualizarRutaSiEstaAbierta;
+
 var panelJuego = new PanelJuego(iconoPersonaje64px);
 bool columnaDerechaOculta = false;
 bool terminalVisible = false;
-var barraBusqueda = new BarraBusqueda();
-var cuadroIrALinea = new CuadroIrALinea();
+var barraBusqueda = new BarraBusqueda { Editor = panelCentral };
+var cuadroIrALinea = new CuadroIrALinea { Editor = panelCentral };
+
+// se comparte entre el botón de la barra lateral y el menú Archivo > Abrir carpeta
+void AbrirCarpetaDialogo()
+{
+    var rutaElegida = ElegirCarpeta();
+    if (rutaElegida != null)
+    {
+        explorador.AbrirCarpeta(rutaElegida);
+        botonCarpeta.Icon = iconoCarpetaAbierta;
+        Console.WriteLine($"Carpeta abierta: {rutaElegida}");
+    }
+}
+
+bool focoEnTerminal = false;
+var panelTerminal = new PanelTerminal();
 
 barraMenu.OnOpcionElegida = opcion =>
 {
@@ -257,17 +419,55 @@ barraMenu.OnOpcionElegida = opcion =>
         terminalVisible = !terminalVisible;
     else if (opcion == "Panel derecho")
         columnaDerechaOculta = !columnaDerechaOculta;
+    else if (opcion == "Nuevo")
+        panelCentral.NuevoArchivo();
+    else if (opcion == "Abrir carpeta")
+        AbrirCarpetaDialogo();
+    else if (opcion == "Cerrar carpeta")
+        explorador.CerrarCarpeta();
+    else if (opcion == "Guardar")
+        panelCentral.Guardar();
+    else if (opcion == "Guardar como")
+        panelCentral.Guardar(forzarElegirRuta: true);
+    else if (opcion == "Guardar todo")
+        panelCentral.GuardarTodo();
+    else if (opcion == "Salir")
+        barraApp.Cerrar();
+    else if (opcion == "Cortar")
+        panelCentral.Cortar();
+    else if (opcion == "Copiar")
+        panelCentral.Copiar();
+    else if (opcion == "Pegar")
+        panelCentral.Pegar();
+    else if (opcion == "Construir")
+    {
+        panelCentral.GuardarTodo();
+        terminalVisible = true;
+        panelTerminal.TabActiva = 1;
+    }
+    else if (opcion == "Pausar / Reanudar")
+        panelJuego.EnPausa = !panelJuego.EnPausa;
+    else if (opcion == "Ver salida")
+    {
+        terminalVisible = true;
+        panelTerminal.TabActiva = 1;
+    }
     else
         Console.WriteLine($"Menú: {opcion}");
 };
-
-bool focoEnTerminal = false;
-var panelTerminal = new PanelTerminal();
 
 explorador.OnAbrirArchivo = nodo =>
 {
     panelCentral.AbrirArchivo(nodo.Nombre, nodo.RutaCompleta);
     panelTerminal.RegistrarAperturaArchivo(nodo.RutaCompleta);
+};
+
+// "Buscar en el proyecto": lista en vivo (como Ctrl+P en VSCode), Enter o click abre el elegido
+barraApp.BuscarArchivos = consulta => BuscarArchivosPorNombre(explorador.CarpetaRaiz, consulta);
+barraApp.OnAbrirResultado = ruta =>
+{
+    panelCentral.AbrirArchivo(Path.GetFileName(ruta), ruta);
+    panelTerminal.RegistrarAperturaArchivo(ruta);
 };
 
 var barraEstado = new StatusBar();
@@ -333,7 +533,7 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
     var manijaResizePanelDerecho = new Rectangle(xPanelDerecho - anchoManijaResize, alturaHeader + margen, anchoManijaResize, altoContenido);
     bool mouseSobreManijaPanelDerecho = !columnaDerechaOculta && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), manijaResizePanelDerecho);
 
-    if (!dialogoModal.Visible)
+    if (!dialogoModal.Visible && !barraApp.ResultadosVisibles)
     {
         // si el menú ya estaba abierto, este click es para elegirlo/cerrarlo, no para lo de abajo
         bool clickParaElMenu = barraMenu.MenuAbierto && Raylib.IsMouseButtonPressed(MouseButton.Left);
@@ -341,21 +541,18 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
         if (!clickParaElMenu)
         {
-            if (botonNuevo.IsClicked()) Console.WriteLine("Nuevo documento");
-            if (botonGuardar.IsClicked()) Console.WriteLine("Guardar documento");
-            if (botonConstruir.IsClicked()) Console.WriteLine("Construir");
-            if (botonPausa.IsClicked()) Console.WriteLine("Pausar / Reanudar");
-            if (botonLupa.IsClicked()) barraBusqueda.Visible = true;
-            if (botonCarpeta.IsClicked())
+            if (botonNuevo.IsClicked()) panelCentral.NuevoArchivo();
+            if (botonGuardar.IsClicked()) panelCentral.Guardar();
+            if (botonConstruir.IsClicked())
             {
-                var rutaElegida = ElegirCarpeta();
-                if (rutaElegida != null)
-                {
-                    explorador.AbrirCarpeta(rutaElegida);
-                    botonCarpeta.Icon = iconoCarpetaAbierta;
-                    Console.WriteLine($"Carpeta abierta: {rutaElegida}");
-                }
+                panelCentral.GuardarTodo();
+                terminalVisible = true;
+                panelTerminal.TabActiva = 1;
             }
+            if (botonPausa.IsClicked()) panelJuego.EnPausa = !panelJuego.EnPausa;
+            if (botonLupa.IsClicked()) barraBusqueda.Visible = true;
+            if (botonCarpeta.IsClicked()) AbrirCarpetaDialogo();
+            if (botonCrearCarpeta.IsClicked()) explorador.CrearCarpeta();
             if (botonTerminal.IsClicked())
             {
                 terminalVisible = !terminalVisible;
@@ -486,6 +683,7 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     barraBusqueda.Draw();
     cuadroIrALinea.Draw();
+    barraApp.DrawResultadosBusqueda();
 
     const double retrasoTooltip = 0.5;
     if (botonConTooltip?.Tooltip != null && Raylib.GetTime() - tiempoInicioHoverTooltip > retrasoTooltip)
@@ -521,5 +719,8 @@ Raylib.UnloadTexture(iconoPuertaCerrada);
 Raylib.UnloadTexture(iconoDocumentoGgez);
 Raylib.UnloadTexture(iconoImagenes);
 Raylib.UnloadTexture(iconoDocumentoMd);
+Raylib.UnloadTexture(iconoCarpetaNueva);
+Raylib.UnloadTexture(iconoFantasma32);
+Raylib.UnloadTexture(iconoFantasma128);
 Raylib.UnloadFont(Win95Style.Fuente);
 Raylib.CloseWindow();

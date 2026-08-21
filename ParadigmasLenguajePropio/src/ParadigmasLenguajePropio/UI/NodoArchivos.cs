@@ -10,15 +10,31 @@ public class NodoArchivos
         try
         {
             foreach (var ruta in Directory.GetDirectories(RutaCompleta).OrderBy(r => r))
-                Hijos.Add(CarpetaDesdeDisco(ruta));
+            {
+                var hijo = CarpetaDesdeDisco(ruta);
+                hijo.Padre = this;
+                Hijos.Add(hijo);
+            }
 
             foreach (var ruta in Directory.GetFiles(RutaCompleta).OrderBy(r => r))
-                Hijos.Add(Archivo(Path.GetFileName(ruta), ruta));
+            {
+                var hijo = Archivo(Path.GetFileName(ruta), ruta);
+                hijo.Padre = this;
+                Hijos.Add(hijo);
+            }
         }
         catch (Exception)
         {
             // evita que falle si la carpeta no tiene permisos o hijos legibles
         }
+    }
+
+    // vuelve a leer del disco: usarlo después de crear/renombrar/eliminar algo adentro
+    public void Refrescar()
+    {
+        Hijos.Clear();
+        intentoCarga = false;
+        if (Expandido) Expandir();
     }
 
     public static NodoArchivos Carpeta(string nombre, params NodoArchivos[] hijos) => new()
@@ -49,6 +65,7 @@ public class NodoArchivos
     public bool EsCarpeta;
     public bool Expandido;
     public List<NodoArchivos> Hijos = new();
+    public NodoArchivos? Padre;
 
     bool intentoCarga;
 }

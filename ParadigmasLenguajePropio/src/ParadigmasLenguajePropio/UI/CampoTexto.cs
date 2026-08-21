@@ -21,7 +21,7 @@ public class CampoTexto
         int tecla = Raylib.GetCharPressed();
         while (tecla > 0)
         {
-            if (tecla >= 32 && tecla != 127)
+            if (tecla >= 32 && tecla != 127 && (FiltroCaracter == null || FiltroCaracter((char)tecla)))
             {
                 Texto = Texto.Insert(cursor, ((char)tecla).ToString());
                 cursor++;
@@ -68,6 +68,13 @@ public class CampoTexto
         Raylib.EndScissorMode();
     }
 
+    // asigna Texto directamente (sin pasar por Update) dejaría "cursor" apuntando fuera de rango
+    public void Limpiar()
+    {
+        Texto = "";
+        cursor = 0;
+    }
+
     int ColumnaEnX(float xRelativo)
     {
         int anchoPrevio = 0;
@@ -85,6 +92,7 @@ public class CampoTexto
     public Rectangle Bounds;
     public string Texto = "";
     public bool TieneFoco;
+    public Func<char, bool>? FiltroCaracter; // si está asignado, solo se acepta lo que devuelva true (ej: char.IsDigit)
 
     int cursor;
 }
