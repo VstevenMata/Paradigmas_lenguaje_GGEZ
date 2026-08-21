@@ -4,7 +4,6 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class Panel
 {
-    // VARIABLES CONSTANTES
     public const int TitleBarHeight = 26;
     const int TitleButtonSize = 16;
 

@@ -35,7 +35,6 @@ public class Button
         Raylib.DrawRectangleRec(Bounds, color);
         Win95Style.DrawBevel(Bounds, sunken: presionado);
 
-        // Al hacer click se hunde
         var desplazamiento = presionado ? new Vector2(1, 1) : Vector2.Zero;
 
         if (Icon.HasValue && string.IsNullOrEmpty(Text))

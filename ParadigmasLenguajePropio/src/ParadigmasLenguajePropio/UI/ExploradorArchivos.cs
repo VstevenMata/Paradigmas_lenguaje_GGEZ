@@ -5,7 +5,6 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class ExploradorArchivos
 {
-    // VARIABLES CONSTANTES
     const int AltoTitulo = 22;
     const int AnchoScroll = 16;
     const int AltoFila = 22;
@@ -27,7 +26,6 @@ public class ExploradorArchivos
         int filasVisibles = Math.Max(1, (int)(areaContenido.Height / AltoFila));
         int maxPrimeraFila = Math.Max(0, totalFilas - filasVisibles);
 
-        // rueda del mouse (o gesto del touchpad) sobre el árbol: sube/baja sin arrastrar el thumb
         if (maxPrimeraFila > 0 && Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), areaContenido))
         {
             float rueda = Raylib.GetMouseWheelMove();
@@ -41,7 +39,6 @@ public class ExploradorArchivos
 
         int primeraFila = PrimeraFilaVisible(areaContenido);
 
-        // con el menú contextual abierto, el click se usa para elegir una opción o cerrarlo, no para lo de siempre
         if (nodoMenuContextual != null)
         {
             ManejarMenuContextual();
@@ -59,7 +56,6 @@ public class ExploradorArchivos
 
     public void Draw()
     {
-        // sin marco propio el panel flota directo sobre el gris compartido de la app
         Win95Style.DrawText(Titulo, (int)Bounds.X + 6, (int)Bounds.Y + 4, 16, Color.Black);
 
         var areaContenido = AreaContenido();
@@ -74,7 +70,6 @@ public class ExploradorArchivos
 
         scroll.Draw();
 
-        // línea que separa el panel blanco de la scrollbar al frente, encima de todo lo anterior
         Win95Style.DrawDivisorVertical((int)(areaContenido.X + areaContenido.Width) + 1, (int)areaContenido.Y, (int)areaContenido.Height, thickness: 2);
     }
 
@@ -128,7 +123,6 @@ public class ExploradorArchivos
             Raylib.DrawTextureEx(icono.Value, posicionIcono, 0f, (float)lado / icono.Value.Width, Color.White);
         }
 
-        // el texto arranca siempre después del ícono más ancho, para que quede alineado en columna
         Win95Style.DrawText(nodo.Nombre, (int)(x + LadoIconoCarpeta + 4), (int)(y + (AltoFila - FontSize) / 2f), FontSize, seleccionado ? Color.White : Color.Black);
     }
 
@@ -184,7 +178,6 @@ public class ExploradorArchivos
         nodoSeleccionado = null; // click en el vacío: se pierde la selección
     }
 
-    // click derecho: selecciona la fila y abre el menú contextual anclado al mouse
     void ManejarClickDerecho(Rectangle area, int primeraFila)
     {
         if (!Raylib.IsMouseButtonPressed(MouseButton.Right)) return;

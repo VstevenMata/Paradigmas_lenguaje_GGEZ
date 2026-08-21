@@ -3,7 +3,6 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class PanelTerminal
 {
-    // VARIABLES CONSTANTES
     const int AltoTabs = 22;
     const int AnchoScroll = 16;
     const int AnchoTab = 70;
@@ -21,7 +20,6 @@ public class PanelTerminal
                 TabActiva = i;
         }
 
-        // solo escribe si esta pestaña tiene el foco del teclado se hizo click en la terminal, no en el editor
         if (TabActiva == 0 && TieneFoco) ManejarTeclado();
 
         var areaContenido = AreaContenido();
@@ -65,10 +63,9 @@ public class PanelTerminal
         Win95Style.DrawBevel(areaContenido, sunken: true, thickness: 4);
 
         bool esTerminal = TabActiva == 0;
-        // en la pestaña Terminal hay una línea extra la viva, donde todavía se puede seguir escribiendo
+        // en la pestaña Terminal hay una línea extra: la viva, donde todavía se puede seguir escribiendo
         int totalLineas = esTerminal ? LineasTerminal.Count + 1 : LineasErrores.Count;
 
-        // como en una terminal real, solo se ve la colalas líneas más nuevas empujan a las viejas fuera de vista
         const int altoLinea = 18;
         int lineasVisibles = Math.Max(1, (int)(areaContenido.Height - 10) / altoLinea);
         int primeraLinea = Math.Max(0, totalLineas - lineasVisibles);
@@ -88,7 +85,6 @@ public class PanelTerminal
             bool esLaLineaViva = i == LineasTerminal.Count;
             var (prompt, contenido) = esLaLineaViva ? (PromptActual(), entradaActual) : LineasTerminal[i];
 
-            // hay una parte fija y lo escrito después van en colores distintos
             Win95Style.DrawText(prompt, x, y, 16, ColorPrompt);
             int xContenido = x + Win95Style.MeasureText(prompt, 16);
             Win95Style.DrawText(contenido, xContenido, y, 16, ColorEscrito);
@@ -96,7 +92,7 @@ public class PanelTerminal
             if (esLaLineaViva)
             {
                 int xCursor = xContenido + Win95Style.MeasureText(contenido, 16);
-                //  cursor sólido y parpadeante con foco, hueco y fijo sin foco
+                // sólido y parpadeante con foco; hueco y fijo sin foco
                 if (TieneFoco)
                 {
                     if (Raylib.GetTime() % 1.0 < 0.5) Raylib.DrawRectangle(xCursor, y, 8, 16, ColorEscrito);
@@ -111,7 +107,6 @@ public class PanelTerminal
 
         scroll.Draw();
 
-        // línea al frente, encima del scroll, igual que en el explorador
         Win95Style.DrawDivisorVertical((int)(areaContenido.X + areaContenido.Width) + 1, (int)areaContenido.Y, (int)areaContenido.Height, thickness: 2);
     }
 

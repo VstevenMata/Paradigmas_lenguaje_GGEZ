@@ -17,7 +17,7 @@ public class NodoArchivos
         }
         catch (Exception)
         {
-            // ignorar errores por que si no tiene hijos se me caía xd
+            // evita que falle si la carpeta no tiene permisos o hijos legibles
         }
     }
 
@@ -36,7 +36,7 @@ public class NodoArchivos
         RutaCompleta = rutaCompleta,
     };
 
-    // carpeta sus hijos se leen recién cuando se expande por primera vez, como si fuera en db con lazy load
+    // los hijos se leen recién al expandir por primera vez (lazy load)
     public static NodoArchivos CarpetaDesdeDisco(string rutaCompleta) => new()
     {
         Nombre = Path.GetFileName(rutaCompleta.TrimEnd(Path.DirectorySeparatorChar)),
