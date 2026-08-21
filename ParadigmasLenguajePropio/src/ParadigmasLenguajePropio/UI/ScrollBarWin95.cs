@@ -4,9 +4,8 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class ScrollBarWin95
 {
-    // VARIABLES CONSTANTES
     const int LadoBoton = 16;
-    const int MargenThumb = 1;
+    const int MargenThumb = 3; // separa el thumb de los lados de la pista, para que quede fino y flote como un pixel gris
     const int MargenExtremos = 3;
 
     Rectangle ThumbBounds()
@@ -59,15 +58,17 @@ public class ScrollBarWin95
 
     public void Draw()
     {
-        // pista plana, sin relieve: se confunde con el fondo para que el thumb parezca flotar sobre la nada
-        Raylib.DrawRectangleRec(Pista, Win95Style.Background);
+        // trama a cuadros clásica de Win95/98 en la pista, como el scrollbar del tema retro de Obsidian
+        Win95Style.DrawDither(Pista, Color.White, Win95Style.Background);
 
         DibujarBotonFlecha(BotonInicio, inicio: true);
         DibujarBotonFlecha(BotonFin, inicio: false);
 
+        // thumb fino y plano: un solo pixel de relieve, como el indicador gris del tema retro de Obsidian
         var thumbBounds = ThumbBounds();
-        Raylib.DrawRectangleRec(thumbBounds, Win95Style.ScrollTrack);
-        Win95Style.DrawBevel(thumbBounds, sunken: false, thickness: 2);
+        bool resaltado = arrastrandoThumb || Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), thumbBounds);
+        Raylib.DrawRectangleRec(thumbBounds, resaltado ? Color.LightGray : Win95Style.ScrollTrack);
+        Win95Style.DrawBevel(thumbBounds, sunken: false, thickness: 1);
     }
 
     void DibujarBotonFlecha(Rectangle r, bool inicio)
@@ -79,8 +80,7 @@ public class ScrollBarWin95
 
         if (Horizontal)
         {
-            // mismo orden de vértices que las flechas verticales (tip, esquina-abajo, esquina-arriba)
-            // para que el relleno se comporte igual en el driver de GPU
+            // mismo orden de vértices que las flechas verticales, para que el relleno se comporte igual en la GPU
             if (inicio)
                 Raylib.DrawTriangle(new(cx - 4, cy), new(cx + 3, cy + 4), new(cx + 3, cy - 4), Color.Black);
             else

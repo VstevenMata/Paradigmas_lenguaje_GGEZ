@@ -4,9 +4,9 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class MenuBar
 {
-    // VARIABLES CONSTANTES
     public const int Height = 24;
-    const int PaddingItem = 18;
+    const int FontSizeItem = 14;
+    const int PaddingItem = 20;
     const int AnchoSubmenu = 190;
     const int AltoFilaSubmenu = 22;
     const int PaddingFilaSubmenu = 10;
@@ -81,27 +81,35 @@ public class MenuBar
 
     public void Draw()
     {
-        Raylib.DrawRectangleRec(Bounds, Win95Style.Background);
-
         var rects = RectsItems();
+        var mouse = Raylib.GetMousePosition();
         for (int i = 0; i < Items.Length; i++)
         {
             bool activo = i == menuAbierto;
+            bool hover = !activo && Raylib.CheckCollisionPointRec(mouse, rects[i]);
+
             if (activo)
             {
-                // hundido y sin borde inferior: queda egado al submenú que se abre debajo
+                // resalto claro semitransparente, se nota igual sobre azul o gris (foco/sin foco)
+                Raylib.DrawRectangleRec(rects[i], new Color(255, 255, 255, 60));
                 Win95Style.DrawBevel(rects[i], sunken: true, thickness: 1, bordeInferior: false);
             }
-            int xTexto = (int)rects[i].X + 6;
-            int yTexto = (int)Bounds.Y + 4;
-            Win95Style.DrawText(Items[i], xTexto, yTexto, 16, Color.Black);
+            else if (hover)
+            {
+                // resalto más tenue solo al pasar el mouse, sin abrir el menú todavía
+                Raylib.DrawRectangleRec(rects[i], new Color(255, 255, 255, 30));
+            }
 
-            // subraya la letra mnemónica (Alt+letra), como en el Windows clásico
+            int xTexto = (int)rects[i].X + 6;
+            int yTexto = (int)(Bounds.Y + (Bounds.Height - FontSizeItem) / 2f);
+            Win95Style.DrawText(Items[i], xTexto, yTexto, FontSizeItem, Color.White);
+
+            // rectángulo de 1px en vez de DrawLine: una línea puede perderse por antialiasing según el X
             int indiceMnemonico = MnemonicIndices[i];
-            int xAntes = Win95Style.MeasureText(Items[i][..indiceMnemonico], 16);
-            int anchoLetra = Win95Style.MeasureText(Items[i][indiceMnemonico].ToString(), 16);
-            int yLinea = yTexto + 16;
-            Raylib.DrawLine(xTexto + xAntes, yLinea, xTexto + xAntes + anchoLetra, yLinea, Color.Black);
+            int xAntes = Win95Style.MeasureText(Items[i][..indiceMnemonico], FontSizeItem);
+            int anchoLetra = Win95Style.MeasureText(Items[i][indiceMnemonico].ToString(), FontSizeItem);
+            int yLinea = yTexto + FontSizeItem + 1;
+            Raylib.DrawRectangle(xTexto + xAntes, yLinea, Math.Max(1, anchoLetra), 1, Color.White);
         }
     }
 
@@ -147,7 +155,7 @@ public class MenuBar
         int x = (int)Bounds.X + 6;
         for (int i = 0; i < Items.Length; i++)
         {
-            int anchoTexto = Win95Style.MeasureText(Items[i], 16);
+            int anchoTexto = Win95Style.MeasureText(Items[i], FontSizeItem);
             resultado[i] = new Rectangle(x - 6, Bounds.Y, anchoTexto + 12, Bounds.Height);
             x += anchoTexto + PaddingItem;
         }
@@ -164,23 +172,35 @@ public class MenuBar
         return new Rectangle(area.X + 2, area.Y + 2 + indice * AltoFilaSubmenu, area.Width - 4, AltoFilaSubmenu);
     }
 
-    public string[] Items = { "Archivo", "Editar", "Ejecutar", "Ayuda" };
+    public string[] Items = { "Archivo", "Editar", "Ver", "Ejecutar", "Ayuda" };
 
-    // índice de la letra subrayada por ítem: Archivo=A, Editar=E, eJecutar=J (la E ya la usa Editar), aYuda=Y (la A ya la usa Archivo)
-    public int[] MnemonicIndices = { 0, 0, 1, 1 };
+    // índice de la letra subrayada por ítem: Archivo=A, Editar=E, Ver=V, Ejecutar=E, aYuda=Y (la A ya la usa Archivo)
+    public int[] MnemonicIndices = { 0, 0, 0, 0, 1 };
 
-    // cada encabezado con sus acciones
     public string[][] Submenus =
     {
         new[] { "Nuevo", "Abrir carpeta", Separador, "Guardar", "Guardar como", "Guardar todo", Separador, "Salir" },
-        new[] { "Deshacer", "Rehacer", Separador, "Cortar", "Copiar", "Pegar", Separador, "Buscar", "Buscar y reemplazar" },
-        new[] { "Construir", "Ejecutar", "Pausar / Reanudar", "Detener", Separador, "Ver salida" },
+        new[] { "Deshacer", "Rehacer", Separador, "Cortar", "Copiar", "Pegar", Separador, "Buscar", "Buscar y reemplazar", "Ir a línea" },
+        new[] { "Explorador", "Terminal", "Panel derecho" },
+        new[] { "Construir", "Pausar / Reanudar", Separador, "Ver salida" },
         new[] { "Acerca de", "Atajos de teclado", "Sintaxis de GGEZ" },
     };
 
     public Rectangle Bounds;
     public Action<string>? OnOpcionElegida;
     public bool MenuAbierto => menuAbierto >= 0;
+
+    // para que la barra de título sepa hasta dónde no interpretar un click como arrastre
+    public Rectangle AreaOcupada
+    {
+        get
+        {
+            var rects = RectsItems();
+            if (rects.Length == 0) return new Rectangle(Bounds.X, Bounds.Y, 0, Bounds.Height);
+            var ultimo = rects[^1];
+            return new Rectangle(Bounds.X, Bounds.Y, (ultimo.X + ultimo.Width) - Bounds.X, Bounds.Height);
+        }
+    }
 
     int menuAbierto = -1;
 }

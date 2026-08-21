@@ -6,7 +6,8 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class PanelCentral
 {
-    // VARIABLES CONSTANTES
+    public const int AltoCabecera = MargenArribaTabs + AltoTabs + MargenDebajoTabs; // alto de la franja de pestañas, para anclar cosas justo debajo (ej: la barra de búsqueda)
+    public const int AnchoReservadoDerecha = AnchoScroll + 4; // ancho que ocupan la scrollbar y sus márgenes a la derecha del área de texto (documento)
     const int AnchoScroll = 16;
     const int AltoScrollHorizontal = 16;
     const int AnchoNumeros = 40;
@@ -84,7 +85,6 @@ public class PanelCentral
         Raylib.DrawRectangleRec(esquinaScroll, Win95Style.Background);
         Win95Style.DrawBevel(esquinaScroll, sunken: true, thickness: 1);
 
-        // línea que separa el texto blanco del gris de la barra de scroll vertical
         Win95Style.DrawDivisorVertical((int)(areaContenido.X + areaContenido.Width) + 1, (int)areaContenido.Y, (int)areaContenido.Height, thickness: 2);
         Win95Style.DrawDivisorHorizontal((int)areaContenido.X, (int)(areaContenido.Y + areaContenido.Height) + 1, (int)areaContenido.Width, thickness: 2);
 
@@ -131,7 +131,6 @@ public class PanelCentral
         }
     }
 
-    // rueda del mouse sobre la barra de pestañas las desliza cuando no caben todas en el ancho del panel
     void ManejarRuedaTabs()
     {
         var areaTabs = AreaTabs();
@@ -144,7 +143,6 @@ public class PanelCentral
         desplazamientoTabs = Math.Clamp(desplazamientoTabs - rueda * PixelesPorRuedaTabs, 0, maxDesplazamiento);
     }
 
-    // corrige el desplazamiento para que la pestaña activa siempre quede visible dentro del panel
     void AsegurarTabVisible()
     {
         var areaTabs = AreaTabs();
@@ -176,7 +174,6 @@ public class PanelCentral
         return total;
     }
 
-    // si hay cambios sin guardar pregunta antes de cerrar; si no, cierra directo
     void CerrarArchivo(int indice)
     {
         if (archivos[indice].Modificado && Dialogo != null)
@@ -191,7 +188,7 @@ public class PanelCentral
         CerrarArchivoInterno(indice);
     }
 
-    // cierra la pestaña si era la activa, pasa a la que quede en su lugar sin resetear el cursor de las demás
+    // no resetea el cursor de las pestañas que no se tocan
     void CerrarArchivoInterno(int indice)
     {
         archivos.RemoveAt(indice);
@@ -211,7 +208,7 @@ public class PanelCentral
         AsegurarTabVisible();
     }
 
-    // reemplaza a la pestaña si el archivo ya está abierto si no, crea una nueva y carga su contenido
+    // evita abrir el mismo archivo dos veces en pestañas distintas
     public void AbrirArchivo(string nombre, string rutaCompleta)
     {
         int existente = archivos.FindIndex(a => a.RutaCompleta == rutaCompleta);
@@ -250,7 +247,6 @@ public class PanelCentral
         AsegurarTabVisible();
     }
 
-    // trunca los nombres de pestaña muy largos, en vez de dejar que la pestaña crezca sin límite
     string NombreMostrado(string nombre)
     {
         if (Win95Style.MeasureText(nombre, FontSizeTabs) <= AnchoMaximoTab) return nombre;
@@ -265,7 +261,7 @@ public class PanelCentral
     {
         var mouse = Raylib.GetMousePosition();
 
-        if (Raylib.CheckCollisionPointRec(mouse, areaContenido) && Raylib.IsMouseButtonPressed(MouseButton.Left))
+        if (!BloquearClickTexto && Raylib.CheckCollisionPointRec(mouse, areaContenido) && Raylib.IsMouseButtonPressed(MouseButton.Left))
         {
             var (fila, columna) = PosicionEnPixel(areaContenido, mouse);
             MoverCursor(fila, columna, extenderSeleccion: false);
@@ -317,7 +313,9 @@ public class PanelCentral
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.X)) { Cortar(); return; }
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.V)) { Pegar(); return; }
         if (ctrl && Raylib.IsKeyPressed(KeyboardKey.A)) { SeleccionarTodo(); return; }
+        if (ctrl && shift && Pulsado(KeyboardKey.Z)) { Rehacer(); return; }
         if (ctrl && Pulsado(KeyboardKey.Z)) { Deshacer(); return; }
+        if (ctrl && Pulsado(KeyboardKey.Y)) { Rehacer(); return; }
 
         if (alt && Pulsado(KeyboardKey.Up)) { MoverLineaArriba(); return; }
         if (alt && Pulsado(KeyboardKey.Down)) { MoverLineaAbajo(); return; }
@@ -346,8 +344,6 @@ public class PanelCentral
     }
 
     static bool Pulsado(KeyboardKey tecla) => Raylib.IsKeyPressed(tecla) || Raylib.IsKeyPressedRepeat(tecla);
-
-    //  edición 
 
     void InsertarTexto(string texto)
     {
@@ -454,8 +450,6 @@ public class PanelCentral
         filaCursor++;
     }
 
-    // portapapeles
-
     void Copiar()
     {
         if (haySeleccion) Raylib.SetClipboardText(TextoSeleccionado());
@@ -484,8 +478,6 @@ public class PanelCentral
         columnaCursor = lineas[filaCursor].Length;
         columnaDeseada = columnaCursor;
     }
-
-    // navegación
 
     void MoverCursor(int fila, int columna, bool extenderSeleccion)
     {
@@ -548,8 +540,6 @@ public class PanelCentral
         columnaDeseada = columnaCursor;
     }
 
-    // deshacer
-
     void GuardarEstadoParaDeshacer(TipoEdicion tipo)
     {
         // escritura y borrado se agrupan mientras se repiten, así deshacer no va letra por letra
@@ -560,12 +550,15 @@ public class PanelCentral
 
         historialDeshacer.Add((new List<string>(lineas), filaCursor, columnaCursor));
         if (historialDeshacer.Count > LimiteHistorial) historialDeshacer.RemoveAt(0);
+        historialRehacer.Clear(); // una edición nueva invalida lo que se pudiera rehacer
         ultimoTipoEdicion = tipo;
     }
 
-    void Deshacer()
+    public void Deshacer()
     {
         if (historialDeshacer.Count == 0) return;
+
+        historialRehacer.Add((new List<string>(lineas), filaCursor, columnaCursor));
 
         var (lineasPrevias, fila, columna) = historialDeshacer[^1];
         historialDeshacer.RemoveAt(historialDeshacer.Count - 1);
@@ -579,9 +572,25 @@ public class PanelCentral
         ultimoTipoEdicion = TipoEdicion.Ninguna; // la próxima edición tiene su propio grupo
     }
 
-    enum TipoEdicion { Ninguna, Escritura, Borrado, Otro }
+    public void Rehacer()
+    {
+        if (historialRehacer.Count == 0) return;
 
-    // selección
+        historialDeshacer.Add((new List<string>(lineas), filaCursor, columnaCursor));
+
+        var (lineasSiguientes, fila, columna) = historialRehacer[^1];
+        historialRehacer.RemoveAt(historialRehacer.Count - 1);
+
+        lineas.Clear();
+        lineas.AddRange(lineasSiguientes);
+        filaCursor = Math.Clamp(fila, 0, lineas.Count - 1);
+        columnaCursor = Math.Clamp(columna, 0, lineas[filaCursor].Length);
+        columnaDeseada = columnaCursor;
+        haySeleccion = false;
+        ultimoTipoEdicion = TipoEdicion.Ninguna;
+    }
+
+    enum TipoEdicion { Ninguna, Escritura, Borrado, Otro }
 
     bool AnclaEsAntesDelCursor() => selFila != filaCursor ? selFila < filaCursor : selColumna < columnaCursor;
 
@@ -629,15 +638,13 @@ public class PanelCentral
         haySeleccion = false;
     }
 
-    // scroll
-
-    // rueda del mouse o gesto del touchpad sobre el editorbaja/sube por el texto sin mover el cursor
+    // mueve el scroll, no el cursor
     void ManejarRuedaTexto(Rectangle areaNumeros, Rectangle areaContenido)
     {
         var areaEditor = new Rectangle(areaNumeros.X, areaContenido.Y, areaContenido.X + areaContenido.Width - areaNumeros.X, areaContenido.Height);
         if (!Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), areaEditor)) return;
 
-        // GetMouseWheelMoveV trae X e Y por separado el touchpad puede mover ambos ejes a la vez
+        // trae X e Y por separado porque el touchpad puede mover ambos ejes a la vez
         var rueda = Raylib.GetMouseWheelMoveV();
         if (rueda.Y != 0)
         {
@@ -716,8 +723,6 @@ public class PanelCentral
         }
     }
 
-    // dibujo del texto
-
     void DibujarTexto(Rectangle areaNumeros, Rectangle areaContenido)
     {
         int primeraLinea = PrimeraLineaVisible(areaContenido);
@@ -731,8 +736,6 @@ public class PanelCentral
         {
             int y = (int)areaContenido.Y + 4 + (i - primeraLinea) * AltoLinea;
 
-            // franja sutil sobre la línea donde está el cursor, como en cualquier editor moderno;
-            // mismo Y/alto que el rectángulo de selección, para que coincidan si la línea tiene ambas cosas.
             // recortada 3px de cada lado para no tapar el bevel hundido del borde del panel
             if (i == filaCursor)
                 Raylib.DrawRectangleRec(new Rectangle(areaContenido.X + 3, y, areaContenido.Width - 6, AltoLinea), ColorLineaActual);
@@ -783,8 +786,6 @@ public class PanelCentral
         Raylib.DrawRectangle(x, y, 2, FontSize, Color.Black);
     }
 
-    // pestañas
-
     void DibujarTabs(Rectangle areaContenido)
     {
         var areaTabs = AreaTabs();
@@ -817,7 +818,6 @@ public class PanelCentral
 
             float xContenido = tabRect.X + PaddingTab;
 
-            // punto de "modificado" a la izquierda, pegado al documento, antes del ícono
             if (archivos[i].Modificado)
                 Raylib.DrawCircleV(new Vector2(tabRect.X + 5, tabRect.Y + tabRect.Height / 2f), 2, Color.Black);
 
@@ -847,7 +847,6 @@ public class PanelCentral
         Raylib.EndScissorMode();
     }
 
-    // botón x pegado al borde derecho de la pestaña
     Rectangle RectBotonCerrar(Rectangle tabRect)
     {
         float y = tabRect.Y + (tabRect.Height - LadoBotonCerrar) / 2f;
@@ -860,7 +859,7 @@ public class PanelCentral
         return anchoIcono + Win95Style.MeasureText(NombreMostrado(archivo.Nombre), FontSizeTabs) + PaddingTab * 2 + EspacioBotonCerrar + LadoBotonCerrar;
     }
 
-    // mismo criterio por extensión que usa el explorador, así la pestaña y el árbol muestran el mismo ícono
+    // debe coincidir con el criterio del explorador, así pestaña y árbol muestran el mismo ícono
     Texture2D? IconoPara(string nombre)
     {
         if (nombre.EndsWith(".ggez", StringComparison.OrdinalIgnoreCase)) return IconoDocumentoGgez;
@@ -874,8 +873,6 @@ public class PanelCentral
         string[] extensiones = { ".png", ".jpg", ".jpeg", ".bmp", ".gif" };
         return extensiones.Any(ext => nombre.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }
-
-    // áreas
 
     Rectangle AreaTabs()
     {
@@ -900,6 +897,7 @@ public class PanelCentral
 
     public Rectangle Bounds;
     public bool TieneFoco = true; // el editor arranca con el foco del teclado se cede al hacer click en la terminal
+    public bool BloquearClickTexto; // true mientras el click cae sobre un overlay flotante (ej: la barra de búsqueda), para no mover el cursor debajo
     public int ArchivoActivo;
     public Texture2D? IconoDocumento;
     public Texture2D? IconoDocumentoGgez;
@@ -923,9 +921,10 @@ public class PanelCentral
     readonly ScrollBarWin95 scrollHorizontal = new() { Horizontal = true };
     float desplazamientoTabs; // en píxeles, cuánto se deslizó la franja de pestañas hacia la derecha
 
-    // cada pestaña guarda su propio contenido e historial de deshacer, así no se mezclan entre archivos
+    // cada pestaña guarda su propio contenido e historial de deshacer/rehacer, así no se mezclan entre archivos
     List<string> lineas => archivos[ArchivoActivo].Lineas;
     List<(List<string> Lineas, int Fila, int Columna)> historialDeshacer => archivos[ArchivoActivo].HistorialDeshacer;
+    List<(List<string> Lineas, int Fila, int Columna)> historialRehacer => archivos[ArchivoActivo].HistorialRehacer;
 
     TipoEdicion ultimoTipoEdicion
     {
@@ -939,11 +938,11 @@ public class PanelCentral
         public string RutaCompleta = "";
         public List<string> Lineas = new() { "" };
         public List<(List<string> Lineas, int Fila, int Columna)> HistorialDeshacer = new();
+        public List<(List<string> Lineas, int Fila, int Columna)> HistorialRehacer = new();
         public TipoEdicion UltimoTipoEdicion = TipoEdicion.Ninguna;
         public Texture2D? Icono;
         public bool Modificado;
     }
 
-    // arranca sin pestañas se van agregando al abrir archivos desde el explorador
     readonly List<ArchivoAbierto> archivos = new();
 }

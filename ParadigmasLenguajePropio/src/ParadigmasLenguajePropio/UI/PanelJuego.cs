@@ -5,7 +5,6 @@ namespace ParadigmasLenguajePropio.UI;
 
 public class PanelJuego
 {
-    // VARIABLES CONSTANTES
     const int AltoViewportSugerido = 90;
     const int AltoBarraNivel = 20;
     const int SegmentosNivel = 24;
@@ -13,7 +12,7 @@ public class PanelJuego
     const int AltoBoton = 24;
     const int FontSizeBoton = 16;
     const int Margen = 8;
-    const int AnchoPestana = 0; // sin puerta propia ya no hace falta dejar una franja visible al colapsar
+    const int AnchoPestana = 0;
     const int LadoPersonaje = 48;
     const float VelocidadAnimacion = 1400f;
 
@@ -23,8 +22,6 @@ public class PanelJuego
         float paso = VelocidadAnimacion * Raylib.GetFrameTime();
         anchoActual = MathF.Abs(objetivo - anchoActual) <= paso ? objetivo : anchoActual + MathF.Sign(objetivo - anchoActual) * paso;
 
-    
-        //nunca se va de pantalla y siempre se puede volver a abrir
         panel.Bounds = new Rectangle(boundsHome.X + boundsHome.Width - anchoActual, boundsHome.Y, anchoActual, boundsHome.Height);
         panel.Minimized = Oculto;
 
@@ -49,8 +46,7 @@ public class PanelJuego
 
     void DibujarContenido(Rectangle area)
     {
-        // vista del juegoodavía sin diseñar, solo el marco hundido reservando el lugar.
-        // ocupa todo lo que sobra del alto del panel, así las dos ventanas llenan la columna
+        // vista del juego todavía sin diseñar: por ahora solo reserva el lugar
         float alturaViewport = AlturaViewport(area);
         var viewport = new Rectangle(area.X, area.Y, area.Width, alturaViewport);
         Raylib.DrawRectangleRec(viewport, Color.White);
@@ -113,8 +109,7 @@ public class PanelJuego
 
     public int AlturaSugerida => Panel.TitleBarHeight + 8 + AltoViewportSugerido + Margen + AltoBarraNivel + Margen + AltoBoton;
 
-    // hasta dónde llega ahora mismo el borde izquierdo
-    // central sepa cuánto espacio recuperar cuando esta ventana está cerrada
+    // para que el panel central sepa cuánto espacio recuperar cuando esta ventana está cerrada
     public float BordeIzquierdoActual => boundsHome.X + boundsHome.Width - anchoActual;
 
     public bool EnPausa = true;
@@ -133,8 +128,7 @@ public class PanelJuego
     {
         this.iconoPersonaje64px = iconoPersonaje64px;
 
-        // sin botón de puerta propio: Oculto lo controla Ggez.cs, con una sola puerta compartida
-        // ubicada entre esta ventana y PanelInspeccion, para que se note que cierra las dos juntas
+        // sin botón de puerta propio: Oculto lo controla Ggez.cs, con el botón de alternar panel derecho
         panel = new Panel(0, 0, 0, 0, "Juego")
         {
             MostrarMinimizar = false,
