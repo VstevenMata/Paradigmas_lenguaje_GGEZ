@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Raylib-cs" Version="8.0.0" />
+    <!-- da acceso a las paginas de codigos OEM (850/437), que es en las que cmd.exe escribe su salida -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>

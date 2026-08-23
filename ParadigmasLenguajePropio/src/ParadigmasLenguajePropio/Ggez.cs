@@ -377,6 +377,12 @@ bool terminalVisible = false;
 var barraBusqueda = new BarraBusqueda { Editor = panelCentral };
 var cuadroIrALinea = new CuadroIrALinea { Editor = panelCentral };
 
+bool focoEnTerminal = false;
+var panelTerminal = new PanelTerminal();
+
+// el comando "exit" cierra el panel, igual que el botón de la barra lateral
+panelTerminal.OnCerrar = () => terminalVisible = false;
+
 // se comparte entre el botón de la barra lateral y el menú Archivo > Abrir carpeta
 void AbrirCarpetaDialogo()
 {
@@ -384,13 +390,12 @@ void AbrirCarpetaDialogo()
     if (rutaElegida != null)
     {
         explorador.AbrirCarpeta(rutaElegida);
+        // la terminal se para en la carpeta recién abierta, como al abrir un proyecto en VSCode
+        panelTerminal.EstablecerDirectorio(rutaElegida);
         botonCarpeta.Icon = iconoCarpetaAbierta;
         Console.WriteLine($"Carpeta abierta: {rutaElegida}");
     }
 }
-
-bool focoEnTerminal = false;
-var panelTerminal = new PanelTerminal();
 
 barraMenu.OnOpcionElegida = opcion =>
 {
@@ -702,6 +707,9 @@ while (!Raylib.WindowShouldClose() && !barraApp.ShouldClose)
 
     Raylib.EndDrawing();
 }
+
+// si quedó un comando corriendo, se corta acá: si no, sobrevive a la ventana
+panelTerminal.Cerrar();
 
 Raylib.UnloadTexture(iconoNuevo);
 Raylib.UnloadTexture(iconoGuardar);
