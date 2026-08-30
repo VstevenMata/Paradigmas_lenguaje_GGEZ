@@ -1,24 +1,33 @@
 # Paradigmas de Lenguaje - GGEZ / C#
 
-Proyecto comparativo de paradigmas de programación. Este README cubre la parte en **C#** (`ParadigmasLenguajePropio/`), con gráficos vía [Raylib-cs](https://github.com/ChrisDill/Raylib-cs).
+Proyecto comparativo de paradigmas de programación. Este README cubre la parte en **C#** (`ParadigmasLenguajePropio/`), una app de escritorio con [Avalonia](https://avaloniaui.net/) (MVVM, con [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)).
 
 ## Estructura del proyecto
 
 ```
 Paradigmas_lenguaje_GGEZ/
-├── flake.nix                    # entorno reproducible para Linux (SDK .NET + nixGL)
+├── flake.nix                    # entorno reproducible para Linux (SDK .NET)
 ├── flake.lock                   # versiones fijadas, generado por nix
 ├── .gitignore
 └── ParadigmasLenguajePropio/
     ├── ParadigmasLenguajePropio.sln     # solución, agrupa proyectos
     └── src/ParadigmasLenguajePropio/
         ├── ParadigmasLenguajePropio.csproj   # dependencias y config del proyecto
-        ├── Ggez.cs                   ← código de la app (top-level statements, es el "main")
-        ├── bin/                      ← GENERADO por dotnet, no se versiona
-        └── obj/                      ← GENERADO por dotnet, no se versiona
+        ├── Program.cs                 ← punto de entrada (Main)
+        ├── App.axaml(.cs)             ← arranque de la app, carga el tema
+        ├── Views/                     ← XAML + code-behind de cada panel/ventana
+        ├── ViewModels/                ← estado y lógica de cada Vista (MVVM)
+        ├── Models/                    ← datos puros (árbol de archivos, líneas de terminal, etc.)
+        ├── Services/                  ← diálogos, selector de archivos, proceso de la terminal
+        ├── Controls/                  ← controles custom (bisel Win95, editor de texto, etc.)
+        ├── Converters/                ← conversores de binding (íconos, colores, etc.)
+        ├── Themes/Win95Theme.axaml    ← estilos/colores Win95 reutilizados en toda la app
+        ├── Assets/                    ← íconos y fuentes
+        ├── bin/                       ← GENERADO por dotnet, no se versiona
+        └── obj/                       ← GENERADO por dotnet, no se versiona
 ```
 
-Para agregar más código, sumá archivos `.cs` dentro de `ParadigmasLenguajePropio/src/ParadigmasLenguajePropio/` — el SDK de .NET los incluye automáticamente en la compilación, no hace falta listarlos en ningún lado.
+Para agregar más código, sumá archivos `.cs`/`.axaml` dentro de `ParadigmasLenguajePropio/src/ParadigmasLenguajePropio/` — el SDK de .NET los incluye automáticamente en la compilación, no hace falta listarlos en ningún lado.
 
 ## Qué hay en `.gitignore` y por qué
 
@@ -65,7 +74,7 @@ Parado en la raíz del repo (o cualquier subcarpeta):
 nix run .#up
 ```
 
-Este único comando compila el proyecto y abre la ventana gráfica con OpenGL nativo (usa `nixGLIntel` para resolver los drivers Mesa/Intel del sistema). La primera vez tarda más porque nix baja el SDK y las librerías gráficas desde su caché; las siguientes veces es rápido.
+Este único comando compila el proyecto y abre la ventana gráfica (Avalonia usa Skia para dibujar, no necesita OpenGL/`nixGLIntel` como la versión anterior con Raylib). La primera vez tarda más porque nix baja el SDK desde su caché; las siguientes veces es rápido.
 
 Para cerrar la app: click en la X de la ventana, o `Ctrl+C` en la terminal donde corre.
 
@@ -75,7 +84,7 @@ Para cerrar la app: click en la X de la ventana, o `Ctrl+C` en la terminal donde
 nix develop              # entra al entorno con dotnet + libs graficas
 cd ParadigmasLenguajePropio
 dotnet build              # solo compila, chequea errores
-nixGLIntel dotnet run --project src/ParadigmasLenguajePropio   # compila y corre con GL
+dotnet run --project src/ParadigmasLenguajePropio   # compila y corre
 exit                       # sale del entorno nix
 ```
 
@@ -103,7 +112,7 @@ cd ParadigmasLenguajePropio
 dotnet run --project src\ParadigmasLenguajePropio
 ```
 
-Eso alcanza — `Raylib-cs` ya trae los binarios nativos para Windows (`raylib.dll`), así que no hace falta ningún wrapper extra tipo `nixGLIntel` (eso solo existe para resolver un problema específico de Linux+nix). `dotnet run` compila y abre la ventana directo.
+Eso alcanza — Avalonia ya trae todo lo necesario para Windows vía NuGet, no hace falta ningún paso extra. `dotnet run` compila y abre la ventana directo.
 
 ### Notas
 

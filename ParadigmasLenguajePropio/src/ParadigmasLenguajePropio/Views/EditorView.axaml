@@ -1,0 +1,104 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+             xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+             xmlns:conv="using:ParadigmasLenguajePropio.Converters"
+             x:Class="ParadigmasLenguajePropio.Views.EditorView"
+             x:DataType="vm:EditorViewModel"
+             Focusable="True" KeyDown="Editor_KeyDown">
+
+    <!-- Reemplaza PanelCentral.cs. El texto/cursor/selección los dibuja EditorTextArea (control
+         custom); acá se arma todo lo demás: tabs, el par de ScrollViewer que reemplazan
+         ScrollBarWin95 (uno vertical envolviendo gutter+texto, uno horizontal solo para el texto,
+         así los números de línea no se desplazan de lado), y las barras de buscar/ir-a-línea. -->
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- tabs -->
+        <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                      IsVisible="{Binding HayArchivosAbiertos}">
+            <ItemsControl ItemsSource="{Binding Tabs}" x:CompileBindings="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="4,4,0,0" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:Win95Bevel Margin="0,0,3,0" Padding="8,4" MaxWidth="130" BevelThickness="2"
+                                              Background="{DynamicResource Win95BackgroundBrush}"
+                                              PointerPressed="Tab_PointerPressed">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <Ellipse Width="4" Height="4" Fill="Black" VerticalAlignment="Center"
+                                         IsVisible="{Binding Modificado}" />
+                                <Image Source="{Binding Nombre, Converter={x:Static conv:EditorTabIconoConverter.Instance}}"
+                                       Width="16" Height="16" RenderOptions.BitmapInterpolationMode="None" />
+                                <TextBlock Text="{Binding Nombre}" FontSize="14" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="80" />
+                                <Border Width="14" Height="14" Background="Transparent" PointerPressed="Cerrar_PointerPressed">
+                                    <Path Data="M2,2 L10,10 M10,2 L2,10" Stroke="Black" StrokeThickness="1" />
+                                </Border>
+                            </StackPanel>
+                        </controls:Win95Bevel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="0">
+            <Grid>
+                <!-- sin archivos abiertos: fantasma centrado -->
+                <StackPanel IsVisible="{Binding !HayArchivosAbiertos}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Fantasma128px.png"
+                           Width="128" Height="128" RenderOptions.BitmapInterpolationMode="None" />
+                    <TextBlock Text="Sin archivos abiertos" FontSize="18" Foreground="Gray" HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <Grid IsVisible="{Binding HayArchivosAbiertos}">
+                    <ScrollViewer Name="PART_ScrollVertical" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <controls:EditorGutter Grid.Column="0" Tab="{Binding TabActiva}" />
+                            <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
+                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <controls:EditorTextArea Name="PART_TextArea" Tab="{Binding TabActiva}" />
+                            </ScrollViewer>
+                        </Grid>
+                    </ScrollViewer>
+
+                    <!-- buscar / reemplazar -->
+                    <controls:Win95Bevel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,20,0"
+                                          BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}"
+                                          IsVisible="{Binding BuscarVisible}">
+                        <StackPanel Margin="6" Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBox Name="PART_CampoBuscar" Width="160" FontSize="13" Text="{Binding PatronBusqueda, Mode=TwoWay}"
+                                         KeyDown="CampoBuscar_KeyDown" />
+                                <TextBlock Text="{Binding ContadorBusqueda}" FontSize="13" VerticalAlignment="Center" MinWidth="40" />
+                                <Button Content="↑" Width="24" Click="BuscarAnterior_Click" />
+                                <Button Content="↓" Width="24" Click="BuscarSiguiente_Click" />
+                                <Button Content="✕" Width="24" Click="CerrarBusqueda_Click" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding MostrarReemplazo}">
+                                <TextBox Width="160" FontSize="13" Text="{Binding TextoReemplazo, Mode=TwoWay}" />
+                                <Button Content="Reemplazar" FontSize="12" Click="Reemplazar_Click" />
+                                <Button Content="Todo" FontSize="12" Click="ReemplazarTodo_Click" />
+                            </StackPanel>
+                            <CheckBox Content="Distingue mayúsculas" FontSize="12" IsChecked="{Binding DistingueMayusculas, Mode=TwoWay}" />
+                        </StackPanel>
+                    </controls:Win95Bevel>
+
+                    <!-- ir a línea -->
+                    <controls:Win95Bevel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,20,0"
+                                          BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}"
+                                          IsVisible="{Binding IrALineaVisible}">
+                        <StackPanel Orientation="Horizontal" Margin="6" Spacing="4">
+                            <TextBox Name="PART_CampoIrALinea" Width="80" FontSize="13" Text="{Binding NumeroLineaTexto, Mode=TwoWay}"
+                                     KeyDown="CampoIrALinea_KeyDown" />
+                            <Button Content="✕" Width="24" Click="CerrarIrALinea_Click" />
+                        </StackPanel>
+                    </controls:Win95Bevel>
+                </Grid>
+            </Grid>
+        </controls:Win95Bevel>
+    </Grid>
+
+</UserControl>

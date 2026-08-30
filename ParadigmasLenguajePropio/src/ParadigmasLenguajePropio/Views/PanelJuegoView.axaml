@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+             xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+             x:Class="ParadigmasLenguajePropio.Views.PanelJuegoView"
+             x:DataType="vm:PanelJuegoViewModel">
+
+    <!-- Reemplaza PanelJuego.cs + el Panel.cs generico que envolvia (acá no hacia falta: nunca
+         mostraba minimizar/maximizar/cerrar). La vista del juego en si sigue sin diseñar, como en
+         el original - esto es placeholder con progreso/pausa de ejemplo. -->
+    <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Height="26" Background="{DynamicResource Win95TitleBarBrush}">
+            <TextBlock Text="Juego" Foreground="White" FontSize="18" Margin="8,0,0,0" VerticalAlignment="Center" />
+        </Border>
+
+        <controls:Win95Bevel Grid.Row="1" BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}" Padding="8">
+            <Grid RowDefinitions="*,Auto,Auto">
+                <controls:Win95Bevel Grid.Row="0" Sunken="True" BevelThickness="2" Background="White">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Personaje64px.png"
+                           Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           RenderOptions.BitmapInterpolationMode="None" />
+                </controls:Win95Bevel>
+
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="0,8,0,0">
+                    <TextBlock Grid.Column="0" Text="Nivel:" FontSize="16" VerticalAlignment="Center" />
+                    <controls:Win95Bevel Grid.Column="1" Sunken="True" BevelThickness="1" Background="White"
+                                          Height="20" Padding="2" Margin="8,0,0,0">
+                        <ItemsControl ItemsSource="{Binding Segmentos}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:Boolean">
+                                    <Rectangle Margin="0.5,0" Fill="#0000A0" IsVisible="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </controls:Win95Bevel>
+                </Grid>
+
+                <Grid Grid.Row="2" Margin="0,8,0,0">
+                    <TextBlock Text="En pausa" FontSize="17" VerticalAlignment="Center" IsVisible="{Binding EnPausa}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6">
+                        <Button Content="OK" Width="72" Height="24" FontSize="16" Click="Ok_Click" />
+                        <Button Content="Cancel" Width="72" Height="24" FontSize="16" Click="Cancel_Click" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </controls:Win95Bevel>
+    </Grid>
+
+</UserControl>

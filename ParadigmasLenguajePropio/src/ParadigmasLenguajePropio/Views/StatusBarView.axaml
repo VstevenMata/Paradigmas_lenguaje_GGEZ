@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+             xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="ParadigmasLenguajePropio.Views.StatusBarView"
+             x:DataType="vm:StatusBarViewModel"
+             Height="26">
+
+    <Grid RowDefinitions="Auto,*" Background="{DynamicResource Win95BackgroundBrush}">
+        <controls:Win95Divider Grid.Row="0" Orientation="Horizontal" />
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            <controls:Win95Bevel Grid.Column="0" Sunken="True" BevelThickness="1" Margin="2,2,0,2" Padding="6,4">
+                <TextBlock Text="{Binding Mensaje}" FontSize="15" VerticalAlignment="Center" />
+            </controls:Win95Bevel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <controls:Win95Bevel Sunken="True" BevelThickness="1" Margin="2,2,0,2" Padding="6,4"
+                                      IsVisible="{Binding PosicionCursor, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding PosicionCursor}" FontSize="15" VerticalAlignment="Center" />
+                </controls:Win95Bevel>
+
+                <ItemsControl ItemsSource="{Binding Segmentos}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <controls:Win95Bevel Sunken="True" BevelThickness="1" Margin="2,2,0,2" Padding="6,4">
+                                <TextBlock Text="{Binding}" FontSize="15" VerticalAlignment="Center" />
+                            </controls:Win95Bevel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Grid>
+    </Grid>
+
+</UserControl>

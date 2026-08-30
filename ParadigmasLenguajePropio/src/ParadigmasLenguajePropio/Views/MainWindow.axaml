@@ -1,0 +1,140 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:ParadigmasLenguajePropio.Views"
+        xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+        xmlns:conv="using:ParadigmasLenguajePropio.Converters"
+        xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+        x:Class="ParadigmasLenguajePropio.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Paradigmas GGEZ"
+        Width="1500" Height="900"
+        MinWidth="800" MinHeight="450"
+        Background="{DynamicResource Win95BackgroundBrush}"
+        FontFamily="{DynamicResource Win95FontFamily}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        WindowDecorations="Full">
+
+    <Window.Resources>
+        <conv:PixelGridLengthConverter x:Key="PxGridLength" />
+    </Window.Resources>
+
+    <Panel>
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <views:AppTitleBarView Grid.Row="0" DataContext="{Binding TitleBar}" />
+
+        <!-- Fase 2: esqueleto de layout con Grid + GridSplitter, reemplaza el calculo manual de Bounds
+             y el arrastre de divisores a mano de Ggez.cs.
+             La terminal es una franja de todo el ancho debajo de explorador+editor+panel derecho
+             (los tres se achican para hacerle lugar), igual que en el original: no va anidada
+             solo en la columna del editor. -->
+        <Grid Grid.Row="1" Margin="4" RowDefinitions="*,Auto" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+
+            <!-- barra lateral de iconos (la "activity bar"): en el original era una columna vertical
+                 de botones aparte del menu, con Tooltip y separadores entre grupos -->
+            <StackPanel Grid.Column="0" Grid.RowSpan="2" Width="34" Spacing="3" Margin="0,0,4,0">
+                <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarExploradorCommand}"
+                        ToolTip.Tip="Mostrar/ocultar explorador">
+                    <Image RenderOptions.BitmapInterpolationMode="None"
+                           Source="{Binding ExploradorVisible, Converter={x:Static conv:BoolToIconoConverter.Instance}, ConverterParameter='Icon_PuertaAbierta.png|Icon_PuertaCerrada.png'}" />
+                </Button>
+
+                <controls:Win95Divider Margin="0,2" />
+
+                <Button Width="28" Height="28" Padding="4" Command="{Binding NuevoArchivoCommand}" ToolTip.Tip="Nuevo archivo">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Documento.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="4" Command="{Binding GuardarCommand}" ToolTip.Tip="Guardar">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_NewDocumento.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+
+                <controls:Win95Divider Margin="0,2" />
+
+                <Button Width="28" Height="28" Padding="4" Command="{Binding ConstruirCommand}" ToolTip.Tip="Construir">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Build.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="4" Command="{Binding AlternarPausaCommand}" ToolTip.Tip="Pausar / Reanudar">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Pausa.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+
+                <controls:Win95Divider Margin="0,2" />
+
+                <Button Width="28" Height="28" Padding="4" Command="{Binding MostrarBuscarCommand}" ToolTip.Tip="Buscar">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Lupa.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="2" Command="{Binding Explorer.AbrirCarpetaDialogoCommand}" ToolTip.Tip="Abrir carpeta">
+                    <Image RenderOptions.BitmapInterpolationMode="None"
+                           Source="{Binding Explorer.HayProyecto, Converter={x:Static conv:BoolToIconoConverter.Instance}, ConverterParameter='Icon_CarpetaAbierta.png|Icon_CapertaCerrada.png'}" />
+                </Button>
+                <Button Width="28" Height="28" Padding="2" Command="{Binding Explorer.CrearCarpetaCommand}" ToolTip.Tip="Crear carpeta">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_CarpetaNueva.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="3" Command="{Binding AlternarTerminalCommand}" ToolTip.Tip="Terminal">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Terminal.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+            </StackPanel>
+
+            <controls:Win95Divider Grid.Column="1" Grid.RowSpan="2" Orientation="Vertical" Margin="0,0,4,0" />
+
+            <Grid Grid.Row="0" Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{Binding AnchoExplorador, Converter={StaticResource PxGridLength}}"
+                                      MinWidth="0" MaxWidth="400" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" MinWidth="200" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="{Binding AnchoPanelDerecho, Converter={StaticResource PxGridLength}}"
+                                      MinWidth="0" MaxWidth="560" />
+                </Grid.ColumnDefinitions>
+
+                <!-- sin IsVisible: el contenido se recorta solo (ClipToBounds) a medida que el ancho
+                     anima hacia 0, igual que el original (que seguia dibujando hasta que el ancho
+                     llegaba justo a 0) -->
+                <Border Grid.Column="0" ClipToBounds="True">
+                    <views:ExplorerView DataContext="{Binding Explorer}" />
+                </Border>
+
+                <GridSplitter Grid.Column="1" Width="6" Background="Transparent" ResizeDirection="Columns"
+                              IsVisible="{Binding ExploradorVisible}" />
+
+                <views:EditorView Grid.Column="2" DataContext="{Binding Editor}" />
+
+                <GridSplitter Grid.Column="3" Width="6" Background="Transparent" ResizeDirection="Columns"
+                              IsVisible="{Binding PanelDerechoVisible}" />
+
+                <Border Grid.Column="4" ClipToBounds="True">
+                    <views:PanelJuegoView DataContext="{Binding PanelJuego}" />
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="1" Grid.Column="2" Height="160" Margin="0,4,0,0" IsVisible="{Binding TerminalVisible}">
+                <views:TerminalView DataContext="{Binding Terminal}" />
+            </Border>
+
+            <controls:Win95Divider Grid.Column="3" Grid.RowSpan="2" Orientation="Vertical" Margin="4,0,0,0" />
+
+            <!-- barra lateral derecha, mismo patron que la izquierda: un boton-puerta aparte de la
+                 vista que muestra/oculta el panel del juego -->
+            <StackPanel Grid.Column="4" Grid.RowSpan="2" Width="34" Margin="4,0,0,0">
+                <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarPanelDerechoCommand}"
+                        ToolTip.Tip="Mostrar/ocultar panel derecho">
+                    <Image RenderOptions.BitmapInterpolationMode="None"
+                           Source="{Binding PanelDerechoVisible, Converter={x:Static conv:BoolToIconoConverter.Instance}, ConverterParameter='Icon_PuertaAbierta.png|Icon_PuertaCerrada.png'}" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <views:StatusBarView Grid.Row="2" DataContext="{Binding StatusBar}" />
+
+        <!-- cierra el menu al clickear afuera de el (fuera de la fila del titulo, donde viven los
+             encabezados): el Popup del menu no usa IsLightDismissEnabled porque esa capa invisible
+             tapaba el hover hacia los otros encabezados (ver MenuBarView.axaml) -->
+        <Border Grid.Row="1" Grid.RowSpan="2" Background="Transparent"
+                IsVisible="{Binding MenuBar.HayMenuAbierto}" PointerPressed="CerrarMenu_PointerPressed" />
+    </Grid>
+
+    <views:DialogOverlayView DataContext="{Binding Dialogs}" />
+    </Panel>
+
+</Window>

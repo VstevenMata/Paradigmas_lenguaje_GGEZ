@@ -1,0 +1,198 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ParadigmasLenguajePropio.Controls">
+
+    <!--
+        Reemplazo de Win95Style.cs: mismos valores de color que los Color estaticos originales,
+        mas los ControlTheme que reemplazan sus metodos DrawX.
+    -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="Win95BackgroundBrush" Color="#C0C0C0" />
+            <SolidColorBrush x:Key="Win95ScrollTrackBrush" Color="#A0A0A0" />
+            <SolidColorBrush x:Key="Win95TitleBarBrush" Color="#000080" />
+            <LinearGradientBrush x:Key="Win95TitleBarActivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Offset="0" Color="#000080" />
+                <GradientStop Offset="1" Color="#00AEEF" />
+            </LinearGradientBrush>
+            <!-- ventana sin foco: mismo degradado pero en gris -->
+            <LinearGradientBrush x:Key="Win95TitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Offset="0" Color="#808080" />
+                <GradientStop Offset="1" Color="#C0C0C0" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="Win95BevelLightBrush" Color="White" />
+            <SolidColorBrush x:Key="Win95BevelDarkBrush" Color="#404040" />
+            <SolidColorBrush x:Key="Win95TooltipBackgroundBrush" Color="#FFFFE1" />
+            <SolidColorBrush x:Key="Win95DisabledTextBrush" Color="#808080" />
+            <SolidColorBrush x:Key="Win95HoverBrush" Color="LightGray" />
+            <FontFamily x:Key="Win95FontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans</FontFamily>
+
+            <!-- Reemplaza Win95Style.DrawBevel: claro arriba/izquierda, oscuro abajo/derecha (invertido si Sunken) -->
+            <ControlTheme x:Key="{x:Type controls:Win95Bevel}" TargetType="controls:Win95Bevel">
+                <Setter Property="Padding" Value="2" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" />
+                            <Rectangle Name="PART_Top" VerticalAlignment="Top" HorizontalAlignment="Stretch"
+                                       IsVisible="{TemplateBinding TieneBisel}"
+                                       Height="{TemplateBinding BevelThickness}"
+                                       Fill="{DynamicResource Win95BevelLightBrush}" />
+                            <Rectangle Name="PART_Left" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                                       IsVisible="{TemplateBinding TieneBisel}"
+                                       Width="{TemplateBinding BevelThickness}"
+                                       Fill="{DynamicResource Win95BevelLightBrush}" />
+                            <Rectangle Name="PART_Bottom" VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+                                       IsVisible="{TemplateBinding TieneBisel}"
+                                       Height="{TemplateBinding BevelThickness}"
+                                       Fill="{DynamicResource Win95BevelDarkBrush}" />
+                            <Rectangle Name="PART_Right" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                                       IsVisible="{TemplateBinding TieneBisel}"
+                                       Width="{TemplateBinding BevelThickness}"
+                                       Fill="{DynamicResource Win95BevelDarkBrush}" />
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:sunken /template/ Rectangle#PART_Top">
+                    <Setter Property="Fill" Value="{DynamicResource Win95BevelDarkBrush}" />
+                </Style>
+                <Style Selector="^:sunken /template/ Rectangle#PART_Left">
+                    <Setter Property="Fill" Value="{DynamicResource Win95BevelDarkBrush}" />
+                </Style>
+                <Style Selector="^:sunken /template/ Rectangle#PART_Bottom">
+                    <Setter Property="Fill" Value="{DynamicResource Win95BevelLightBrush}" />
+                </Style>
+                <Style Selector="^:sunken /template/ Rectangle#PART_Right">
+                    <Setter Property="Fill" Value="{DynamicResource Win95BevelLightBrush}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- Reemplaza Button.cs: bisel Win95 en vez del hover/press por polling -->
+            <ControlTheme x:Key="{x:Type Button}" TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource Win95BackgroundBrush}" />
+                <Setter Property="Foreground" Value="Black" />
+                <Setter Property="Padding" Value="4" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FontFamily" Value="{DynamicResource Win95FontFamily}" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <controls:Win95Bevel Name="PART_Bevel" BevelThickness="2" Padding="0" Background="{TemplateBinding Background}">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </controls:Win95Bevel>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^:pointerover /template/ controls|Win95Bevel#PART_Bevel">
+                    <Setter Property="Background" Value="{DynamicResource Win95HoverBrush}" />
+                </Style>
+                <Style Selector="^:pressed /template/ controls|Win95Bevel#PART_Bevel">
+                    <Setter Property="Sunken" Value="True" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Opacity" Value="0.55" />
+                </Style>
+            </ControlTheme>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!--
+        Lo de abajo NO son ControlTheme con x:Key (que reemplazan el template entero, como Button):
+        son Style sueltos que solo tocan color/bisel de controles nativos (TextBox, ScrollBar, Menu,
+        TreeView) sin tocar su Template original, para no arriesgar romper su comportamiento
+        (caret, drag del thumb, etc.) reimplementando esas partes a mano.
+    -->
+
+    <!-- caja de texto: fondo blanco + borde oscuro solido (bisel hundido real no se puede sin
+         reemplazar el Template, que requiere PART_TextPresenter con los bindings exactos) -->
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Win95BevelDarkBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="FontFamily" Value="{DynamicResource Win95FontFamily}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Win95TitleBarBrush}" />
+    </Style>
+    <Style Selector="TextBox:pointerover, TextBox:focus">
+        <Setter Property="BorderBrush" Value="{DynamicResource Win95BevelDarkBrush}" />
+    </Style>
+
+    <!-- scrollbar: track gris + thumb/flechas con bisel, sobre el Track/Thumb que ya trae el tema
+         base (SimpleTheme) - mas chico que reescribir el Template de ScrollBar/Track entero -->
+    <Style Selector="ScrollBar">
+        <Setter Property="Background" Value="{DynamicResource Win95ScrollTrackBrush}" />
+        <Setter Property="MinWidth" Value="16" />
+        <Setter Property="MinHeight" Value="16" />
+        <Setter Property="AllowAutoHide" Value="False" />
+    </Style>
+    <Style Selector="ScrollBar /template/ Thumb">
+        <Setter Property="Background" Value="{DynamicResource Win95BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Win95BevelDarkBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="MinWidth" Value="14" />
+        <Setter Property="MinHeight" Value="14" />
+    </Style>
+    <Style Selector="ScrollBar /template/ RepeatButton">
+        <Setter Property="Background" Value="{DynamicResource Win95BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Win95BevelDarkBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- menu: fondo/hover con contraste, y el cajon de un submenu con bisel Win95 en vez del
+         popup plano por defecto -->
+    <Style Selector="MenuItem">
+        <Setter Property="FontFamily" Value="{DynamicResource Win95FontFamily}" />
+    </Style>
+    <Style Selector="MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource Win95TitleBarBrush}" />
+    </Style>
+    <Style Selector="MenuItem:selected /template/ TextBlock">
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Menu /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource Win95BackgroundBrush}" />
+    </Style>
+    <!-- el cajon del submenu desplegado: mismo bisel que un menu contextual del explorador -->
+    <Style Selector="Popup /template/ Border">
+        <Setter Property="Background" Value="{DynamicResource Win95BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Win95BevelDarkBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="0" />
+    </Style>
+
+    <!-- arbol de archivos: fondo blanco (como el original, sunken bevel lo pone ExplorerView) -->
+    <Style Selector="TreeView">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontFamily" Value="{DynamicResource Win95FontFamily}" />
+    </Style>
+
+    <!-- red de seguridad: el texto de Win95 siempre es negro sobre fondos claros. Sin esto, si el
+         SO reporta modo oscuro, los tokens de color de SimpleTheme pueden resolver a un gris claro
+         pensado para fondos oscuros, y quedar casi invisible sobre el gris claro de Win95. -->
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="Black" />
+    </Style>
+
+    <!-- checkbox (buscar y reemplazar: "Distingue mayúsculas") -->
+    <Style Selector="CheckBox /template/ Border#NormalRectangle">
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Win95BevelDarkBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="0" />
+    </Style>
+
+</Styles>
