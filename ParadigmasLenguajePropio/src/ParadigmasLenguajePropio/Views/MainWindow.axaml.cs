@@ -31,4 +31,13 @@ public partial class MainWindow : Window
     }
 
     void CerrarMenu_PointerPressed(object? sender, PointerPressedEventArgs e) => ViewModel?.MenuBar.CerrarTodos();
+
+    // ver los grips de resize en MainWindow.axaml: cada Border trae en Tag el lado como texto
+    // (nombre de WindowEdge) para no necesitar 8 metodos identicos
+    void BordeResize_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Border { Tag: string ladoTexto } && Enum.TryParse<WindowEdge>(ladoTexto, out var lado)
+            && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginResizeDrag(lado, e);
+    }
 }

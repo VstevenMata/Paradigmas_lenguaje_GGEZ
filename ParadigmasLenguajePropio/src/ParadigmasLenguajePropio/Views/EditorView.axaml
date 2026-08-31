@@ -83,7 +83,7 @@
                      tapar nada; si alguno esta cerrado el otro no deja hueco (IsVisible=False no
                      ocupa espacio en el StackPanel). -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
-                            Margin="0,4,20,0" Spacing="8">
+                            Margin="0,4,0,0" Spacing="8">
 
                     <!-- ir a línea: VerticalAlignment=Top para que no se estire a la altura de "Buscar"
                          (mas alto por el renglon de reemplazar) - sin esto el StackPanel horizontal

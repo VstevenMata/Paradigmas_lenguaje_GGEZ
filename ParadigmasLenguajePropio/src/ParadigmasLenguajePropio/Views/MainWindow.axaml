@@ -11,9 +11,7 @@
         MinWidth="800" MinHeight="450"
         Background="{DynamicResource Win95BackgroundBrush}"
         FontFamily="{DynamicResource Win95FontFamily}"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="-1"
-        WindowDecorations="Full">
+        WindowDecorations="None">
 
     <Window.Resources>
         <conv:PixelGridLengthConverter x:Key="PxGridLength" />
@@ -42,8 +40,13 @@
             </Grid.RowDefinitions>
 
             <!-- barra lateral de iconos (la "activity bar"): en el original era una columna vertical
-                 de botones aparte del menu, con Tooltip y separadores entre grupos -->
+                 de botones aparte del menu, con Tooltip y separadores entre grupos.
+                 Agrupada por categoria (vs. accion): paneles/vistas, archivo, ejecucion, buscar,
+                 terminal/chat - cada grupo separado por un Win95Divider con mas margen que el
+                 espaciado normal entre botones de un mismo grupo. -->
             <StackPanel Grid.Column="0" Grid.RowSpan="3" Width="34" Spacing="3" Margin="0,0,4,0">
+
+                <!-- grupo: paneles/vistas (que se ve, no una accion puntual) -->
                 <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarExploradorCommand}"
                         ToolTip.Tip="Mostrar/ocultar explorador">
                     <Image RenderOptions.BitmapInterpolationMode="None"
@@ -68,28 +71,11 @@
                     </Grid>
                 </Button>
 
-                <controls:Win95Divider Margin="0,2" />
+                <controls:Win95Divider Margin="0,5" />
 
+                <!-- grupo: archivo (acciones sobre archivos/carpetas) -->
                 <Button Width="28" Height="28" Padding="4" Command="{Binding NuevoArchivoCommand}" ToolTip.Tip="Nuevo archivo">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Documento.png" RenderOptions.BitmapInterpolationMode="None" />
-                </Button>
-                <Button Width="28" Height="28" Padding="4" Command="{Binding GuardarCommand}" ToolTip.Tip="Guardar">
-                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_NewDocumento.png" RenderOptions.BitmapInterpolationMode="None" />
-                </Button>
-
-                <controls:Win95Divider Margin="0,2" />
-
-                <Button Width="28" Height="28" Padding="4" Command="{Binding ConstruirCommand}" ToolTip.Tip="Construir">
-                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Build.png" RenderOptions.BitmapInterpolationMode="None" />
-                </Button>
-                <Button Width="28" Height="28" Padding="4" Command="{Binding AlternarPausaCommand}" ToolTip.Tip="Pausar / Reanudar">
-                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Pausa.png" RenderOptions.BitmapInterpolationMode="None" />
-                </Button>
-
-                <controls:Win95Divider Margin="0,2" />
-
-                <Button Width="28" Height="28" Padding="4" Command="{Binding MostrarBuscarCommand}" ToolTip.Tip="Buscar">
-                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Lupa.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
                 <Button Width="28" Height="28" Padding="2" Command="{Binding Explorer.AbrirCarpetaDialogoCommand}" ToolTip.Tip="Abrir carpeta">
                     <Image RenderOptions.BitmapInterpolationMode="None"
@@ -98,6 +84,30 @@
                 <Button Width="28" Height="28" Padding="2" Command="{Binding Explorer.CrearCarpetaCommand}" ToolTip.Tip="Crear carpeta">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_CarpetaNueva.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
+                <Button Width="28" Height="28" Padding="4" Command="{Binding GuardarCommand}" ToolTip.Tip="Guardar">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_NewDocumento.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+
+                <controls:Win95Divider Margin="0,5" />
+
+                <!-- grupo: ejecucion -->
+                <Button Width="28" Height="28" Padding="4" Command="{Binding ConstruirCommand}" ToolTip.Tip="Construir">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Build.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="4" Command="{Binding AlternarPausaCommand}" ToolTip.Tip="Pausar / Reanudar">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Pausa.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+
+                <controls:Win95Divider Margin="0,5" />
+
+                <!-- grupo: buscar -->
+                <Button Width="28" Height="28" Padding="4" Command="{Binding MostrarBuscarCommand}" ToolTip.Tip="Buscar">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Lupa.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+
+                <controls:Win95Divider Margin="0,5" />
+
+                <!-- grupo: terminal/chat (tambien paneles, no acciones puntuales) -->
                 <Button Width="28" Height="28" Padding="3" Command="{Binding AlternarTerminalCommand}" ToolTip.Tip="Terminal">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Terminal.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
@@ -188,6 +198,22 @@
     </Grid>
 
     <views:DialogOverlayView DataContext="{Binding Dialogs}" />
+
+    <!-- sin decoracion nativa (WindowDecorations=None) el SO no da bordes arrastrables para
+         redimensionar: estos 8 grips invisibles de 5px cubren los bordes/esquinas y delegan en
+         BeginResizeDrag, mismo patron que el BeginMoveDrag de la barra de titulo (ver
+         AppTitleBarView.axaml.cs). El centro (fila/columna del medio) queda sin elemento, asi el
+         click pasa de largo hacia el contenido de abajo. -->
+    <Grid ColumnDefinitions="5,*,5" RowDefinitions="5,*,5">
+        <Border Grid.Row="0" Grid.Column="0" Background="Transparent" Cursor="TopLeftCorner" Tag="NorthWest" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="0" Grid.Column="1" Background="Transparent" Cursor="TopSide" Tag="North" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="0" Grid.Column="2" Background="Transparent" Cursor="TopRightCorner" Tag="NorthEast" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="1" Grid.Column="0" Background="Transparent" Cursor="LeftSide" Tag="West" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="1" Grid.Column="2" Background="Transparent" Cursor="RightSide" Tag="East" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="2" Grid.Column="0" Background="Transparent" Cursor="BottomLeftCorner" Tag="SouthWest" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="2" Grid.Column="1" Background="Transparent" Cursor="BottomSide" Tag="South" PointerPressed="BordeResize_PointerPressed" />
+        <Border Grid.Row="2" Grid.Column="2" Background="Transparent" Cursor="BottomRightCorner" Tag="SouthEast" PointerPressed="BordeResize_PointerPressed" />
+    </Grid>
     </Panel>
 
 </Window>
