@@ -33,7 +33,12 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" MinHeight="120" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="{Binding AlturaTerminalEfectiva, Converter={StaticResource PxGridLength}, Mode=TwoWay}" />
+                <!-- MaxHeight lo hace cumplir el propio Grid al acomodar filas, no alcanza con
+                     clampear en el setter de AlturaTerminalEfectiva: el GridSplitter escribe el
+                     alto directo mientras se arrastra y con eso solo se pasaba de largo hasta
+                     arriba de todo en vez de frenar a la mitad. -->
+                <RowDefinition Height="{Binding AlturaTerminalEfectiva, Converter={StaticResource PxGridLength}, Mode=TwoWay}"
+                               MaxHeight="{Binding AlturaTerminalMaxima}" />
             </Grid.RowDefinitions>
 
             <!-- barra lateral de iconos (la "activity bar"): en el original era una columna vertical

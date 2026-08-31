@@ -63,12 +63,43 @@
                             </ScrollViewer>
                         </Grid>
                     </ScrollViewer>
+                </Grid>
 
-                    <!-- buscar / reemplazar: Border afuera solo para la sombra (Win95Bevel no la expone),
-                         igual que el buscador flotante de VSCode. Los campos van con fondo blanco y
-                         borde propio (antes se confundian con el fondo del panel y quedaban invisibles). -->
-                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,20,0"
-                            BoxShadow="1 2 6 0 #60000000" IsVisible="{Binding BuscarVisible}">
+                <!-- buscar / reemplazar / ir a linea: van afuera del Grid de arriba (que solo se
+                     muestra con HayArchivosAbiertos) porque el boton de la barra lateral los abre
+                     igual sin archivos abiertos - con la vieja ubicacion el click no mostraba nada
+                     y parecia que el boton estaba roto.
+                     Los dos widgets van en un StackPanel horizontal en vez de flotar cada uno con su
+                     propio HorizontalAlignment=Right: antes, con los dos abiertos a la vez, quedaban
+                     encimados en el mismo punto (ver captura del usuario). Ahora, al estar en el
+                     mismo StackPanel alineado a la derecha, "Buscar" siempre queda pegado al borde y
+                     "Ir a linea" (que va primero en el orden) se acomoda solo, a su izquierda, sin
+                     tapar nada; si alguno esta cerrado el otro no deja hueco (IsVisible=False no
+                     ocupa espacio en el StackPanel). -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,4,20,0" Spacing="8">
+
+                    <!-- ir a línea: VerticalAlignment=Top para que no se estire a la altura de "Buscar"
+                         (mas alto por el renglon de reemplazar) - sin esto el StackPanel horizontal
+                         lo agranda para que coincida, dejando un hueco vacio abajo -->
+                    <Border VerticalAlignment="Top" BoxShadow="1 2 6 0 #60000000" IsVisible="{Binding IrALineaVisible}">
+                        <controls:Win95Bevel BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}">
+                            <StackPanel Margin="6" Spacing="2">
+                                <TextBlock Text="Ir a línea" FontSize="11" Foreground="Gray" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBox Name="PART_CampoIrALinea" Width="80" Height="22" FontSize="13" Text="{Binding NumeroLineaTexto, Mode=TwoWay}"
+                                             Background="White" BorderThickness="1" BorderBrush="{DynamicResource Win95BevelDarkBrush}"
+                                             Padding="4,0" VerticalContentAlignment="Center" KeyDown="CampoIrALinea_KeyDown" />
+                                    <Button Content="✕" Width="24" Click="CerrarIrALinea_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </controls:Win95Bevel>
+                    </Border>
+
+                    <!-- buscar / reemplazar: Border afuera solo para la sombra (Win95Bevel no la
+                         expone), igual que el buscador flotante de VSCode; los campos van con fondo
+                         blanco y borde propio (antes se confundian con el fondo del panel). -->
+                    <Border VerticalAlignment="Top" BoxShadow="1 2 6 0 #60000000" IsVisible="{Binding BuscarVisible}">
                         <controls:Win95Bevel BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}">
                             <StackPanel Margin="6" Spacing="4">
                                 <StackPanel Orientation="Horizontal" Spacing="4">
@@ -99,20 +130,7 @@
                             </StackPanel>
                         </controls:Win95Bevel>
                     </Border>
-
-                    <!-- ir a línea -->
-                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,20,0"
-                            BoxShadow="1 2 6 0 #60000000" IsVisible="{Binding IrALineaVisible}">
-                        <controls:Win95Bevel BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}">
-                            <StackPanel Orientation="Horizontal" Margin="6" Spacing="4">
-                                <TextBox Name="PART_CampoIrALinea" Width="80" Height="22" FontSize="13" Text="{Binding NumeroLineaTexto, Mode=TwoWay}"
-                                         Background="White" BorderThickness="1" BorderBrush="{DynamicResource Win95BevelDarkBrush}"
-                                         Padding="4,0" VerticalContentAlignment="Center" KeyDown="CampoIrALinea_KeyDown" />
-                                <Button Content="✕" Width="24" Click="CerrarIrALinea_Click" />
-                            </StackPanel>
-                        </controls:Win95Bevel>
-                    </Border>
-                </Grid>
+                </StackPanel>
             </Grid>
         </controls:Win95Bevel>
     </Grid>
