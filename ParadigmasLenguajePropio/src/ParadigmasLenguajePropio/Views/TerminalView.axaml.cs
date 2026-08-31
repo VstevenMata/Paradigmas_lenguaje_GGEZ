@@ -52,6 +52,13 @@ public partial class TerminalView : UserControl
         if (ViewModel is { } vm) vm.TabActiva = 1;
     }
 
+    // clickear en cualquier parte del fondo negro enfoca la linea viva: la caja de texto real
+    // mide unos pocos pixeles cuando esta vacia, asi que sin esto casi nunca se le acierta al clickear
+    void Fondo_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ViewModel is { EsTabTerminal: true }) _entrada.Focus();
+    }
+
     void Entrada_GotFocus(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is { } vm) vm.TieneFoco = true;
