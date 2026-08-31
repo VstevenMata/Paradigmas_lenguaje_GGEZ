@@ -20,11 +20,23 @@ public partial class TerminalViewModel : ViewModelBase
     public string[] Tabs { get; } = { "Terminal", "Errores" };
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsTabTerminal), nameof(EsTabErrores))]
+    [NotifyPropertyChangedFor(nameof(EsTabTerminal), nameof(EsTabErrores), nameof(MostrarTerminalReal), nameof(MostrarTerminalSimulada))]
     private int _tabActiva;
 
     public bool EsTabTerminal => TabActiva == 0;
     public bool EsTabErrores => TabActiva == 1;
+
+    // la extension de Claude (ver ExtensionsViewModel.Claude): mientras este instalada, la pestaña
+    // "Terminal" pasa a ser una terminal real (PTY, ver ClaudeTerminalView) en vez de la simulada por
+    // pipes de mas abajo - la pestaña "Errores" (salida de Construir) nunca cambia, un solo tab menos
+    // para no tener dos terminales distintas convivendo
+    public ExtensionInfo ClaudeExtension { get; }
+    public bool MostrarTerminalReal => EsTabTerminal && ClaudeExtension.Instalada;
+    public bool MostrarTerminalSimulada => !MostrarTerminalReal;
+
+    // carpeta inicial de la terminal real (ver ClaudeTerminalView): la misma que sigue esta terminal
+    // simulada, para que abra parada donde el usuario esta trabajando
+    public string DirectorioActual => _directorioActual;
 
     [ObservableProperty]
     private string _entradaActual = "";
@@ -47,8 +59,18 @@ public partial class TerminalViewModel : ViewModelBase
     string _directorioActual;
     string _directorioAnterior;
 
-    public TerminalViewModel()
+    public TerminalViewModel(ExtensionInfo claudeExtension)
     {
+        ClaudeExtension = claudeExtension;
+        // instalar/desinstalar la extension alterna la pestaña "Terminal" entre la real y la
+        // simulada (ver MostrarTerminalReal/MostrarTerminalSimulada) sin tocar TabActiva
+        ClaudeExtension.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(ExtensionInfo.Instalada)) return;
+            OnPropertyChanged(nameof(MostrarTerminalReal));
+            OnPropertyChanged(nameof(MostrarTerminalSimulada));
+        };
+
         _directorioActual = Environment.CurrentDirectory;
         _directorioAnterior = _directorioActual;
         LineasErrores.Add(new TerminalLinea("", "Los errores no existen", TerminalColorLinea.Escrito));

@@ -34,7 +34,7 @@
 
         up = pkgs.writeShellApplication {
           name = "up";
-          runtimeInputs = [ pkgs.dotnet-sdk_9 pkgs.git ];
+          runtimeInputs = [ pkgs.dotnet-sdk_10 pkgs.git ];
           text = ''
             repo_root="$(git rev-parse --show-toplevel)"
             cd "$repo_root/ParadigmasLenguajePropio"
@@ -48,7 +48,7 @@
       rec {
         devShells.default = pkgs.mkShell {
           packages = [
-            pkgs.dotnet-sdk_9
+            pkgs.dotnet-sdk_10
           ];
 
           LD_LIBRARY_PATH = graphicsLibPath;

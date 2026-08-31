@@ -14,10 +14,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public DialogService Dialogs { get; } = new();
     public ExplorerViewModel Explorer { get; }
     public ExtensionsViewModel Extensions { get; } = new();
-    public TerminalViewModel Terminal { get; } = new();
+    public TerminalViewModel Terminal { get; }
     public EditorAreaViewModel Editor { get; }
     public PanelJuegoViewModel PanelJuego { get; } = new();
-    public ChatViewModel Chat { get; } = new();
 
     // se asigna despues de crear la Window, la necesitan Cortar/Copiar/Pegar del menu Editar
     public IClipboard? Clipboard { get; set; }
@@ -54,11 +53,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _terminalVisible;
-
-    // panel de chat de la extension Claude, debajo de PanelJuego (ver MainWindow.axaml): una sola
-    // instancia, se abre/cierra con el mismo boton de la activity bar que aparece al instalarla
-    [ObservableProperty]
-    private bool _chatVisible;
 
     [ObservableProperty]
     private double _alturaTerminal = AlturaTerminalInicial;
@@ -97,6 +91,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         Explorer = new ExplorerViewModel(Dialogs);
+        // la pestaña de chat de la terminal solo se habilita con la extension instalada (ver
+        // TerminalViewModel.ClaudeExtension / TerminalView.axaml)
+        Terminal = new TerminalViewModel(Extensions.Claude);
         Editor = new EditorAreaViewModel(Dialogs);
         MenuBar.OnOpcionElegida = ManejarOpcionMenu;
         TitleBar.BuscarArchivos = Explorer.BuscarArchivosPorNombre;
@@ -104,7 +101,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // el comando "exit" cierra el panel, igual que el toggle del menu Ver
         Terminal.OnCerrar = () => TerminalVisible = false;
-        Chat.OnCerrar = () => ChatVisible = false;
         // la terminal se para en la carpeta abierta, como al abrir un proyecto en VSCode
         Explorer.PropertyChanged += (_, e) =>
         {
@@ -157,9 +153,16 @@ public partial class MainWindowViewModel : ViewModelBase
         if (texto != null) Editor.Pegar(texto);
     }
 
+    // una carpeta abierta ya alcanza (el Explorer.PropertyChanged de mas abajo para en CarpetaRaiz);
+    // un archivo abierto sin carpeta tambien sirve (Terminal.RegistrarAperturaArchivo usa su carpeta) -
+    // sin ninguna de las dos, la terminal arrancaria en Environment.CurrentDirectory (la carpeta del
+    // propio ejecutable, no la del proyecto del usuario)
+    bool HayLugarParaTerminal => Explorer.HayProyecto || Editor.HayArchivosAbiertos;
+
     [RelayCommand]
     async Task ConstruirAsync()
     {
+        if (!HayLugarParaTerminal) return;
         await Editor.GuardarTodoAsync();
         TerminalVisible = true;
         Terminal.TabActiva = 1;
@@ -174,11 +177,25 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     Task Guardar() => Editor.GuardarAsync();
 
+    // abrir se bloquea hasta que haya una carpeta o un archivo abierto (ver HayLugarParaTerminal);
+    // cerrar nunca se bloquea
     [RelayCommand]
-    void AlternarTerminal() => TerminalVisible = !TerminalVisible;
+    void AlternarTerminal()
+    {
+        if (TerminalVisible) { TerminalVisible = false; return; }
+        if (!HayLugarParaTerminal) return;
+        TerminalVisible = true;
+    }
 
+    // el boton de Claude en la activity bar (ver Extensions.Claude.Instalada en MainWindow.axaml)
+    // abre la terminal directo en su pestaña de Claude, en vez de un panel aparte
     [RelayCommand]
-    void AlternarChat() => ChatVisible = !ChatVisible;
+    void MostrarChatClaude()
+    {
+        if (!Extensions.Claude.Instalada || !HayLugarParaTerminal) return;
+        TerminalVisible = true;
+        Terminal.TabActiva = 0; // la pestaña "Terminal" ya es la real con la extension instalada
+    }
 
     [RelayCommand]
     void AlternarPausa() => PanelJuego.EnPausa = !PanelJuego.EnPausa;
@@ -195,7 +212,7 @@ public partial class MainWindowViewModel : ViewModelBase
         switch (opcion)
         {
             case "Explorador": AlternarExplorador(); break;
-            case "Terminal": TerminalVisible = !TerminalVisible; break;
+            case "Terminal": AlternarTerminal(); break;
             case "Panel derecho": AlternarPanelDerecho(); break;
             case "Abrir carpeta": Explorer.AbrirCarpetaDialogoCommand.Execute(null); break;
             case "Cerrar carpeta": Explorer.CerrarCarpetaCommand.Execute(null); break;
@@ -216,7 +233,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Ir a línea": Editor.IrALineaVisible = true; break;
             case "Construir": _ = ConstruirAsync(); break;
             case "Pausar / Reanudar": PanelJuego.EnPausa = !PanelJuego.EnPausa; break;
-            case "Ver salida": TerminalVisible = true; Terminal.TabActiva = 1; break;
+            case "Ver salida": if (HayLugarParaTerminal) { TerminalVisible = true; Terminal.TabActiva = 1; } break;
             default: Console.WriteLine($"Menú: {opcion}"); break;
         }
     }

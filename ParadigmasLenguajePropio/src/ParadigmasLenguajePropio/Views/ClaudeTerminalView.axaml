@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rt="clr-namespace:RoyalTerminal.Avalonia.Controls;assembly=RoyalTerminal.Avalonia"
+             x:Class="ParadigmasLenguajePropio.Views.ClaudeTerminalView">
+
+    <!-- Terminal real (PTY) que reemplaza a la simulada por pipes en la pestaña "Terminal" mientras la
+         extension este instalada (ver TerminalView.axaml/TerminalViewModel.MostrarTerminalReal) -
+         "claude" corre aca con toda su interfaz interactiva (colores, cursor, redibujado en vivo),
+         igual que en una terminal del SO. Requiere el paquete RoyalApps.RoyalTerminal.Avalonia.
+         Tamaño de fuente y colores ajustados a mano: los valores por defecto de la libreria (14pt,
+         gris #D4D4D4 sobre #1E1E1E) se veian grandes y opacos comparados con el resto de la app. -->
+    <rt:TerminalControl x:Name="PART_Terminal" ScrollbackLimit="10000"
+                         Columns="100" Rows="30" TerminalFontSize="12"
+                         DefaultForeground="White" DefaultBackground="Black" />
+
+</UserControl>
