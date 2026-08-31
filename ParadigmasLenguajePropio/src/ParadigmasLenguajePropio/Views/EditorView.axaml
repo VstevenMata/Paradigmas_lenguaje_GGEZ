@@ -11,10 +11,10 @@
          custom); acá se arma todo lo demás: tabs, el par de ScrollViewer que reemplazan
          ScrollBarWin95 (uno vertical envolviendo gutter+texto, uno horizontal solo para el texto,
          así los números de línea no se desplazan de lado), y las barras de buscar/ir-a-línea. -->
-    <Grid RowDefinitions="Auto,*">
+    <Grid Name="PART_GridRaiz" RowDefinitions="Auto,*">
 
         <!-- tabs -->
-        <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+        <ScrollViewer Name="PART_ScrollTabs" Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                       IsVisible="{Binding HayArchivosAbiertos}">
             <ItemsControl ItemsSource="{Binding Tabs}" x:CompileBindings="False">
                 <ItemsControl.ItemsPanel>
@@ -24,9 +24,15 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
+                        <!-- PointerMoved/PointerReleased, junto con Tab_PointerPressed, arman el gesto
+                             de arrastre (ver code-behind): un click simple sigue activando la pestaña
+                             de inmediato, recien al moverse mas de unos pixeles con el boton apretado
+                             arranca el drag-and-drop real -->
                         <controls:Win95Bevel Margin="0,0,3,0" Padding="8,4" MaxWidth="130" BevelThickness="2"
                                               Background="{DynamicResource Win95BackgroundBrush}"
-                                              PointerPressed="Tab_PointerPressed">
+                                              PointerPressed="Tab_PointerPressed"
+                                              PointerMoved="Tab_PointerMoved"
+                                              PointerReleased="Tab_PointerReleased">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <Ellipse Width="4" Height="4" Fill="Black" VerticalAlignment="Center"
                                          IsVisible="{Binding Modificado}" />
@@ -45,7 +51,7 @@
         </ScrollViewer>
 
         <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="0">
-            <Grid>
+            <Grid Name="PART_GridContenido">
                 <!-- sin archivos abiertos: fantasma centrado -->
                 <StackPanel IsVisible="{Binding !HayArchivosAbiertos}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Fantasma128px.png"
@@ -131,6 +137,13 @@
                         </controls:Win95Bevel>
                     </Border>
                 </StackPanel>
+
+                <!-- previsualizacion de la zona de destino mientras se arrastra una pestaña (propia
+                     o de otro panel): el code-behind mueve/agranda esto en DragOver segun donde este
+                     el puntero (mitad de arriba = parte arriba, mitad de abajo = parte abajo, resto =
+                     mueve sin partir) - ver EditorView.axaml.cs -->
+                <Border Name="PART_OverlayDrop" IsVisible="False" IsHitTestVisible="False"
+                        Background="#4055AAFF" BorderThickness="2" BorderBrush="#FF3070C0" />
             </Grid>
         </controls:Win95Bevel>
     </Grid>

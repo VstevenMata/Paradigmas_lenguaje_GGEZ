@@ -3,14 +3,25 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using ParadigmasLenguajePropio.Controls;
 using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Views;
 
+// carga en el DataObject/DataTransfer de un arrastre de pestaña: de que panel salio, ademas de
+// la pestaña en si, para que el que la recibe sepa de donde sacarla si termina en otro panel
+record PayloadArrastreTab(EditorTabViewModel Tab, EditorViewModel Origen);
+
 public partial class EditorView : UserControl
 {
+    static readonly DataFormat<PayloadArrastreTab> FormatoArrastreTab =
+        DataFormat.CreateInProcessFormat<PayloadArrastreTab>("ggez/editor-tab");
+
+    const double UmbralArrastre = 5; // pixeles antes de que un click-y-mantener se considere arrastre
+
     EditorViewModel? ViewModel => DataContext as EditorViewModel;
 
     ScrollViewer _scrollVertical = null!;
@@ -18,7 +29,21 @@ public partial class EditorView : UserControl
     EditorTextArea _textArea = null!;
     TextBox _campoBuscar = null!;
     TextBox _campoIrALinea = null!;
+    Grid _gridRaiz = null!;
+    ScrollViewer _scrollTabs = null!;
+    Grid _gridContenido = null!;
+    Border _overlayDrop = null!;
     EditorTabViewModel? _tabConScrollReiniciado;
+    (EditorTabViewModel Tab, Point Inicio, PointerPressedEventArgs Disparador)? _candidatoArrastre;
+
+    // lo fija EditorAreaView al construir esta vista (ver EditorAreaView.Construir): si ya se
+    // llego al tope de paneles, partir mas se muestra bloqueado (el rechazo de verdad, sin
+    // confiar en esto, lo hace EditorAreaViewModel.MoverTab)
+    public bool PuedeDividir { get; set; } = true;
+
+    // se dispara al soltar una pestaña (propia o de otro EditorView) sobre este panel; lo escucha
+    // EditorAreaView para pedirle a EditorAreaViewModel que la mueva/parta
+    public event Action<EditorTabViewModel, EditorViewModel, EditorViewModel, ZonaDrop>? TabSoltado;
 
     public EditorView()
     {
@@ -29,8 +54,17 @@ public partial class EditorView : UserControl
         _textArea = this.FindControl<EditorTextArea>("PART_TextArea")!;
         _campoBuscar = this.FindControl<TextBox>("PART_CampoBuscar")!;
         _campoIrALinea = this.FindControl<TextBox>("PART_CampoIrALinea")!;
+        _gridRaiz = this.FindControl<Grid>("PART_GridRaiz")!;
+        _scrollTabs = this.FindControl<ScrollViewer>("PART_ScrollTabs")!;
+        _gridContenido = this.FindControl<Grid>("PART_GridContenido")!;
+        _overlayDrop = this.FindControl<Border>("PART_OverlayDrop")!;
 
         _textArea.CursorMovido += AsegurarCursorVisible;
+
+        DragDrop.SetAllowDrop(_gridRaiz, true);
+        DragDrop.AddDragOverHandler(_gridRaiz, GridRaiz_DragOver);
+        DragDrop.AddDragLeaveHandler(_gridRaiz, (_, _) => OcultarOverlay());
+        DragDrop.AddDropHandler(_gridRaiz, GridRaiz_Drop);
 
         DataContextChanged += (_, _) =>
         {
@@ -87,9 +121,121 @@ public partial class EditorView : UserControl
 
     void Tab_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is Control { DataContext: EditorTabViewModel tab } && ViewModel is { } vm)
-            vm.CambiarArchivoActivo(tab);
+        if (sender is not Control { DataContext: EditorTabViewModel tab } || ViewModel is not { } vm) return;
+        vm.CambiarArchivoActivo(tab); // el click simple activa de inmediato, arrastre o no
+        _candidatoArrastre = (tab, e.GetPosition(this), e);
     }
+
+    // recien al moverse mas de UmbralArrastre con el boton apretado se considera un arrastre real
+    // (si no, cualquier click con el mas minimo temblor de mano dispararia un drag-and-drop)
+    void Tab_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_candidatoArrastre is not { } candidato) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { _candidatoArrastre = null; return; }
+        if (Point.Distance(candidato.Inicio, e.GetPosition(this)) < UmbralArrastre) return;
+
+        _candidatoArrastre = null; // una sola vez por gesto
+        _ = IniciarArrastreAsync(candidato.Tab, candidato.Disparador);
+    }
+
+    void Tab_PointerReleased(object? sender, PointerReleasedEventArgs e) => _candidatoArrastre = null;
+
+    async Task IniciarArrastreAsync(EditorTabViewModel tab, PointerPressedEventArgs disparador)
+    {
+        if (ViewModel is not { } vm) return;
+
+        var item = new DataTransferItem();
+        item.Set(FormatoArrastreTab, new PayloadArrastreTab(tab, vm));
+        var datos = new DataTransfer();
+        datos.Add(item);
+
+        await DragDrop.DoDragDropAsync(disparador, datos, DragDropEffects.Move);
+    }
+
+    void GridRaiz_DragOver(object? sender, DragEventArgs e)
+    {
+        if (ObtenerPayload(e) == null) { e.DragEffects = DragDropEffects.None; OcultarOverlay(); return; }
+
+        var zona = CalcularZona(e.GetPosition(_gridRaiz));
+        bool bloqueado = zona != ZonaDrop.Centro && !PuedeDividir;
+        e.DragEffects = bloqueado ? DragDropEffects.None : DragDropEffects.Move;
+        MostrarOverlay(zona, bloqueado);
+    }
+
+    void GridRaiz_Drop(object? sender, DragEventArgs e)
+    {
+        OcultarOverlay();
+        if (ViewModel is not { } vm) return;
+        var payload = ObtenerPayload(e);
+        if (payload == null) return;
+
+        TabSoltado?.Invoke(payload.Tab, payload.Origen, vm, CalcularZona(e.GetPosition(_gridRaiz)));
+    }
+
+    static PayloadArrastreTab? ObtenerPayload(DragEventArgs e) =>
+        e.DataTransfer.Items.Select(i => i.TryGetValue(FormatoArrastreTab)).FirstOrDefault(p => p != null);
+
+    // dentro de la franja de tabs -> Centro (mover sin partir); dentro del area de texto: 25% de
+    // arriba/abajo -> Arriba/Abajo (se chequea primero: una esquina resuelve a arriba/abajo antes
+    // que a izquierda/derecha, arbitrario pero razonable), 25% de izquierda/derecha -> Izquierda/
+    // Derecha, el 50% central -> Centro
+    ZonaDrop CalcularZona(Point puntoEnGridRaiz)
+    {
+        double alturaTabs = _scrollTabs.Bounds.Height;
+        if (puntoEnGridRaiz.Y < alturaTabs) return ZonaDrop.Centro;
+
+        double anchoContenido = _gridContenido.Bounds.Width;
+        double altoContenido = _gridRaiz.Bounds.Height - alturaTabs;
+        if (altoContenido <= 0 || anchoContenido <= 0) return ZonaDrop.Centro;
+
+        double fx = puntoEnGridRaiz.X / anchoContenido;
+        double fy = (puntoEnGridRaiz.Y - alturaTabs) / altoContenido;
+
+        if (fy < 0.25) return ZonaDrop.Arriba;
+        if (fy > 0.75) return ZonaDrop.Abajo;
+        if (fx < 0.25) return ZonaDrop.Izquierda;
+        if (fx > 0.75) return ZonaDrop.Derecha;
+        return ZonaDrop.Centro;
+    }
+
+    static readonly IBrush FondoPermitido = new SolidColorBrush(Color.Parse("#4055AAFF"));
+    static readonly IBrush BordePermitido = new SolidColorBrush(Color.Parse("#FF3070C0"));
+    static readonly IBrush FondoBloqueado = new SolidColorBrush(Color.Parse("#40D04040"));
+    static readonly IBrush BordeBloqueado = new SolidColorBrush(Color.Parse("#FFC03030"));
+
+    void MostrarOverlay(ZonaDrop zona, bool bloqueado)
+    {
+        _overlayDrop.IsVisible = true;
+        _overlayDrop.Background = bloqueado ? FondoBloqueado : FondoPermitido;
+        _overlayDrop.BorderBrush = bloqueado ? BordeBloqueado : BordePermitido;
+
+        _overlayDrop.HorizontalAlignment = HorizontalAlignment.Stretch;
+        _overlayDrop.VerticalAlignment = VerticalAlignment.Stretch;
+        _overlayDrop.Width = double.NaN;
+        _overlayDrop.Height = double.NaN;
+
+        switch (zona)
+        {
+            case ZonaDrop.Arriba:
+                _overlayDrop.VerticalAlignment = VerticalAlignment.Top;
+                _overlayDrop.Height = _gridContenido.Bounds.Height * 0.25;
+                break;
+            case ZonaDrop.Abajo:
+                _overlayDrop.VerticalAlignment = VerticalAlignment.Bottom;
+                _overlayDrop.Height = _gridContenido.Bounds.Height * 0.25;
+                break;
+            case ZonaDrop.Izquierda:
+                _overlayDrop.HorizontalAlignment = HorizontalAlignment.Left;
+                _overlayDrop.Width = _gridContenido.Bounds.Width * 0.25;
+                break;
+            case ZonaDrop.Derecha:
+                _overlayDrop.HorizontalAlignment = HorizontalAlignment.Right;
+                _overlayDrop.Width = _gridContenido.Bounds.Width * 0.25;
+                break;
+        }
+    }
+
+    void OcultarOverlay() => _overlayDrop.IsVisible = false;
 
     void Cerrar_PointerPressed(object? sender, PointerPressedEventArgs e)
     {

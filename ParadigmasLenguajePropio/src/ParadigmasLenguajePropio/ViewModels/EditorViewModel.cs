@@ -146,10 +146,13 @@ public partial class EditorViewModel : ViewModelBase
             var eleccion = await _dialogos.ShowModalAsync("Confirmar", $"Cerrar \"{tab.Nombre}\" sin guardar los cambios?", "Si", "No");
             if (eleccion != 0) return;
         }
-        CerrarArchivoInterno(tab);
+        QuitarTab(tab);
     }
 
-    void CerrarArchivoInterno(EditorTabViewModel tab)
+    // saca la pestaña de este panel y reacomoda TabActiva - sin confirmar nada, a diferencia
+    // de CerrarArchivoAsync: la usa tambien EditorAreaViewModel al arrastrar una pestaña a
+    // otro panel, donde "cerrar sin guardar" no aplica porque el archivo no se pierde
+    public void QuitarTab(EditorTabViewModel tab)
     {
         int indice = Tabs.IndexOf(tab);
         bool eraActiva = tab == TabActiva;

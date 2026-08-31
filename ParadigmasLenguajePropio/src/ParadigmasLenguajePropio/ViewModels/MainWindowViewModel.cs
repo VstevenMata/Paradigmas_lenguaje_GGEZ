@@ -14,7 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public DialogService Dialogs { get; } = new();
     public ExplorerViewModel Explorer { get; }
     public TerminalViewModel Terminal { get; } = new();
-    public EditorViewModel Editor { get; }
+    public EditorAreaViewModel Editor { get; }
     public PanelJuegoViewModel PanelJuego { get; } = new();
 
     // se asigna despues de crear la Window, la necesitan Cortar/Copiar/Pegar del menu Editar
@@ -84,7 +84,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         Explorer = new ExplorerViewModel(Dialogs);
-        Editor = new EditorViewModel(Dialogs);
+        Editor = new EditorAreaViewModel(Dialogs);
         MenuBar.OnOpcionElegida = ManejarOpcionMenu;
         TitleBar.BuscarArchivos = Explorer.BuscarArchivosPorNombre;
         TitleBar.AbrirResultado = ruta => AbrirArchivo(Path.GetFileName(ruta), ruta);

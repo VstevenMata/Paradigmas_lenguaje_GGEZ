@@ -108,7 +108,7 @@
                 <GridSplitter Grid.Column="1" Width="6" Background="Transparent" ResizeDirection="Columns"
                               IsVisible="{Binding ExploradorVisible}" />
 
-                <views:EditorView Grid.Column="2" DataContext="{Binding Editor}" />
+                <views:EditorAreaView Grid.Column="2" DataContext="{Binding Editor}" />
 
                 <GridSplitter Grid.Column="3" Width="6" Background="Transparent" ResizeDirection="Columns"
                               IsVisible="{Binding PanelDerechoVisible}" />
