@@ -23,6 +23,11 @@ public partial class MainWindow : Window
 
         // si quedó un comando corriendo, se corta acá: si no, sobrevive a la ventana
         Closing += (_, _) => vm.Terminal.Cerrar();
+
+        // la terminal puede crecer hasta la mitad de este Grid (editor+explorador+juego+terminal):
+        // un tope fijo en pixeles se queda corto al maximizar y sobra en una ventana chica
+        var gridContenido = this.FindControl<Grid>("PART_GridContenido")!;
+        gridContenido.SizeChanged += (_, e) => vm.AlturaTerminalMaxima = Math.Max(160, e.NewSize.Height / 2);
     }
 
     void CerrarMenu_PointerPressed(object? sender, PointerPressedEventArgs e) => ViewModel?.MenuBar.CerrarTodos();

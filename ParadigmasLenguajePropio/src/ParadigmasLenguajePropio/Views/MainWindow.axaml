@@ -29,11 +29,16 @@
              La terminal es una franja de todo el ancho debajo de explorador+editor+panel derecho
              (los tres se achican para hacerle lugar), igual que en el original: no va anidada
              solo en la columna del editor. -->
-        <Grid Grid.Row="1" Margin="4" RowDefinitions="*,Auto" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+        <Grid Name="PART_GridContenido" Grid.Row="1" Margin="4" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="120" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{Binding AlturaTerminalEfectiva, Converter={StaticResource PxGridLength}, Mode=TwoWay}" />
+            </Grid.RowDefinitions>
 
             <!-- barra lateral de iconos (la "activity bar"): en el original era una columna vertical
                  de botones aparte del menu, con Tooltip y separadores entre grupos -->
-            <StackPanel Grid.Column="0" Grid.RowSpan="2" Width="34" Spacing="3" Margin="0,0,4,0">
+            <StackPanel Grid.Column="0" Grid.RowSpan="3" Width="34" Spacing="3" Margin="0,0,4,0">
                 <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarExploradorCommand}"
                         ToolTip.Tip="Mostrar/ocultar explorador">
                     <Image RenderOptions.BitmapInterpolationMode="None"
@@ -75,7 +80,7 @@
                 </Button>
             </StackPanel>
 
-            <controls:Win95Divider Grid.Column="1" Grid.RowSpan="2" Orientation="Vertical" Margin="0,0,4,0" />
+            <controls:Win95Divider Grid.Column="1" Grid.RowSpan="3" Orientation="Vertical" Margin="0,0,4,0" />
 
             <Grid Grid.Row="0" Grid.Column="2">
                 <Grid.ColumnDefinitions>
@@ -108,15 +113,20 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="1" Grid.Column="2" Height="160" Margin="0,4,0,0" IsVisible="{Binding TerminalVisible}">
+            <!-- arrastrando este splitter hacia arriba la terminal crece: ResizeDirection=Rows mueve el
+                 limite entre la fila de arriba (*, editor/explorador/juego) y la de la terminal -->
+            <GridSplitter Grid.Row="1" Grid.Column="2" Height="6" Background="Transparent" ResizeDirection="Rows"
+                          IsVisible="{Binding TerminalVisible}" />
+
+            <Border Grid.Row="2" Grid.Column="2" IsVisible="{Binding TerminalVisible}">
                 <views:TerminalView DataContext="{Binding Terminal}" />
             </Border>
 
-            <controls:Win95Divider Grid.Column="3" Grid.RowSpan="2" Orientation="Vertical" Margin="4,0,0,0" />
+            <controls:Win95Divider Grid.Column="3" Grid.RowSpan="3" Orientation="Vertical" Margin="4,0,0,0" />
 
             <!-- barra lateral derecha, mismo patron que la izquierda: un boton-puerta aparte de la
                  vista que muestra/oculta el panel del juego -->
-            <StackPanel Grid.Column="4" Grid.RowSpan="2" Width="34" Margin="4,0,0,0">
+            <StackPanel Grid.Column="4" Grid.RowSpan="3" Width="34" Margin="4,0,0,0">
                 <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarPanelDerechoCommand}"
                         ToolTip.Tip="Mostrar/ocultar panel derecho">
                     <Image RenderOptions.BitmapInterpolationMode="None"

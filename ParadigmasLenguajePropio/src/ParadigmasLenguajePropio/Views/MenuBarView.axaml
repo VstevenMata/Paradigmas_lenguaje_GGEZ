@@ -32,9 +32,14 @@
                                        Margin="8,0" IsHitTestVisible="False" />
 
                             <!-- IsLightDismissEnabled=False: esa capa invisible tapaba el hover hacia los
-                                 otros encabezados. El cierre por click-afuera lo maneja MainWindow.axaml. -->
+                                 otros encabezados. El cierre por click-afuera lo maneja MainWindow.axaml.
+                                 ShouldUseOverlayLayer=True: sin esto el popup es una ventana nativa aparte,
+                                 que en Linux queda desincronizada de la ventana principal (no la sigue, no
+                                 se repinta) al cambiar de ventana/escritorio del SO - con la capa overlay
+                                 se dibuja como parte de la ventana del IDE, asi que queda fijo a ella. -->
                             <Popup PlacementTarget="{Binding #PART_Encabezado}" Placement="BottomEdgeAlignedLeft"
-                                   IsOpen="{Binding EsAbierto}" IsLightDismissEnabled="False" WindowManagerAddShadowHint="False">
+                                   IsOpen="{Binding EsAbierto}" IsLightDismissEnabled="False" WindowManagerAddShadowHint="False"
+                                   ShouldUseOverlayLayer="True">
                                 <controls:Win95Bevel BevelThickness="2" Padding="2" Background="{DynamicResource Win95BackgroundBrush}">
                                     <ItemsControl ItemsSource="{Binding Items}" MinWidth="170">
                                         <ItemsControl.ItemTemplate>

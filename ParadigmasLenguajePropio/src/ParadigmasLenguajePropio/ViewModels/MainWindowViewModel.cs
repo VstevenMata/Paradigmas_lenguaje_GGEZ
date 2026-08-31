@@ -26,6 +26,8 @@ public partial class MainWindowViewModel : ViewModelBase
     const double AnchoPanelDerechoMinimo = 220;
     const double AnchoPanelDerechoMaximo = 560;
     const double AnchoPanelDerechoInicial = 340;
+    const double AlturaTerminalMinima = 80;
+    const double AlturaTerminalInicial = 160;
 
     // px/seg: misma velocidad que velocidadColapsoExplorador/VelocidadAnimacion en el original
     const double VelocidadColapso = 1400;
@@ -44,6 +46,33 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _terminalVisible;
+
+    [ObservableProperty]
+    private double _alturaTerminal = AlturaTerminalInicial;
+
+    // recalculada por MainWindow.axaml.cs cuando cambia el alto disponible (ver PART_GridContenido):
+    // la terminal debe poder crecer hasta la mitad del espacio, no un tope fijo en pixeles que en
+    // una ventana grande se queda corto y en una chica ni se nota
+    [ObservableProperty]
+    private double _alturaTerminalMaxima = 600;
+
+    partial void OnAlturaTerminalChanged(double value) => OnPropertyChanged(nameof(AlturaTerminalEfectiva));
+    partial void OnTerminalVisibleChanged(bool value) => OnPropertyChanged(nameof(AlturaTerminalEfectiva));
+
+    // si la ventana se achica y el tope baja de la altura actual, la terminal se ajusta con el resto
+    partial void OnAlturaTerminalMaximaChanged(double value)
+    {
+        if (AlturaTerminal > value) AlturaTerminal = Math.Max(AlturaTerminalMinima, value);
+    }
+
+    // la fila de la terminal en el Grid se bindea a esto en vez de a AlturaTerminal directo: al
+    // ocultarla (TerminalVisible=false) la fila debe colapsar a 0, no quedar en su ultima altura -
+    // pero el GridSplitter que la agranda arrastrando hacia arriba solo debe tocar AlturaTerminal
+    public double AlturaTerminalEfectiva
+    {
+        get => TerminalVisible ? AlturaTerminal : 0;
+        set { if (TerminalVisible) AlturaTerminal = Math.Clamp(value, AlturaTerminalMinima, AlturaTerminalMaxima); }
+    }
 
     double _anchoExploradorGuardado = AnchoExploradorInicial;
     double _anchoPanelDerechoGuardado = AnchoPanelDerechoInicial;
