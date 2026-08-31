@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
+using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
@@ -36,8 +37,31 @@ public partial class ExtensionsViewModel : ViewModelBase
             new[] { "Formatear el archivo completo", "Formatear al guardar (opcional)" }),
     };
 
+    // referencia directa a la extension de Claude: la activity bar (MainWindow.axaml) necesita
+    // saber si esta Instalada para mostrar/ocultar su boton, sin buscarla por Id cada vez
+    public ExtensionInfo Claude => Extensiones[0];
+
     [ObservableProperty]
     private ExtensionInfo? _seleccionada;
+
+    // recuerda entre sesiones que extensiones estaban instaladas (ver ExtensionesPersistenciaService):
+    // se restaura al arrancar y se re-guarda cada vez que cualquiera cambia de estado, tanto por el
+    // boton de Instalar/Desinstalar como por la animacion fantasma al terminar
+    public ExtensionsViewModel()
+    {
+        var instaladas = ExtensionesPersistenciaService.CargarInstaladas();
+        foreach (var ext in Extensiones)
+        {
+            ext.Instalada = instaladas.Contains(ext.Id);
+            ext.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ExtensionInfo.Instalada)) GuardarInstaladas();
+            };
+        }
+    }
+
+    void GuardarInstaladas() =>
+        ExtensionesPersistenciaService.Guardar(Extensiones.Where(e => e.Instalada).Select(e => e.Id));
 
     [RelayCommand]
     void VerDetalle(ExtensionInfo ext) => Seleccionada = ext;

@@ -17,6 +17,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public TerminalViewModel Terminal { get; } = new();
     public EditorAreaViewModel Editor { get; }
     public PanelJuegoViewModel PanelJuego { get; } = new();
+    public ChatViewModel Chat { get; } = new();
 
     // se asigna despues de crear la Window, la necesitan Cortar/Copiar/Pegar del menu Editar
     public IClipboard? Clipboard { get; set; }
@@ -53,6 +54,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _terminalVisible;
+
+    // panel de chat de la extension Claude, debajo de PanelJuego (ver MainWindow.axaml): una sola
+    // instancia, se abre/cierra con el mismo boton de la activity bar que aparece al instalarla
+    [ObservableProperty]
+    private bool _chatVisible;
 
     [ObservableProperty]
     private double _alturaTerminal = AlturaTerminalInicial;
@@ -98,6 +104,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // el comando "exit" cierra el panel, igual que el toggle del menu Ver
         Terminal.OnCerrar = () => TerminalVisible = false;
+        Chat.OnCerrar = () => ChatVisible = false;
         // la terminal se para en la carpeta abierta, como al abrir un proyecto en VSCode
         Explorer.PropertyChanged += (_, e) =>
         {
@@ -169,6 +176,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     void AlternarTerminal() => TerminalVisible = !TerminalVisible;
+
+    [RelayCommand]
+    void AlternarChat() => ChatVisible = !ChatVisible;
 
     [RelayCommand]
     void AlternarPausa() => PanelJuego.EnPausa = !PanelJuego.EnPausa;

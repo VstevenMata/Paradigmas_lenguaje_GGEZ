@@ -101,6 +101,16 @@
                 <Button Width="28" Height="28" Padding="3" Command="{Binding AlternarTerminalCommand}" ToolTip.Tip="Terminal">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Terminal.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
+
+                <!-- solo aparece si la extension "claude" esta Instalada (ver ExtensionsViewModel.Claude);
+                     alterna el panel de chat de abajo a la derecha (ver ChatView) -->
+                <Button Width="28" Height="28" Padding="2" IsVisible="{Binding Extensions.Claude.Instalada}"
+                        Command="{Binding AlternarChatCommand}" ToolTip.Tip="{Binding Extensions.Claude.Nombre}">
+                    <Border CornerRadius="3" Background="{Binding Extensions.Claude.IconoColor}">
+                        <TextBlock Text="{Binding Extensions.Claude.Icono}" FontSize="10" FontWeight="Bold" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Button>
             </StackPanel>
 
             <controls:Win95Divider Grid.Column="1" Grid.RowSpan="3" Orientation="Vertical" Margin="0,0,4,0" />
@@ -142,7 +152,14 @@
                               IsVisible="{Binding PanelDerechoVisible}" />
 
                 <Border Grid.Column="4" ClipToBounds="True">
-                    <views:PanelJuegoView DataContext="{Binding PanelJuego}" />
+                    <!-- el chat de Claude vive debajo del juego, en la misma columna: una fila Auto
+                         colapsa sola a 0 cuando el Border no es visible, sin animacion aparte -->
+                    <Grid RowDefinitions="*,Auto">
+                        <views:PanelJuegoView Grid.Row="0" DataContext="{Binding PanelJuego}" />
+                        <Border Grid.Row="1" Height="260" Margin="0,4,0,0" IsVisible="{Binding ChatVisible}">
+                            <views:ChatView DataContext="{Binding Chat}" />
+                        </Border>
+                    </Grid>
                 </Border>
             </Grid>
 
