@@ -50,6 +50,24 @@
                            Source="{Binding ExploradorVisible, Converter={x:Static conv:BoolToIconoConverter.Instance}, ConverterParameter='Icon_PuertaAbierta.png|Icon_PuertaCerrada.png'}" />
                 </Button>
 
+                <!-- estos dos eligen que se muestra ADENTRO del panel lateral (arbol de archivos vs
+                     lista de extensiones), como los iconos de la activity bar de VS Code - el de
+                     arriba solo abre/cierra el panel en si. Emojis (📁/🧩) no sirven aca: el
+                     Win95FontFamily (Liberation Sans) no trae esos glifos y salian como tofu/caja rota. -->
+                <Button Width="28" Height="28" Padding="4" Command="{Binding MostrarExploradorCommand}" ToolTip.Tip="Explorador">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_CarpetaAbierta.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="6" Command="{Binding MostrarExtensionesPanelCommand}" ToolTip.Tip="Extensiones">
+                    <!-- placeholder de icono "grilla de apps" (4 cuadraditos) hasta que haya un
+                         pixel-art propio tipo pieza de rompecabezas a tono con el resto de Assets/Icons -->
+                    <Grid RowDefinitions="*,*" ColumnDefinitions="*,*" Width="13" Height="13">
+                        <Rectangle Grid.Row="0" Grid.Column="0" Fill="Black" Margin="0,0,1,1" />
+                        <Rectangle Grid.Row="0" Grid.Column="1" Fill="Black" Margin="1,0,0,1" />
+                        <Rectangle Grid.Row="1" Grid.Column="0" Fill="Black" Margin="0,1,1,0" />
+                        <Rectangle Grid.Row="1" Grid.Column="1" Fill="Black" Margin="1,1,0,0" />
+                    </Grid>
+                </Button>
+
                 <controls:Win95Divider Margin="0,2" />
 
                 <Button Width="28" Height="28" Padding="4" Command="{Binding NuevoArchivoCommand}" ToolTip.Tip="Nuevo archivo">
@@ -102,7 +120,17 @@
                      anima hacia 0, igual que el original (que seguia dibujando hasta que el ancho
                      llegaba justo a 0) -->
                 <Border Grid.Column="0" ClipToBounds="True">
-                    <views:ExplorerView DataContext="{Binding Explorer}" />
+                    <!-- el IsVisible va en el Border envolvente (no en la vista) porque, apenas la
+                         vista pisa su propio DataContext con Explorer/Extensions, un binding puesto
+                         ahi mismo se resuelve contra ese DataContext nuevo en vez del de la ventana -->
+                    <Grid>
+                        <Border IsVisible="{Binding !MostrarExtensiones}">
+                            <views:ExplorerView DataContext="{Binding Explorer}" />
+                        </Border>
+                        <Border IsVisible="{Binding MostrarExtensiones}">
+                            <views:ExtensionsView DataContext="{Binding Extensions}" />
+                        </Border>
+                    </Grid>
                 </Border>
 
                 <GridSplitter Grid.Column="1" Width="6" Background="Transparent" ResizeDirection="Columns"

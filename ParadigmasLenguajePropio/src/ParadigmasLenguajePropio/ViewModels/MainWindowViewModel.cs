@@ -13,6 +13,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public StatusBarViewModel StatusBar { get; } = new();
     public DialogService Dialogs { get; } = new();
     public ExplorerViewModel Explorer { get; }
+    public ExtensionsViewModel Extensions { get; } = new();
     public TerminalViewModel Terminal { get; } = new();
     public EditorAreaViewModel Editor { get; }
     public PanelJuegoViewModel PanelJuego { get; } = new();
@@ -34,6 +35,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _exploradorVisible = true;
+
+    // que se ve adentro del panel lateral izquierdo: el arbol de archivos o la lista de
+    // extensiones (mismo lugar en pantalla, ver MainWindow.axaml). Elegir una de las dos fuerza
+    // el panel a abrirse si estaba colapsado, igual que clickear un icono de la activity bar de VS Code.
+    [ObservableProperty]
+    private bool _mostrarExtensiones;
 
     [ObservableProperty]
     private double _anchoExplorador = AnchoExploradorInicial;
@@ -211,6 +218,22 @@ public partial class MainWindowViewModel : ViewModelBase
         ExploradorVisible = !ExploradorVisible;
         _anchoExploradorObjetivo = ExploradorVisible ? _anchoExploradorGuardado : 0;
         AsegurarAnimacionColapsoCorriendo();
+    }
+
+    // botones dedicados de la activity bar (📁 / 🧩): a diferencia de AlternarExplorador, estos no
+    // colapsan nada - solo eligen contenido y se aseguran de que el panel este abierto para verlo
+    [RelayCommand]
+    void MostrarExplorador()
+    {
+        MostrarExtensiones = false;
+        if (!ExploradorVisible) AlternarExplorador();
+    }
+
+    [RelayCommand]
+    void MostrarExtensionesPanel()
+    {
+        MostrarExtensiones = true;
+        if (!ExploradorVisible) AlternarExplorador();
     }
 
     [RelayCommand]

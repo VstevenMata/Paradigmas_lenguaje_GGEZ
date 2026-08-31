@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+             xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+             xmlns:models="using:ParadigmasLenguajePropio.Models"
+             xmlns:conv="using:ParadigmasLenguajePropio.Converters"
+             xmlns:aconv="using:Avalonia.Data.Converters"
+             x:Class="ParadigmasLenguajePropio.Views.ExtensionsView"
+             x:DataType="vm:ExtensionsViewModel">
+
+    <!-- Mismo lugar en pantalla que ExplorerView (ver MainWindow.axaml): la barra de iconos
+         intercambia cual de las dos se muestra. Lista <-> detalle vive adentro de este mismo
+         panel via Seleccionada (null = lista), como en VS Code el marketplace reemplaza al
+         explorador de archivos en el mismo lugar de la barra lateral. -->
+    <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
+        <TextBlock Grid.Row="0" Text="Extensiones" FontSize="16" Margin="2,4,0,4" />
+
+        <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="3">
+            <Grid>
+
+                <!-- ─────────────────────────── lista ─────────────────────────── -->
+                <ScrollViewer IsVisible="{Binding Seleccionada, Converter={x:Static aconv:ObjectConverters.IsNull}}">
+                    <ItemsControl ItemsSource="{Binding Extensiones}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:ExtensionInfo">
+                                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                        Margin="0,0,0,4" Padding="6"
+                                        Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).VerDetalleCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Border Grid.Column="0" Width="30" Height="30" CornerRadius="4"
+                                                Background="{Binding IconoColor}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Icono}" FontSize="11" FontWeight="Bold" Foreground="White"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Nombre}" FontSize="15" FontWeight="Bold"
+                                                       Foreground="Black" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Autor}" FontSize="12"
+                                                       Foreground="Gray" Margin="0,1,0,0" />
+                                        </StackPanel>
+
+                                        <Button Grid.Column="2" VerticalAlignment="Center" Width="86" FontSize="12"
+                                                Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
+                                                Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- ─────────────────────────── detalle ─────────────────────────── -->
+                <ScrollViewer IsVisible="{Binding Seleccionada, Converter={x:Static aconv:ObjectConverters.IsNotNull}}">
+                    <StackPanel Margin="4" DataContext="{Binding Seleccionada}" x:DataType="models:ExtensionInfo">
+
+                        <Button Content="&#8592; Extensiones" HorizontalAlignment="Left" FontSize="12"
+                                Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).VolverAListaCommand}" />
+
+                        <Border Width="56" Height="56" CornerRadius="6" Background="{Binding IconoColor}"
+                                HorizontalAlignment="Left" Margin="0,12,0,4">
+                            <TextBlock Text="{Binding Icono}" FontSize="18" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding Nombre}" FontSize="18" FontWeight="Bold" Foreground="Black" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Autor}" FontSize="13" Foreground="Gray" Margin="0,2,0,10" />
+
+                        <Button Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
+                                IsVisible="{Binding !Instalando}" HorizontalAlignment="Left" Width="110"
+                                Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
+                                CommandParameter="{Binding}" />
+
+                        <StackPanel IsVisible="{Binding Instalando}" Margin="0,2">
+                            <TextBlock Text="Instalando..." FontSize="12" Foreground="Gray" Margin="0,0,0,3" />
+                            <controls:Win95Bevel Sunken="True" BevelThickness="2" Height="14" Width="150" HorizontalAlignment="Left">
+                                <Border Background="{DynamicResource Win95TitleBarBrush}" HorizontalAlignment="Left"
+                                        Width="{Binding Progreso, Converter={x:Static conv:ProgresoAAnchoConverter.Instance}}" />
+                            </controls:Win95Bevel>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding DescripcionCorta}" FontSize="14" Foreground="Black"
+                                   TextWrapping="Wrap" Margin="0,14,0,10" />
+
+                        <TextBlock Text="Caracteristicas" FontSize="14" FontWeight="Bold" Foreground="Black" Margin="0,4,0,4" />
+                        <ItemsControl ItemsSource="{Binding Caracteristicas}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock FontSize="13" Foreground="Black" TextWrapping="Wrap" Margin="0,0,0,3">
+                                        <Run Text="•  " /><Run Text="{Binding}" />
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </controls:Win95Bevel>
+    </Grid>
+
+</UserControl>

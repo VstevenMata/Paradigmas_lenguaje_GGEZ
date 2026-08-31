@@ -22,6 +22,13 @@ public class EditorTextArea : Control
     static readonly IBrush ColorSeleccion = new SolidColorBrush(Color.FromArgb(110, 51, 153, 255));
     static readonly IBrush ColorLineaActual = new SolidColorBrush(Color.FromRgb(235, 235, 235));
 
+    // ancho del resaltado de seleccion en una linea vacia (o al final de una linea que sigue en
+    // la proxima): OJO, no se puede medir con EditorFont.Medir(" ", FontSize) - el ancho de
+    // tinta de un espacio da 0 en este motor de texto (no cuenta el avance de blancos), lo que
+    // dejaria el resaltado invisible de nuevo. Un valor fijo, mas grande que un caracter
+    // angosto tipico, se ve como un bloque de verdad en vez de una raya de unos pocos px.
+    const double AnchoContinuacion = 10;
+
     public static readonly StyledProperty<EditorTabViewModel?> TabProperty =
         AvaloniaProperty.Register<EditorTextArea, EditorTabViewModel?>(nameof(Tab));
 
@@ -115,9 +122,13 @@ public class EditorTextArea : Control
 
         double xInicio = EditorFont.Medir(linea[..columnaInicio], FontSize);
         double xFin = EditorFont.Medir(linea[..columnaFin], FontSize);
-        if (indiceLinea != ff) xFin += 6; // se nota que la selección sigue en la próxima línea
+        // AnchoContinuacion: antes eran 6px fijos - en una linea vacia eso da un resaltado de
+        // 6px, casi invisible contra el fondo blanco (parecia que no se podia seleccionar una
+        // linea en blanco). Con el ancho de un espacio se nota como un bloque de verdad, igual
+        // que en VSCode.
+        if (indiceLinea != ff) xFin += AnchoContinuacion;
 
-        var rect = new Rect(MargenIzquierdo + xInicio, y, Math.Max(2, xFin - xInicio), AltoLinea);
+        var rect = new Rect(MargenIzquierdo + xInicio, y, Math.Max(AnchoContinuacion, xFin - xInicio), AltoLinea);
         context.FillRectangle(ColorSeleccion, rect);
     }
 

@@ -45,6 +45,10 @@ public partial class EditorView : UserControl
     // EditorAreaView para pedirle a EditorAreaViewModel que la mueva/parta
     public event Action<EditorTabViewModel, EditorViewModel, EditorViewModel, ZonaDrop>? TabSoltado;
 
+    // la llama EditorAreaView tras reconstruir el arbol de paneles, para que el panel enfocado
+    // reciba el foco de teclado de verdad (una vista nueva no lo tiene por si sola)
+    public void EnfocarTexto() => _textArea.Focus();
+
     public EditorView()
     {
         InitializeComponent();
