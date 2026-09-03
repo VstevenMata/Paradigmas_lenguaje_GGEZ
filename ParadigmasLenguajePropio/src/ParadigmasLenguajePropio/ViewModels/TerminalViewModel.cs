@@ -19,11 +19,29 @@ public partial class TerminalViewModel : ViewModelBase
 
     public ObservableCollection<TerminalInstanceViewModel> Instancias { get; } = new();
 
-    // subconjunto de Instancias con EnColumna=true, en el mismo orden - lo que arma la vista como
-    // columnas (ver TerminalView.axaml.cs), reordenable arrastrando (ver ReordenarInstancia). Se
-    // mantiene sincronizado a mano porque ItemsControl necesita una coleccion observable propia,
-    // no un Where() recalculado cada vez.
-    public ObservableCollection<TerminalInstanceViewModel> InstanciasVisibles { get; } = new();
+    // subconjunto de Instancias con EnColumna=true, en el mismo orden relativo - SOLO para contar y
+    // ubicar posiciones (ver TerminalView.axaml.cs). El panel de columnas se renderiza directo sobre
+    // Instancias (ver TerminalView.axaml, IsVisible por item): si esta coleccion filtrada fuera el
+    // ItemsSource, ocultar una columna la sacaria del ItemsControl y Avalonia destruiria su vista -
+    // para la terminal real (ClaudeTerminalView/PTY, ver ese archivo) eso significa perder la sesion
+    // entera al volver a mostrarla. Manteniendo Instancias como unico ItemsSource, ocultar solo
+    // apaga IsVisible: la vista (y la PTY) sigue viva de fondo.
+    public IEnumerable<TerminalInstanceViewModel> InstanciasVisibles => Instancias.Where(i => i.EnColumna);
+
+    // convierte una posicion relativa a las visibles (0 = antes de la primera, Count = al final) a
+    // la posicion absoluta equivalente dentro de Instancias - las ocultas no ocupan celda en la
+    // grilla (ver TerminalView.axaml) pero si cuentan para el orden real de la lista
+    int PosicionAbsoluta(int posicionVisible)
+    {
+        int vistos = 0;
+        for (int i = 0; i < Instancias.Count; i++)
+        {
+            if (!Instancias[i].EnColumna) continue;
+            if (vistos == posicionVisible) return i;
+            vistos++;
+        }
+        return Instancias.Count;
+    }
 
     // el complemento: las que existen pero estan ocultas (ver CerrarDeVista) - la barra superior
     // las lista chiquitas para poder volver a mostrarlas (ver MostrarEnColumna)
@@ -94,7 +112,6 @@ public partial class TerminalViewModel : ViewModelBase
         Instancias.Add(instancia);
         if (mostrarDeUna)
         {
-            InstanciasVisibles.Add(instancia);
             TabActiva = 0;
             EnfocarInstancia(instancia);
         }
@@ -113,11 +130,9 @@ public partial class TerminalViewModel : ViewModelBase
         if (instancia.EnColumna)
         {
             InstanciasOcultas.Remove(instancia);
-            if (!InstanciasVisibles.Contains(instancia)) InstanciasVisibles.Add(instancia);
         }
         else
         {
-            InstanciasVisibles.Remove(instancia);
             if (!InstanciasOcultas.Contains(instancia)) InstanciasOcultas.Add(instancia);
             // si se ocultaba la activa, el foco pasa a la primera columna que haya quedado visible
             if (InstanciaActiva == instancia) EnfocarInstancia(InstanciasVisibles.FirstOrDefault());
@@ -125,28 +140,33 @@ public partial class TerminalViewModel : ViewModelBase
     }
 
     // saca la columna de la vista pero la deja viva (proceso, historial, salida intactos) - se
-    // puede volver a mostrar con MostrarEnColumna. Distinto de Eliminar, que la mata de verdad.
+    // puede volver a mostrar arrastrandola o clickeandola desde la lista de ocultas (ver
+    // MostrarEnColumna/MostrarEnColumnaEnPosicion). Distinto de Eliminar, que la mata de verdad.
     [RelayCommand]
     void CerrarDeVista(TerminalInstanceViewModel instancia) => instancia.EnColumna = false;
 
     // click simple en un chip de la lista de ocultas: REEMPLAZA a la activa (la que estaba se va a
     // la lista, esta ocupa su mismo lugar) en vez de agregarse como columna nueva al lado - eso es
-    // lo que hace arrastrarla (ver MostrarEnColumnaEnPosicion), un gesto mas explicito
+    // lo que hace arrastrarla (ver MostrarEnColumnaEnPosicion), un gesto distinto y mas explicito
     [RelayCommand]
     void MostrarEnColumna(TerminalInstanceViewModel instancia)
     {
         if (instancia.EnColumna) { TabActiva = 0; EnfocarInstancia(instancia); return; } // ya era visible, solo enfocar
 
         var anterior = InstanciaActiva;
-        if (anterior != null && InstanciasVisibles.Contains(anterior))
+        if (anterior != null && anterior.EnColumna)
         {
-            int posicion = InstanciasVisibles.IndexOf(anterior);
+            int posicionAnterior = Instancias.IndexOf(anterior);
             anterior.EnColumna = false;
             instancia.EnColumna = true;
 
-            int posicionActual = InstanciasVisibles.IndexOf(instancia);
-            int posicionFinal = Math.Clamp(posicion, 0, InstanciasVisibles.Count - 1);
-            if (posicionActual != posicionFinal) InstanciasVisibles.Move(posicionActual, posicionFinal);
+            // reubica instancia justo donde estaba anterior en la lista absoluta, para que ocupe su
+            // mismo lugar visual (las ocultas no cuentan para el orden en pantalla, ver
+            // InstanciasVisibles) - mismo ajuste de indice al mover dentro de la propia lista que en
+            // MostrarEnColumnaEnPosicion
+            int posicionInstancia = Instancias.IndexOf(instancia);
+            int posicionFinal = posicionInstancia < posicionAnterior ? posicionAnterior - 1 : posicionAnterior;
+            if (posicionInstancia != posicionFinal) Instancias.Move(posicionInstancia, posicionFinal);
         }
         else
         {
@@ -176,13 +196,14 @@ public partial class TerminalViewModel : ViewModelBase
     // a diferencia del editor una lista plana ya alcanza)
     public void MostrarEnColumnaEnPosicion(TerminalInstanceViewModel instancia, int destino)
     {
-        if (!InstanciasVisibles.Contains(instancia)) instancia.EnColumna = true; // la agrega al final via Instancia_PropertyChanged
+        instancia.EnColumna = true; // si estaba oculta, ya queda contada como visible para lo que sigue
 
-        int origen = InstanciasVisibles.IndexOf(instancia);
+        int origen = Instancias.IndexOf(instancia);
         if (origen < 0) return; // no deberia pasar
 
-        int nuevoIndice = Math.Clamp(destino > origen ? destino - 1 : destino, 0, InstanciasVisibles.Count - 1);
-        if (nuevoIndice != origen) InstanciasVisibles.Move(origen, nuevoIndice);
+        int destinoAbsoluto = PosicionAbsoluta(destino);
+        int nuevoIndice = Math.Clamp(destinoAbsoluto > origen ? destinoAbsoluto - 1 : destinoAbsoluto, 0, Instancias.Count - 1);
+        if (nuevoIndice != origen) Instancias.Move(origen, nuevoIndice);
         TabActiva = 0;
         EnfocarInstancia(instancia);
     }
@@ -196,7 +217,6 @@ public partial class TerminalViewModel : ViewModelBase
         instancia.PropertyChanged -= Instancia_PropertyChanged;
         instancia.Cerrar();
         Instancias.Remove(instancia);
-        InstanciasVisibles.Remove(instancia);
         InstanciasOcultas.Remove(instancia);
         OnPropertyChanged(nameof(PuedeCrearTerminal));
 

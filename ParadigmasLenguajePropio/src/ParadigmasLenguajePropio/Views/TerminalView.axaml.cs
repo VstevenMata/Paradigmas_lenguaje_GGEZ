@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Threading;
 using ParadigmasLenguajePropio.ViewModels;
@@ -47,7 +48,19 @@ public partial class TerminalView : UserControl
         DragDrop.AddDragOverHandler(_columnas, Columnas_DragOver);
         DragDrop.AddDragLeaveHandler(_columnas, (_, _) => _lineaInsercion.IsVisible = false);
         DragDrop.AddDropHandler(_columnas, Columnas_Drop);
+
+        _columnas.ContainerPrepared += Columnas_ContainerPrepared;
     }
+
+    // el ItemsControl arma un contenedor (ContentPresenter) por cada item de Instancias, ocultas
+    // incluidas (ver comentario en TerminalView.axaml) - lo unico que decide si esa columna se ve o
+    // no es este enlace de IsVisible a EnColumna, atado a mano en vez de por un Style porque los
+    // estilos de Avalonia cascadean por TODO el arbol visual descendiente (no solo dentro de este
+    // ItemsControl como en WPF): un Selector="ContentPresenter" pisaria tambien el ContentPresenter
+    // interno de cada Win95Bevel/ScrollViewer/Boton de la columna. Enlazando directo sobre el
+    // contenedor que entrega el evento no hay ambiguedad posible.
+    void Columnas_ContainerPrepared(object? sender, ContainerPreparedEventArgs e) =>
+        e.Container.Bind(Visual.IsVisibleProperty, new Binding(nameof(TerminalInstanceViewModel.EnColumna)));
 
     void SeguirErroresAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -60,13 +73,19 @@ public partial class TerminalView : UserControl
         if (ViewModel is { } vm) vm.TabActiva = 1;
     }
 
-    // click simple en un chip oculto ya la muestra (al final de las columnas) - arrastrarlo en vez
-    // de solo clickear la suelta justo donde se quiera (ver Pestana_PointerMoved/Columnas_Drop),
-    // mismo patron de "click activa, arrastrar reordena/reubica" que las pestañas de columna.
+    void TabTerminal_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ViewModel is { } vm) vm.TabActiva = 0;
+    }
+
+    // click simple en un chip oculto REEMPLAZA a la activa (ver MostrarEnColumna); arrastrarlo en
+    // vez de solo clickear lo suelta justo donde se quiera (ver Pestana_PointerMoved/Columnas_Drop) -
+    // mismo patron "click reemplaza, arrastrar agrupa/reubica" que las pestañas de columna.
     // OJO: a diferencia de Pestana_PointerPressed, el comando de este chip (MostrarEnColumnaCommand)
-    // lo saca de InstanciasOcultas - ejecutarlo aca de una destruye el control bajo el puntero antes
-    // de capturarlo, y el arrastre nunca llega a empezar. Por eso se difiere a PointerReleased: si
-    // nunca crea un arrastre real (ver PointerMoved), ahi se trata como el click simple que era.
+    // lo saca de InstanciasOcultas - ejecutarlo en PointerPressed destruiria el control bajo el
+    // puntero antes de capturarlo, y el arrastre nunca llegaria a empezar. Por eso se difiere a
+    // PointerReleased: si nunca se convierte en arrastre real (ver PointerMoved), ahi se trata como
+    // el click simple que fue.
     void InstanciaOculta_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not Control { DataContext: TerminalInstanceViewModel instancia }) return;
@@ -155,7 +174,7 @@ public partial class TerminalView : UserControl
         }
 
         e.DragEffects = DragDropEffects.Move;
-        MostrarLineaEn(CalcularIndiceDestino(e.GetPosition(_columnas), vm.InstanciasVisibles.Count));
+        MostrarLineaEn(CalcularIndiceDestino(e.GetPosition(_columnas), vm.InstanciasVisibles.Count()));
     }
 
     void Columnas_Drop(object? sender, DragEventArgs e)
@@ -165,7 +184,7 @@ public partial class TerminalView : UserControl
         var payload = ObtenerPayload(e);
         if (payload == null) return;
 
-        int destino = CalcularIndiceDestino(e.GetPosition(_columnas), vm.InstanciasVisibles.Count);
+        int destino = CalcularIndiceDestino(e.GetPosition(_columnas), vm.InstanciasVisibles.Count());
         vm.MostrarEnColumnaEnPosicion(payload.Instancia, destino);
     }
 
@@ -187,9 +206,9 @@ public partial class TerminalView : UserControl
 
     void MostrarLineaEn(int destino)
     {
-        if (ViewModel is not { } vm || vm.InstanciasVisibles.Count == 0) { _lineaInsercion.IsVisible = false; return; }
+        if (ViewModel is not { } vm || vm.InstanciasVisibles.Count() == 0) { _lineaInsercion.IsVisible = false; return; }
 
-        double anchoColumna = _columnas.Bounds.Width / vm.InstanciasVisibles.Count;
+        double anchoColumna = _columnas.Bounds.Width / vm.InstanciasVisibles.Count();
         double x = Math.Clamp(destino * anchoColumna - 1.5, 0, Math.Max(0, _columnas.Bounds.Width - 3));
 
         _lineaInsercion.IsVisible = true;

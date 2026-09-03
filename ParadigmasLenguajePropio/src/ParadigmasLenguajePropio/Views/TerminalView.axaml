@@ -54,11 +54,26 @@
                                   Background="{DynamicResource Win95BackgroundBrush}" PointerPressed="TabErrores_PointerPressed">
                 <TextBlock Text="Errores" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </controls:Win95Bevel>
+
+            <!-- unica forma de volver de la pestaña Errores: sin esto, si en ese momento no hay
+                 ninguna terminal oculta para clickear, no hay como volver a ver las columnas -->
+            <controls:Win95Bevel DockPanel.Dock="Right" Width="70" Height="22" BevelThickness="2" Margin="0,0,4,0" Sunken="{Binding !EsTabTerminal}"
+                                  Background="{DynamicResource Win95BackgroundBrush}" PointerPressed="TabTerminal_PointerPressed">
+                <TextBlock Text="Terminal" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </controls:Win95Bevel>
         </DockPanel>
 
         <Grid Grid.Row="1">
             <!-- una columna por instancia visible, todas del mismo ancho, siempre en fila -->
-            <ItemsControl Name="PART_Columnas" ItemsSource="{Binding InstanciasVisibles}" IsVisible="{Binding EsTabTerminal}" x:CompileBindings="False">
+            <!-- ItemsSource es Instancias (TODAS, no solo las visibles): si ocultar una la sacara de
+                 aca, Avalonia destruiria su contenedor y con el la vista - para la terminal real
+                 (ClaudeTerminalView, PTY) eso mata la sesion entera. En cambio se oculta el
+                 contenedor generado (el ContentPresenter que arma el ItemsControl) enlazando su
+                 IsVisible a mano en el code-behind (ver Columnas_ContainerPrepared): UniformGrid ya
+                 ignora los hijos con IsVisible=False tanto para contar como para ubicar celdas, asi
+                 que las ocultas simplemente no ocupan lugar, sin perder su estado (ver
+                 TerminalViewModel.InstanciasVisibles). -->
+            <ItemsControl Name="PART_Columnas" ItemsSource="{Binding Instancias}" IsVisible="{Binding EsTabTerminal}" x:CompileBindings="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Rows="1" />
