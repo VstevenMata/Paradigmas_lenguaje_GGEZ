@@ -12,7 +12,7 @@ public partial class EditorViewModel : ViewModelBase
     readonly DialogService _dialogos;
 
     // la necesita EditorTextArea (via EditorView.axaml) para saber que extensiones de resaltado
-    // estan Instalada en cada frame de Render (rainbow-indent, trailing-whitespace, color-lens,
+    // estan Instalada en cada frame de Render (rainbow-indent, trailing-whitespace,
     // todo-highlight, bracket-colorizer)
     public ExtensionsViewModel Extensiones { get; }
 

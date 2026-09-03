@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -32,19 +31,28 @@ public class EditorTextArea : Control
     // angosto tipico, se ve como un bloque de verdad en vez de una raya de unos pocos px.
     const double AnchoContinuacion = 10;
 
-    // paletas de las extensiones de resaltado (ver DibujarGuiaIndentacion/DibujarBrackets) - los
-    // colores no se toman de ExtensionInfo.IconoColor (esa es la placa de un solo color del panel
-    // de extensiones): aca hace falta una secuencia de varios colores, uno por nivel de anidado
-    static readonly IBrush[] PaletaIndentacion =
+    // paleta compartida de Rainbow Indent Guides y Bracket Pair Colorizer (ver
+    // DibujarGuiaIndentacion/ProcesarBrackets) - un mismo nivel de anidado usa el mismo color en
+    // las guias y en los brackets. Los colores no se toman de ExtensionInfo.IconoColor (esa es la
+    // placa de un solo color del panel de extensiones): aca hace falta una secuencia larga, una
+    // por nivel de anidado. Paleta estilo Super Mario Bros, hasta 15 niveles antes de repetir.
+    static readonly IBrush[] PaletaAnidado =
     {
-        new SolidColorBrush(Color.Parse("#E06C75")), new SolidColorBrush(Color.Parse("#61AFEF")),
-        new SolidColorBrush(Color.Parse("#98C379")), new SolidColorBrush(Color.Parse("#C678DD")),
-        new SolidColorBrush(Color.Parse("#E5C07B")),
-    };
-    static readonly IBrush[] PaletaBrackets =
-    {
-        new SolidColorBrush(Color.Parse("#DAA520")), new SolidColorBrush(Color.Parse("#DA70D6")),
-        new SolidColorBrush(Color.Parse("#179FFF")),
+        new SolidColorBrush(Color.Parse("#D82800")), // Rojo Mario
+        new SolidColorBrush(Color.Parse("#5C94FC")), // Azul cielo
+        new SolidColorBrush(Color.Parse("#FCE000")), // Amarillo bloque
+        new SolidColorBrush(Color.Parse("#00A800")), // Verde tuberia
+        new SolidColorBrush(Color.Parse("#FCA044")), // Piel
+        new SolidColorBrush(Color.Parse("#7C1EFC")), // Morado (power-up/estrella)
+        new SolidColorBrush(Color.Parse("#00E8D8")), // Cian (agua/hielo)
+        new SolidColorBrush(Color.Parse("#F878F8")), // Rosa (Peach)
+        new SolidColorBrush(Color.Parse("#F87800")), // Naranja intenso (fuego/lava)
+        new SolidColorBrush(Color.Parse("#005800")), // Verde oscuro (arbustos)
+        new SolidColorBrush(Color.Parse("#0000BC")), // Azul marino (agua profunda)
+        new SolidColorBrush(Color.Parse("#58F898")), // Verde Yoshi
+        new SolidColorBrush(Color.Parse("#FCBC00")), // Dorado moneda
+        new SolidColorBrush(Color.Parse("#940000")), // Vino/rojo oscuro (fuego apagado)
+        new SolidColorBrush(Color.Parse("#005850")), // Verde azul petroleo (agua nocturna)
     };
     static readonly IBrush ColorEspaciosSobrantes = new SolidColorBrush(Color.FromArgb(90, 239, 68, 68));
     static readonly (string Palabra, IBrush Color)[] PalabrasTodo =
@@ -53,9 +61,6 @@ public class EditorTextArea : Control
         ("FIXME", new SolidColorBrush(Color.FromArgb(90, 239, 68, 68))),
         ("HACK", new SolidColorBrush(Color.FromArgb(90, 245, 158, 11))),
     };
-    static readonly Regex PatronHex = new(@"#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b", RegexOptions.Compiled);
-    static readonly Regex PatronRgb = new(@"rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})[^)]*\)", RegexOptions.Compiled);
-
     public static readonly StyledProperty<EditorTabViewModel?> TabProperty =
         AvaloniaProperty.Register<EditorTextArea, EditorTabViewModel?>(nameof(Tab));
 
@@ -66,8 +71,8 @@ public class EditorTextArea : Control
     }
 
     // extensiones de resaltado (ver ExtensionsViewModel): rainbow-indent, trailing-whitespace,
-    // color-lens, todo-highlight y bracket-colorizer se consultan en cada Render() (ver mas
-    // abajo) - null mientras la vista de diseño no tiene DataContext real
+    // todo-highlight y bracket-colorizer se consultan en cada Render() (ver mas abajo) - null
+    // mientras la vista de diseño no tiene DataContext real
     public static readonly StyledProperty<ExtensionsViewModel?> ExtensionesProperty =
         AvaloniaProperty.Register<EditorTextArea, ExtensionsViewModel?>(nameof(Extensiones));
 
@@ -115,7 +120,7 @@ public class EditorTextArea : Control
     }
 
     static IEnumerable<ExtensionInfo> ExtensionesDeResaltado(ExtensionsViewModel ext) =>
-        new[] { ext.RainbowIndent, ext.TrailingWhitespace, ext.ColorLens, ext.TodoHighlight, ext.BracketColorizer };
+        new[] { ext.RainbowIndent, ext.TrailingWhitespace, ext.TodoHighlight, ext.BracketColorizer };
 
     void ExtensionInstalada_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -157,12 +162,15 @@ public class EditorTextArea : Control
 
         bool rainbowIndent = Extensiones?.RainbowIndent.Instalada == true;
         bool espaciosSobrantes = Extensiones?.TrailingWhitespace.Instalada == true;
-        bool colorLens = Extensiones?.ColorLens.Instalada == true;
         bool todoHighlight = Extensiones?.TodoHighlight.Instalada == true;
         bool bracketColorizer = Extensiones?.BracketColorizer.Instalada == true;
 
         // nivel de anidado de brackets: se acumula linea a linea (un bracket puede abrir en una
-        // linea y cerrar varias mas abajo), por eso vive afuera del for en vez de reiniciarse por linea
+        // linea y cerrar varias mas abajo), por eso vive afuera del for en vez de reiniciarse por
+        // linea. Se calcula SIEMPRE (no solo con bracket-colorizer instalado): rainbow-indent
+        // tambien lo usa para saber el nivel de anidado de una linea sin indentacion real (este
+        // editor no auto-indenta al escribir "{" + Enter, asi que contar solo espacios dejaba las
+        // guias sin nada que dibujar en el uso tipico)
         int nivelBrackets = 0;
 
         for (int i = 0; i < Tab.Lineas.Count; i++)
@@ -180,15 +188,14 @@ public class EditorTextArea : Control
             // se superponen - con las guias arriba siguen viendose sus colores en vez de quedar
             // lavadas bajo el rosa translucido del trim
             if (espaciosSobrantes) DibujarEspaciosSobrantes(context, texto, y);
-            if (rainbowIndent) DibujarGuiaIndentacion(context, texto, y);
+            if (rainbowIndent) DibujarGuiaIndentacion(context, texto, y, nivelBrackets);
             if (todoHighlight) DibujarTodoHighlight(context, texto, y);
 
             if (texto.Length > 0)
                 context.DrawText(EditorFont.Formatear(texto, FontSize, Brushes.Black), new Point(MargenIzquierdo, y));
 
-            // recoloreados/anotaciones: van DESPUES del texto, se dibujan encima
-            if (bracketColorizer) nivelBrackets = DibujarBrackets(context, texto, y, nivelBrackets);
-            if (colorLens) DibujarColorLens(context, texto, y);
+            // recoloreado de brackets: va DESPUES del texto, se dibuja encima
+            nivelBrackets = ProcesarBrackets(context, texto, y, nivelBrackets, dibujar: bracketColorizer);
         }
 
         DibujarCursor(context);
@@ -196,16 +203,19 @@ public class EditorTextArea : Control
 
     // ─────────────────────────── extension: Rainbow Indent Guides ───────────────────────────
 
-    static void DibujarGuiaIndentacion(DrawingContext context, string texto, double y)
+    static void DibujarGuiaIndentacion(DrawingContext context, string texto, double y, int nivelBrackets)
     {
         int espacios = 0;
         while (espacios < texto.Length && texto[espacios] == ' ') espacios++;
 
-        int niveles = espacios / 4;
+        // lo que sea mayor entre espacios reales (archivos con indentacion a mano, ej. GGEZ pegado
+        // de otro lado) y nivel de brackets (uso tipico aca: el editor no auto-indenta al escribir
+        // "{" + Enter, asi que contar solo espacios casi nunca tendria nada que mostrar)
+        int niveles = Math.Max(espacios / 4, nivelBrackets);
         for (int nivel = 0; nivel < niveles; nivel++)
         {
             double x = MargenIzquierdo + EditorFont.MedirPrefijo(new string(' ', nivel * 4), FontSize);
-            var pluma = new Pen(PaletaIndentacion[nivel % PaletaIndentacion.Length], 1);
+            var pluma = new Pen(PaletaAnidado[nivel % PaletaAnidado.Length], 1);
             context.DrawLine(pluma, new Point(x, y), new Point(x, y + AltoLinea));
         }
     }
@@ -243,53 +253,55 @@ public class EditorTextArea : Control
 
     // ─────────────────────────── extension: Bracket Pair Colorizer ───────────────────────────
 
-    static int DibujarBrackets(DrawingContext context, string texto, double y, int nivel)
+    // cuenta el nivel de anidado SIEMPRE (lo necesita tambien rainbow-indent, ver Render); solo
+    // dibuja los caracteres recoloreados si bracket-colorizer esta instalado.
+    // Ademas de ( ) [ ] { }, reconoce "gglz"/"gg" como un par de bloque (ver
+    // TryAutocompletarBloqueGglz) - palabra completa, no una coincidencia adentro de otra palabra
+    // (para no confundir un "gg" que aparece dentro de otra palabra).
+    static int ProcesarBrackets(DrawingContext context, string texto, double y, int nivel, bool dibujar)
     {
-        for (int c = 0; c < texto.Length; c++)
+        int c = 0;
+        while (c < texto.Length)
         {
             char ch = texto[c];
             bool esApertura = ch is '(' or '[' or '{';
             bool esCierre = ch is ')' or ']' or '}';
-            if (!esApertura && !esCierre) continue;
+            int longitud = 1;
 
-            if (esCierre) nivel = Math.Max(0, nivel - 1);
+            if (!esApertura && !esCierre)
+            {
+                if (EsPalabraCompletaEn(texto, c, "gglz")) { esApertura = true; longitud = 4; }
+                else if (EsPalabraCompletaEn(texto, c, "gg")) { esCierre = true; longitud = 2; }
+            }
 
-            double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..c], FontSize);
-            var brush = PaletaBrackets[nivel % PaletaBrackets.Length];
-            context.DrawText(EditorFont.Formatear(ch.ToString(), FontSize, brush), new Point(x, y));
+            if (esApertura || esCierre)
+            {
+                if (esCierre) nivel = Math.Max(0, nivel - 1);
 
-            if (esApertura) nivel++;
+                if (dibujar)
+                {
+                    double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..c], FontSize);
+                    var brush = PaletaAnidado[nivel % PaletaAnidado.Length];
+                    context.DrawText(EditorFont.Formatear(texto.Substring(c, longitud), FontSize, brush), new Point(x, y));
+                }
+
+                if (esApertura) nivel++;
+            }
+
+            c += longitud;
         }
         return nivel;
     }
 
-    // ─────────────────────────── extension: Color Lens ───────────────────────────
-
-    static void DibujarColorLens(DrawingContext context, string texto, double y)
+    static bool EsPalabraCompletaEn(string texto, int posicion, string palabra)
     {
-        foreach (Match m in PatronHex.Matches(texto))
-        {
-            if (TryParseColorHex(m.Value, out var color)) DibujarSwatch(context, texto, m.Index + m.Length, y, color);
-        }
-        foreach (Match m in PatronRgb.Matches(texto))
-        {
-            if (byte.TryParse(m.Groups[1].Value, out var r) && byte.TryParse(m.Groups[2].Value, out var g) && byte.TryParse(m.Groups[3].Value, out var b))
-                DibujarSwatch(context, texto, m.Index + m.Length, y, Color.FromRgb(r, g, b));
-        }
-    }
+        if (posicion + palabra.Length > texto.Length) return false;
+        if (string.CompareOrdinal(texto, posicion, palabra, 0, palabra.Length) != 0) return false;
 
-    static void DibujarSwatch(DrawingContext context, string texto, int columnaFin, double y, Color color)
-    {
-        double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..columnaFin], FontSize) + 3;
-        var rect = new Rect(x, y + 4, 12, 12);
-        context.FillRectangle(new SolidColorBrush(color), rect);
-        context.DrawRectangle(new Pen(Brushes.Black, 1), rect);
-    }
-
-    static bool TryParseColorHex(string texto, out Color color)
-    {
-        try { color = Color.Parse(texto); return true; }
-        catch (FormatException) { color = default; return false; }
+        bool bordeIzquierdo = posicion == 0 || !char.IsLetterOrDigit(texto[posicion - 1]);
+        int fin = posicion + palabra.Length;
+        bool bordeDerecho = fin == texto.Length || !char.IsLetterOrDigit(texto[fin]);
+        return bordeIzquierdo && bordeDerecho;
     }
 
     void DibujarSeleccionEnLinea(DrawingContext context, int indiceLinea, double y)
@@ -412,7 +424,7 @@ public class EditorTextArea : Control
         if (alt && e.Key == Key.Up) { Tab.MoverLineaArriba(); e.Handled = true; return; }
         if (alt && e.Key == Key.Down) { Tab.MoverLineaAbajo(); e.Handled = true; return; }
 
-        if (e.Key == Key.Enter) { Tab.InsertarNuevaLinea(); e.Handled = true; return; }
+        if (e.Key == Key.Enter) { if (!TryAutocompletarBloqueGglz()) Tab.InsertarNuevaLinea(); e.Handled = true; return; }
         if (e.Key == Key.Tab) { Tab.InsertarTexto("    "); e.Handled = true; return; }
         if (e.Key == Key.Back) { Tab.Retroceder(); e.Handled = true; return; }
         if (e.Key == Key.Delete) { Tab.Suprimir(); e.Handled = true; return; }
@@ -423,6 +435,35 @@ public class EditorTextArea : Control
         if (e.Key == Key.Down) { Tab.MoverAbajo(shift); e.Handled = true; return; }
         if (e.Key == Key.Home) { Tab.MoverInicioLinea(shift); e.Handled = true; return; }
         if (e.Key == Key.End) { Tab.MoverFinLinea(shift); e.Handled = true; return; }
+    }
+
+    // extension Bracket Pair Colorizer: si la palabra justo antes del cursor es "gglz" (el par de
+    // bloque de esta extension, ver ProcesarBrackets), Enter no solo abre una linea - arma el
+    // bloque de una: linea vacia indentada un nivel mas para escribir adentro, y el "gg" de cierre
+    // ya alineado con "gglz" debajo. Gateado por BracketColorizer.Instalada porque es esa
+    // extension la que trata a gglz/gg como un par, igual que a { }
+    bool TryAutocompletarBloqueGglz()
+    {
+        if (Tab == null || Extensiones?.BracketColorizer.Instalada != true) return false;
+
+        string linea = Tab.Lineas[Tab.FilaCursor];
+        string antesDelCursor = linea[..Tab.ColumnaCursor];
+        if (!antesDelCursor.EndsWith("gglz", StringComparison.Ordinal)) return false;
+
+        int inicioPalabra = antesDelCursor.Length - 4;
+        if (inicioPalabra > 0 && char.IsLetterOrDigit(antesDelCursor[inicioPalabra - 1])) return false;
+
+        int espacios = 0;
+        while (espacios < linea.Length && linea[espacios] == ' ') espacios++;
+        string indentDentro = new string(' ', espacios + 4);
+        string indentFuera = new string(' ', espacios);
+
+        Tab.InsertarNuevaLinea();
+        Tab.InsertarTexto(indentDentro);
+        Tab.InsertarNuevaLinea();
+        Tab.InsertarTexto(indentFuera + "gg");
+        Tab.MoverCursor(Tab.FilaCursor - 1, indentDentro.Length, extenderSeleccion: false);
+        return true;
     }
 
     // reemplaza el drenado de Raylib.GetCharPressed(): Avalonia entrega el texto ya compuesto

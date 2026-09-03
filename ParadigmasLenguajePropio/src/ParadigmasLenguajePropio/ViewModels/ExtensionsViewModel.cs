@@ -23,9 +23,6 @@ public partial class ExtensionsViewModel : ViewModelBase
         new ExtensionInfo("trailing-whitespace", "Trim Trailing Whitespace", "GGEZ Labs", "WS", "#EF4444",
             "Resalta espacios sobrantes al final de linea y los limpia con un click.",
             new[] { "Resaltado de espacios invisibles", "Comando para limpiar todo el archivo de una" }),
-        new ExtensionInfo("color-lens", "Color Lens", "GGEZ Labs", "CL", "#F59E0B",
-            "Muestra una muestra de color al lado de cada valor #hex o rgb() en el codigo.",
-            new[] { "Detecta #hex, rgb() y rgba()", "Swatch inline junto al texto, sin abrir nada" }),
         new ExtensionInfo("todo-highlight", "TODO Highlight", "GGEZ Labs", "TD", "#3B82F6",
             "Resalta comentarios TODO, FIXME y HACK para que no se pierdan en el archivo.",
             new[] { "Un color de fondo por tipo de comentario", "Se ven de un vistazo al bajar por el archivo" }),
@@ -38,14 +35,13 @@ public partial class ExtensionsViewModel : ViewModelBase
     };
 
     // referencias directas por indice, mismo motivo que Claude: EditorTextArea (rainbow-indent,
-    // trailing-whitespace, color-lens, todo-highlight, bracket-colorizer) y MainWindow.axaml
+    // trailing-whitespace, todo-highlight, bracket-colorizer) y MainWindow.axaml
     // (trailing-whitespace) necesitan consultar Instalada sin buscar por Id en cada frame
     public ExtensionInfo Claude => Extensiones[0];
     public ExtensionInfo RainbowIndent => Extensiones[1];
     public ExtensionInfo TrailingWhitespace => Extensiones[2];
-    public ExtensionInfo ColorLens => Extensiones[3];
-    public ExtensionInfo TodoHighlight => Extensiones[4];
-    public ExtensionInfo BracketColorizer => Extensiones[5];
+    public ExtensionInfo TodoHighlight => Extensiones[3];
+    public ExtensionInfo BracketColorizer => Extensiones[4];
 
     [ObservableProperty]
     private ExtensionInfo? _seleccionada;
