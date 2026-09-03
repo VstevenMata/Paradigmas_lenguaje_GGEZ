@@ -1,379 +1,216 @@
 using System.Collections.ObjectModel;
-using System.Text;
-using Avalonia.Threading;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
-using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Reemplaza PanelTerminal.cs: la logica de comandos/historial/autocompletado se porta casi textual
-// (no dependia de Raylib salvo para leer teclado, que ahora maneja TerminalView en code-behind).
-// El word-wrap/scroll/cursor a mano del original los reemplaza TextBlock con TextWrapping + un
-// TextBox real para la linea viva (ver TerminalView.axaml) - no hace falta CalcularCortes/AnchoChar.
+// Panel de terminal: administra varias TerminalInstanceViewModel (hasta MaxTerminales) mostradas
+// lado a lado en columnas, mas la pestaña fija "Errores" (salida de Construir, nunca se multiplica).
+// Cada instancia es un proceso independiente, simulado o una PTY real segun la extension de Claude
+// al momento de crearla (ver TerminalInstanceViewModel.EsReal) - ver esa clase para la logica de
+// una sola terminal.
 public partial class TerminalViewModel : ViewModelBase
 {
-    const int LimiteLineas = 2000;
-    const int LimiteHistorial = 100;
-    const int LineasPorTick = 400; // tope de salida procesada por tick: un comando ruidoso no debe trabar la UI
+    public const int MaxTerminales = 4;
+    const int LimiteLineasErrores = 2000;
 
-    public string[] Tabs { get; } = { "Terminal", "Errores" };
+    public ObservableCollection<TerminalInstanceViewModel> Instancias { get; } = new();
+
+    // subconjunto de Instancias con EnColumna=true, en el mismo orden - lo que arma la vista como
+    // columnas (ver TerminalView.axaml.cs), reordenable arrastrando (ver ReordenarInstancia). Se
+    // mantiene sincronizado a mano porque ItemsControl necesita una coleccion observable propia,
+    // no un Where() recalculado cada vez.
+    public ObservableCollection<TerminalInstanceViewModel> InstanciasVisibles { get; } = new();
+
+    // el complemento: las que existen pero estan ocultas (ver CerrarDeVista) - la barra superior
+    // las lista chiquitas para poder volver a mostrarlas (ver MostrarEnColumna)
+    public ObservableCollection<TerminalInstanceViewModel> InstanciasOcultas { get; } = new();
+
+    public bool PuedeCrearTerminal => Instancias.Count < MaxTerminales;
+
+    // la unica instancia con foco de teclado a la vez, aunque todas las columnas se vean juntas -
+    // se cambia clickeando la pestaña o el contenido de cualquier terminal (ver EnfocarInstancia)
+    [ObservableProperty]
+    private TerminalInstanceViewModel? _instanciaActiva;
+
+    // la extension de Claude (ver ExtensionsViewModel.Claude): decide con que corre CADA columna
+    // NUEVA (ver TerminalInstanceViewModel.EsReal) - una PTY real (ClaudeTerminalView) en vez de la
+    // simulada por pipes, fijo para esa instancia de por vida (instalar/desinstalar la extension
+    // despues no convierte retroactivamente las que ya estaban abiertas)
+    public ExtensionInfo ClaudeExtension { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsTabTerminal), nameof(EsTabErrores), nameof(MostrarTerminalReal), nameof(MostrarTerminalSimulada))]
+    [NotifyPropertyChangedFor(nameof(EsTabTerminal), nameof(EsTabErrores))]
     private int _tabActiva;
 
     public bool EsTabTerminal => TabActiva == 0;
     public bool EsTabErrores => TabActiva == 1;
 
-    // la extension de Claude (ver ExtensionsViewModel.Claude): mientras este instalada, la pestaña
-    // "Terminal" pasa a ser una terminal real (PTY, ver ClaudeTerminalView) en vez de la simulada por
-    // pipes de mas abajo - la pestaña "Errores" (salida de Construir) nunca cambia, un solo tab menos
-    // para no tener dos terminales distintas convivendo
-    public ExtensionInfo ClaudeExtension { get; }
-    public bool MostrarTerminalReal => EsTabTerminal && ClaudeExtension.Instalada;
-    public bool MostrarTerminalSimulada => !MostrarTerminalReal;
-
-    // carpeta inicial de la terminal real (ver ClaudeTerminalView): la misma que sigue esta terminal
-    // simulada, para que abra parada donde el usuario esta trabajando
+    // carpeta inicial de cada terminal nueva y de la terminal real (ver ClaudeTerminalView) - la
+    // sigue el explorador de archivos (ver EstablecerDirectorio/RegistrarAperturaArchivo). Una vez
+    // creada, cada instancia seguis su propio cwd (cd), esto solo semilla las nuevas.
     public string DirectorioActual => _directorioActual;
+    string _directorioActual = Environment.CurrentDirectory;
 
-    [ObservableProperty]
-    private string _entradaActual = "";
-
-    [ObservableProperty]
-    private bool _tieneFoco;
-
-    public ObservableCollection<TerminalLinea> LineasTerminal { get; } = new();
     public ObservableCollection<TerminalLinea> LineasErrores { get; } = new();
-
-    public Action? OnCerrar; // lo dispara el comando "exit"
-
-    readonly TerminalProcessService _proceso = new();
-    readonly List<string> _historial = new();
-    readonly DispatcherTimer _timer;
-
-    int _indiceHistorial;
-    string _borrador = "";
     bool _huboErroresReales;
-    string _directorioActual;
-    string _directorioAnterior;
+
+    public Action? OnCerrar; // lo dispara el comando "exit" de cualquier instancia
 
     public TerminalViewModel(ExtensionInfo claudeExtension)
     {
         ClaudeExtension = claudeExtension;
-        // instalar/desinstalar la extension alterna la pestaña "Terminal" entre la real y la
-        // simulada (ver MostrarTerminalReal/MostrarTerminalSimulada) sin tocar TabActiva
-        ClaudeExtension.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName != nameof(ExtensionInfo.Instalada)) return;
-            OnPropertyChanged(nameof(MostrarTerminalReal));
-            OnPropertyChanged(nameof(MostrarTerminalSimulada));
-        };
 
-        _directorioActual = Environment.CurrentDirectory;
-        _directorioAnterior = _directorioActual;
         LineasErrores.Add(new TerminalLinea("", "Los errores no existen", TerminalColorLinea.Escrito));
-        Escribir("Terminal GGEZ. Escriba \"help\" para ver los comandos propios y los atajos.", TerminalColorLinea.Aviso);
 
-        // reemplaza el Update() por-frame del original: drena la cola de salida y revisa si el
-        // proceso termino, a un ritmo fijo en vez de atado al render loop
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
-        _timer.Tick += (_, _) => { DrenarSalida(); RevisarProcesoTerminado(); };
-        _timer.Start();
+        // la primera terminal si se muestra de una (sin ella el panel arrancaria vacio); las que
+        // se crean despues con "+" quedan en la lista de ocultas, el usuario decide donde ponerlas
+        // arrastrandolas al area de columnas (ver CrearInstancia/TerminalView.axaml.cs)
+        CrearInstancia(mostrarDeUna: true);
     }
 
-    void DrenarSalida()
+    // el "+" del panel: la terminal nueva NO aparece sola como columna - queda en InstanciasOcultas
+    // (se ve como un chip en la barra de arriba) hasta que el usuario la arrastra o la clickea
+    [RelayCommand]
+    void CrearTerminal() => CrearInstancia(mostrarDeUna: false);
+
+    void CrearInstancia(bool mostrarDeUna)
     {
-        for (int i = 0; i < LineasPorTick && _proceso.TryDequeue(out var salida); i++)
+        if (!PuedeCrearTerminal) return;
+
+        var instancia = new TerminalInstanceViewModel(_directorioActual, esReal: ClaudeExtension.Instalada)
         {
-            string texto = TerminalProcessService.Limpiar(salida.Texto);
-            Escribir(texto, salida.EsError ? TerminalColorLinea.Error : TerminalColorLinea.Escrito);
-            if (salida.EsError) AgregarError(texto);
+            Nombre = $"Terminal {Instancias.Count + 1}",
+            EnColumna = mostrarDeUna,
+        };
+        instancia.OnCerrar = () => OnCerrar?.Invoke();
+        instancia.OnError = AgregarError;
+        instancia.OnActivar = () => EnfocarInstancia(instancia);
+        instancia.PropertyChanged += Instancia_PropertyChanged;
+
+        Instancias.Add(instancia);
+        if (mostrarDeUna)
+        {
+            InstanciasVisibles.Add(instancia);
+            TabActiva = 0;
+            EnfocarInstancia(instancia);
+        }
+        else
+        {
+            InstanciasOcultas.Add(instancia);
+        }
+
+        OnPropertyChanged(nameof(PuedeCrearTerminal));
+    }
+
+    void Instancia_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TerminalInstanceViewModel.EnColumna) || sender is not TerminalInstanceViewModel instancia) return;
+
+        if (instancia.EnColumna)
+        {
+            InstanciasOcultas.Remove(instancia);
+            if (!InstanciasVisibles.Contains(instancia)) InstanciasVisibles.Add(instancia);
+        }
+        else
+        {
+            InstanciasVisibles.Remove(instancia);
+            if (!InstanciasOcultas.Contains(instancia)) InstanciasOcultas.Add(instancia);
+            // si se ocultaba la activa, el foco pasa a la primera columna que haya quedado visible
+            if (InstanciaActiva == instancia) EnfocarInstancia(InstanciasVisibles.FirstOrDefault());
         }
     }
 
-    void RevisarProcesoTerminado()
-    {
-        if (!_proceso.RevisarProcesoTerminado(out int codigo, out bool cortado)) return;
-        OnPropertyChanged(nameof(HayProcesoActivo));
-        OnPropertyChanged(nameof(PrefijoEntrada));
+    // saca la columna de la vista pero la deja viva (proceso, historial, salida intactos) - se
+    // puede volver a mostrar con MostrarEnColumna. Distinto de Eliminar, que la mata de verdad.
+    [RelayCommand]
+    void CerrarDeVista(TerminalInstanceViewModel instancia) => instancia.EnColumna = false;
 
-        if (codigo != 0 && !cortado)
+    // click simple en un chip de la lista de ocultas: REEMPLAZA a la activa (la que estaba se va a
+    // la lista, esta ocupa su mismo lugar) en vez de agregarse como columna nueva al lado - eso es
+    // lo que hace arrastrarla (ver MostrarEnColumnaEnPosicion), un gesto mas explicito
+    [RelayCommand]
+    void MostrarEnColumna(TerminalInstanceViewModel instancia)
+    {
+        if (instancia.EnColumna) { TabActiva = 0; EnfocarInstancia(instancia); return; } // ya era visible, solo enfocar
+
+        var anterior = InstanciaActiva;
+        if (anterior != null && InstanciasVisibles.Contains(anterior))
         {
-            string aviso = $"[el comando termino con codigo {codigo}]";
-            Escribir(aviso, TerminalColorLinea.Error);
-            AgregarError(aviso);
+            int posicion = InstanciasVisibles.IndexOf(anterior);
+            anterior.EnColumna = false;
+            instancia.EnColumna = true;
+
+            int posicionActual = InstanciasVisibles.IndexOf(instancia);
+            int posicionFinal = Math.Clamp(posicion, 0, InstanciasVisibles.Count - 1);
+            if (posicionActual != posicionFinal) InstanciasVisibles.Move(posicionActual, posicionFinal);
         }
-    }
-
-    public bool HayProcesoActivo => _proceso.ProcesoActivo;
-
-    // ─────────────────────────── ejecucion de comandos ───────────────────────────
-
-    public void ConfirmarLinea()
-    {
-        string linea = EntradaActual;
-        EntradaActual = "";
-
-        // con un proceso vivo la linea no es un comando: es lo que ese proceso espera por stdin
-        if (_proceso.ProcesoActivo)
+        else
         {
-            Escribir(linea, TerminalColorLinea.Escrito);
-            var error = _proceso.EnviarEntrada(linea);
-            if (error != null) Escribir(error, TerminalColorLinea.Error);
-            return;
+            instancia.EnColumna = true;
         }
 
-        Escribir(linea, TerminalColorLinea.Escrito, PromptActual());
-
-        if (linea.Trim().Length == 0) return;
-
-        // si el comando ya estaba en el historial se mueve al final, no se duplica
-        _historial.Remove(linea);
-        _historial.Add(linea);
-        if (_historial.Count > LimiteHistorial) _historial.RemoveAt(0);
-        _indiceHistorial = _historial.Count;
-        _borrador = "";
-
-        if (!EjecutarComandoPropio(linea.Trim())) Lanzar(linea);
+        TabActiva = 0;
+        EnfocarInstancia(instancia);
     }
 
-    // devuelve true si el comando lo resuelve la propia terminal y no hace falta un proceso
-    bool EjecutarComandoPropio(string linea)
+    // marca una instancia como la activa (click en su pestaña o en su contenido, ver
+    // TerminalView.axaml.cs y TerminalInstanceView.axaml.cs) - null limpio quita el resaltado sin
+    // marcar ninguna (ver Instancia_PropertyChanged al ocultar la ultima activa visible)
+    [RelayCommand]
+    void EnfocarInstancia(TerminalInstanceViewModel? instancia)
     {
-        int corte = linea.IndexOf(' ');
-        string comando = (corte < 0 ? linea : linea[..corte]).ToLowerInvariant();
-        string argumento = corte < 0 ? "" : linea[(corte + 1)..].Trim();
-
-        switch (comando)
-        {
-            case "cd": CambiarDirectorio(argumento); return true;
-            case "clear": case "cls": LimpiarPantalla(); return true;
-            case "exit": OnCerrar?.Invoke(); return true;
-            case "help": MostrarAyuda(); return true;
-            default: return false;
-        }
+        if (InstanciaActiva == instancia) return;
+        if (InstanciaActiva != null) InstanciaActiva.EsActiva = false;
+        InstanciaActiva = instancia;
+        if (instancia != null) instancia.EsActiva = true;
     }
 
-    void CambiarDirectorio(string argumento)
+    // soltar una pestaña de terminal en el area de columnas (ver TerminalView.axaml.cs, arrastrada
+    // desde otra columna para reordenar, o desde la lista de ocultas/pendientes para mostrarla por
+    // primera vez) - "destino" es la posicion final entre las visibles, calculada a partir de la
+    // posicion horizontal del mouse; solo al lado, nunca abajo de otra (no hay segunda dimension,
+    // a diferencia del editor una lista plana ya alcanza)
+    public void MostrarEnColumnaEnPosicion(TerminalInstanceViewModel instancia, int destino)
     {
-        // "cd -" vuelve a la carpeta anterior, como en bash
-        string destino = argumento == "-" ? _directorioAnterior : ResolverRuta(argumento.Length == 0 ? "~" : argumento);
+        if (!InstanciasVisibles.Contains(instancia)) instancia.EnColumna = true; // la agrega al final via Instancia_PropertyChanged
 
-        if (!Directory.Exists(destino))
-        {
-            Escribir($"No existe la carpeta: {destino}", TerminalColorLinea.Error);
-            return;
-        }
+        int origen = InstanciasVisibles.IndexOf(instancia);
+        if (origen < 0) return; // no deberia pasar
 
-        _directorioAnterior = _directorioActual;
-        _directorioActual = Path.GetFullPath(destino);
-        OnPropertyChanged(nameof(PrefijoEntrada));
+        int nuevoIndice = Math.Clamp(destino > origen ? destino - 1 : destino, 0, InstanciasVisibles.Count - 1);
+        if (nuevoIndice != origen) InstanciasVisibles.Move(origen, nuevoIndice);
+        TabActiva = 0;
+        EnfocarInstancia(instancia);
     }
 
-    void MostrarAyuda()
+    // el boton de basurero: a diferencia de CerrarDeVista, esto corta el proceso y la saca de
+    // Instancias para siempre. Si era la ultima, se crea una nueva de una - el panel nunca se
+    // queda sin ninguna terminal
+    [RelayCommand]
+    void Eliminar(TerminalInstanceViewModel instancia)
     {
-        Escribir("Comandos propios de la terminal:", TerminalColorLinea.Aviso);
-        Escribir("  cd RUTA          cambia de carpeta (acepta ~, .. y rutas relativas)", TerminalColorLinea.Escrito);
-        Escribir("  cd -             vuelve a la carpeta anterior", TerminalColorLinea.Escrito);
-        Escribir("  clear, cls       limpia la pantalla", TerminalColorLinea.Escrito);
-        Escribir("  exit             cierra el panel de la terminal", TerminalColorLinea.Escrito);
-        Escribir("  help             muestra esta ayuda", TerminalColorLinea.Escrito);
-        Escribir("Cualquier otro comando lo ejecuta el shell del sistema.", TerminalColorLinea.Escrito);
-        Escribir("Atajos:", TerminalColorLinea.Aviso);
-        Escribir("  Flechas izq/der   mueven el cursor; con Ctrl saltan de palabra", TerminalColorLinea.Escrito);
-        Escribir("  Flechas arr/abj   recorren el historial de comandos", TerminalColorLinea.Escrito);
-        Escribir("  Tab               autocompleta archivos y carpetas", TerminalColorLinea.Escrito);
-        Escribir("  Inicio / Fin      principio y final de la linea", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+C            cancela la linea, o corta el proceso en curso", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+D o Ctrl+Z   marca el fin de la entrada del proceso en curso", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+L            limpia la pantalla", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+U / Ctrl+W   borra la linea entera / la palabra anterior", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+V            pega del portapapeles", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+Shift+C      copia toda la salida", TerminalColorLinea.Escrito);
-        Escribir("  RePag / AvPag     desplazan la salida", TerminalColorLinea.Escrito);
-        Escribir("  Ctrl+Inicio/Fin   van al principio y al final de la salida", TerminalColorLinea.Escrito);
+        instancia.PropertyChanged -= Instancia_PropertyChanged;
+        instancia.Cerrar();
+        Instancias.Remove(instancia);
+        InstanciasVisibles.Remove(instancia);
+        InstanciasOcultas.Remove(instancia);
+        OnPropertyChanged(nameof(PuedeCrearTerminal));
+
+        if (InstanciaActiva == instancia) EnfocarInstancia(InstanciasVisibles.FirstOrDefault());
+        if (Instancias.Count == 0) CrearInstancia(mostrarDeUna: true);
     }
 
-    void Lanzar(string comando)
+    // ─────────────────────────── Errores ───────────────────────────
+
+    // compartida entre todas las instancias (ver TerminalInstanceViewModel.OnError, conectado en
+    // CrearTerminal): la salida de error de cualquier terminal, de cualquier comando, tambien
+    // queda anotada aca para verla de un vistazo sin cambiar de instancia
+    public void AgregarError(string texto)
     {
-        var error = _proceso.Lanzar(comando, _directorioActual);
-        if (error != null) Escribir(error, TerminalColorLinea.Error);
-        OnPropertyChanged(nameof(HayProcesoActivo));
-        OnPropertyChanged(nameof(PrefijoEntrada));
-    }
-
-    // sin esto, un programa que lee hasta el fin de la entrada (cat, findstr, sort) no terminaria nunca
-    public void CerrarEntradaEstandar()
-    {
-        if (!_proceso.ProcesoActivo) return;
-        var error = _proceso.CerrarEntradaEstandar();
-        if (error != null) Escribir(error, TerminalColorLinea.Error);
-        Escribir("^D", TerminalColorLinea.Aviso);
-    }
-
-    public void Interrumpir()
-    {
-        if (_proceso.ProcesoActivo)
-        {
-            var error = _proceso.Interrumpir();
-            if (error != null) Escribir(error, TerminalColorLinea.Error);
-            Escribir("^C", TerminalColorLinea.Aviso);
-            return;
-        }
-
-        Escribir(EntradaActual + "^C", TerminalColorLinea.Escrito, PromptActual());
-        EntradaActual = "";
-        _indiceHistorial = _historial.Count;
-    }
-
-    public void LimpiarPantalla()
-    {
-        LineasTerminal.Clear();
-    }
-
-    public string TextoCompleto()
-    {
-        var texto = new StringBuilder();
-        foreach (var linea in TabActiva == 0 ? LineasTerminal : LineasErrores)
-            texto.AppendLine(linea.Prefijo + linea.Texto);
-        return texto.ToString();
-    }
-
-    // ─────────────────────────── historial ───────────────────────────
-
-    // indiceHistorial == historial.Count significa "estoy escribiendo una linea nueva"
-    public void RecorrerHistorial(int direccion)
-    {
-        if (_historial.Count == 0) return;
-
-        if (_indiceHistorial == _historial.Count && direccion < 0) _borrador = EntradaActual;
-
-        int nuevo = Math.Clamp(_indiceHistorial + direccion, 0, _historial.Count);
-        if (nuevo == _indiceHistorial) return;
-
-        _indiceHistorial = nuevo;
-        EntradaActual = _indiceHistorial == _historial.Count ? _borrador : _historial[_indiceHistorial];
-    }
-
-    // ─────────────────────────── edicion de la linea viva ───────────────────────────
-
-    public (string Texto, int Caret) BorrarHastaElInicio(string entrada, int caret)
-    {
-        _indiceHistorial = _historial.Count;
-        return (entrada[caret..], 0);
-    }
-
-    public (string Texto, int Caret) BorrarPalabraAtras(string entrada, int caret)
-    {
-        int inicio = InicioPalabraAnterior(entrada, caret);
-        if (inicio == caret) return (entrada, caret);
-        return (entrada.Remove(inicio, caret - inicio), inicio);
-    }
-
-    public static int InicioPalabraAnterior(string entrada, int caret)
-    {
-        int i = caret;
-        while (i > 0 && entrada[i - 1] == ' ') i--;
-        while (i > 0 && entrada[i - 1] != ' ') i--;
-        return i;
-    }
-
-    public static int InicioPalabraSiguiente(string entrada, int caret)
-    {
-        int i = caret;
-        while (i < entrada.Length && entrada[i] != ' ') i++;
-        while (i < entrada.Length && entrada[i] == ' ') i++;
-        return i;
-    }
-
-    // un pegado multilinea se aplana: cada salto se vuelve un espacio, no dispara varios comandos de golpe
-    public static string AplanarParaPegar(string texto) =>
-        texto.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ').Replace('\t', ' ');
-
-    // ─────────────────────────── autocompletado ───────────────────────────
-
-    public (string Texto, int Caret) Autocompletar(string entrada, int caret)
-    {
-        int inicioToken = caret == 0 ? 0 : entrada.LastIndexOf(' ', caret - 1) + 1;
-        string token = entrada[inicioToken..caret];
-
-        // el token puede traer carpetas adelante ("src/Pane"): solo se completa el ultimo tramo
-        int corte = token.LastIndexOfAny(new[] { '/', '\\' });
-        string prefijoRuta = corte < 0 ? "" : token[..(corte + 1)];
-        string parcial = corte < 0 ? token : token[(corte + 1)..];
-
-        string carpeta = ResolverRuta(prefijoRuta.Length == 0 ? "." : prefijoRuta);
-        if (!Directory.Exists(carpeta)) return (entrada, caret);
-
-        List<string> candidatos;
-        try
-        {
-            candidatos = Directory.EnumerateFileSystemEntries(carpeta)
-                .Select(ruta => Path.GetFileName(ruta) ?? "")
-                .Where(nombre => nombre.Length > 0 && nombre.StartsWith(parcial, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(nombre => nombre, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            Escribir($"No se pudo leer la carpeta: {ex.Message}", TerminalColorLinea.Error);
-            return (entrada, caret);
-        }
-
-        if (candidatos.Count == 0) return (entrada, caret);
-
-        string comun = PrefijoComun(candidatos);
-
-        // si hay varias opciones y no se puede avanzar mas, se listan, como hace bash
-        if (candidatos.Count > 1 && comun.Length == parcial.Length)
-        {
-            Escribir(entrada, TerminalColorLinea.Escrito, PromptActual());
-            foreach (var nombre in candidatos) Escribir("  " + nombre, TerminalColorLinea.Aviso);
-            return (entrada, caret);
-        }
-
-        string completado = comun;
-        if (candidatos.Count == 1)
-        {
-            // la barra final avisa que es carpeta y deja seguir bajando con otro Tab
-            completado += Directory.Exists(Path.Combine(carpeta, candidatos[0])) ? Path.DirectorySeparatorChar.ToString() : " ";
-        }
-
-        string nuevoToken = prefijoRuta + completado;
-        string nuevaEntrada = entrada[..inicioToken] + nuevoToken + entrada[caret..];
-        return (nuevaEntrada, inicioToken + nuevoToken.Length);
-    }
-
-    static string PrefijoComun(List<string> nombres)
-    {
-        string comun = nombres[0];
-        foreach (var nombre in nombres)
-        {
-            int i = 0;
-            while (i < comun.Length && i < nombre.Length && char.ToLowerInvariant(comun[i]) == char.ToLowerInvariant(nombre[i])) i++;
-            comun = comun[..i];
-        }
-        return comun;
-    }
-
-    // ─────────────────────────── contenido ───────────────────────────
-
-    void Escribir(string texto, TerminalColorLinea color, string prefijo = "")
-    {
-        foreach (var trozo in texto.Split('\n'))
-        {
-            LineasTerminal.Add(new TerminalLinea(prefijo, trozo, color));
-            prefijo = ""; // el prompt solo va en la primera de las lineas
-        }
-
-        while (LineasTerminal.Count > LimiteLineas) LineasTerminal.RemoveAt(0);
-    }
-
-    void AgregarError(string texto)
-    {
-        // la pestana arranca con un texto de relleno: se va en cuanto hay errores de verdad
         if (!_huboErroresReales)
         {
             LineasErrores.Clear();
@@ -381,53 +218,26 @@ public partial class TerminalViewModel : ViewModelBase
         }
 
         LineasErrores.Add(new TerminalLinea("", texto, TerminalColorLinea.Error));
-        while (LineasErrores.Count > LimiteLineas) LineasErrores.RemoveAt(0);
+        while (LineasErrores.Count > LimiteLineasErrores) LineasErrores.RemoveAt(0);
     }
 
-    // ─────────────────────────── prompt y rutas ───────────────────────────
+    // ─────────────────────────── directorio y limpieza ───────────────────────────
 
-    // al abrir un archivo el prompt pasa a esa carpeta, como el cwd de una terminal real
     public void RegistrarAperturaArchivo(string rutaCompleta)
     {
         string carpeta = Path.GetDirectoryName(rutaCompleta) ?? "";
         if (carpeta.Length > 0) EstablecerDirectorio(carpeta);
     }
 
-    // se usa tambien al abrir una carpeta desde el explorador, para que la terminal quede parada ahi
     public void EstablecerDirectorio(string ruta)
     {
         if (!Directory.Exists(ruta)) return;
-        _directorioAnterior = _directorioActual;
         _directorioActual = Path.GetFullPath(ruta);
-        OnPropertyChanged(nameof(PrefijoEntrada));
     }
 
-    // mientras hay un proceso corriendo la linea viva es su stdin, no un comando: va sin prompt
-    public string PrefijoEntrada => _proceso.ProcesoActivo ? "" : PromptActual();
-
-    // usuario@host fijos, la ruta sigue al directorio actual
-    public string PromptActual() => $"{Environment.UserName}@{Environment.MachineName.ToLowerInvariant()}:{RutaCorta(_directorioActual)}$ ";
-
-    // reemplaza el home real por "~"
-    static string RutaCorta(string ruta)
+    // corta los procesos que hayan quedado vivos al cerrar la app, para no dejar huerfanos
+    public void Cerrar()
     {
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        return !string.IsNullOrEmpty(home) && ruta.StartsWith(home) ? "~" + ruta[home.Length..] : ruta;
+        foreach (var instancia in Instancias) instancia.Cerrar();
     }
-
-    string ResolverRuta(string ruta)
-    {
-        ruta = ruta.Trim().Trim('"');
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-        if (ruta.Length == 0) return _directorioActual;
-        if (ruta == "~") return home;
-        if (ruta.StartsWith("~/") || ruta.StartsWith("~\\")) ruta = Path.Combine(home, ruta[2..]);
-
-        try { return Path.GetFullPath(ruta, _directorioActual); }
-        catch { return ruta; }
-    }
-
-    // corta el proceso que haya quedado vivo al cerrar la app, para no dejarlo huerfano
-    public void Cerrar() => _proceso.Cerrar();
 }

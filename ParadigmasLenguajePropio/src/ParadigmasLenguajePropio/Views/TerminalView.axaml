@@ -8,60 +8,109 @@
              x:Class="ParadigmasLenguajePropio.Views.TerminalView"
              x:DataType="vm:TerminalViewModel">
 
-    <!-- Reemplaza PanelTerminal.cs: el ScrollViewer+TextWrapping nativos reemplazan el
-         corte-de-lineas/scroll a mano (CalcularCortes/ScrollBarWin95), y un TextBox real da
-         caret/seleccion/portapapeles gratis para la linea viva - solo los atajos propios de la
-         terminal (historial, autocompletar, Ctrl+C, etc.) se interceptan a mano en el code-behind. -->
+    <UserControl.Styles>
+        <Style Selector="TextBlock.pestanaActiva">
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Panel de terminal: cada instancia es su propia columna con su propia pestaña arriba (igual
+         que un EditorView), arrastrable para reordenar - solo al lado de otra columna, nunca abajo
+         (ver TerminalView.axaml.cs, la logica de arrastre solo mira la posicion horizontal). Arriba
+         de todo, una barra angosta con "+" para crear, las ocultas (para volver a mostrarlas) y
+         "Errores" pegado a la derecha. -->
     <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,4,0,4">
-            <controls:Win95Bevel Width="70" Height="22" BevelThickness="2" Sunken="{Binding !EsTabTerminal}"
-                                  Background="{DynamicResource Win95BackgroundBrush}" PointerPressed="TabTerminal_PointerPressed">
-                <TextBlock Text="Terminal" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </controls:Win95Bevel>
-            <controls:Win95Bevel Width="70" Height="22" BevelThickness="2" Sunken="{Binding !EsTabErrores}"
-                                  Background="{DynamicResource Win95BackgroundBrush}" Margin="4,0,0,0" PointerPressed="TabErrores_PointerPressed">
+        <DockPanel Grid.Row="0" Margin="0,4,4,4" LastChildFill="False">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Spacing="4">
+                <!-- crea una terminal nueva, hasta MaxTerminales - se oculta en vez de solo
+                     deshabilitarse: un boton gris invita a probar igual a ver que pasa -->
+                <Button Width="22" Height="22" Padding="0" FontSize="14" FontWeight="Bold" Content="+"
+                        Command="{Binding CrearTerminalCommand}" IsVisible="{Binding PuedeCrearTerminal}"
+                        ToolTip.Tip="Nueva terminal" />
+
+                <!-- ocultas (ver CerrarDeVista): chips chicos, un click las vuelve a mostrar como columna -->
+                <ItemsControl ItemsSource="{Binding InstanciasOcultas}" x:CompileBindings="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="4" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TerminalInstanceViewModel">
+                            <controls:Win95Bevel Height="22" BevelThickness="2" Opacity="0.6"
+                                                  Background="{DynamicResource Win95BackgroundBrush}"
+                                                  PointerPressed="InstanciaOculta_PointerPressed"
+                                                  PointerMoved="InstanciaOculta_PointerMoved"
+                                                  PointerReleased="InstanciaOculta_PointerReleased"
+                                                  ToolTip.Tip="Arrastrar o clickear para mostrar">
+                                <TextBlock Text="{Binding Nombre}" FontSize="13" Margin="6,0" VerticalAlignment="Center" />
+                            </controls:Win95Bevel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <controls:Win95Bevel DockPanel.Dock="Right" Width="70" Height="22" BevelThickness="2" Sunken="{Binding !EsTabErrores}"
+                                  Background="{DynamicResource Win95BackgroundBrush}" PointerPressed="TabErrores_PointerPressed">
                 <TextBlock Text="Errores" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </controls:Win95Bevel>
-        </StackPanel>
+        </DockPanel>
 
-        <!-- con la extension instalada, la pestaña "Terminal" pasa a ser una terminal real (PTY) en
-             vez de la simulada por pipes de mas abajo - "Errores" (salida de Construir) no cambia
-             nunca, asi que solo se tapa cuando ademas estamos parados en la pestaña Terminal (ver
-             MostrarTerminalReal). Hereda el DataContext (TerminalViewModel) sin pisarlo, a diferencia
-             de ExplorerView/ExtensionsView en MainWindow.axaml, porque ClaudeTerminalView solo
-             necesita leer DirectorioActual, no todo un sub-ViewModel propio -->
-        <Border Grid.Row="1" IsVisible="{Binding MostrarTerminalReal}">
-            <views:ClaudeTerminalView />
-        </Border>
+        <Grid Grid.Row="1">
+            <!-- una columna por instancia visible, todas del mismo ancho, siempre en fila -->
+            <ItemsControl Name="PART_Columnas" ItemsSource="{Binding InstanciasVisibles}" IsVisible="{Binding EsTabTerminal}" x:CompileBindings="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TerminalInstanceViewModel">
+                        <Grid RowDefinitions="Auto,*" Margin="2,0">
+                            <!-- pestaña de esta columna: nombre (arrastrable, PointerPressed/Moved/Released
+                                 abajo arman el drag-to-reorder) + ocultar + basurero, mismo patron visual
+                                 que las pestañas de archivo del editor -->
+                            <controls:Win95Bevel Grid.Row="0" Height="22" BevelThickness="2" Margin="0,0,0,2"
+                                                  Background="{DynamicResource Win95BackgroundBrush}"
+                                                  PointerPressed="Pestana_PointerPressed" PointerMoved="Pestana_PointerMoved" PointerReleased="Pestana_PointerReleased">
+                                <StackPanel Orientation="Horizontal" Margin="6,0" Spacing="6">
+                                    <TextBlock Text="{Binding Nombre}" FontSize="14" VerticalAlignment="Center" Classes.pestanaActiva="{Binding EsActiva}" />
+                                    <Border Width="12" Height="12" Background="Transparent"
+                                            PointerPressed="OcultarInstancia_PointerPressed" ToolTip.Tip="Ocultar (sigue corriendo)">
+                                        <Path Data="M1,1 L9,9 M9,1 L1,9" Stroke="Black" StrokeThickness="1" />
+                                    </Border>
+                                    <Border Width="12" Height="12" Background="Transparent"
+                                            PointerPressed="EliminarInstancia_PointerPressed" ToolTip.Tip="Eliminar terminal">
+                                        <Canvas Width="10" Height="10">
+                                            <Rectangle Canvas.Left="1" Canvas.Top="1.5" Width="8" Height="1.3" Fill="Black" />
+                                            <Path Data="M2,3 L2.6,9.5 L7.4,9.5 L8,3 Z" Stroke="Black" StrokeThickness="1" />
+                                            <Path Data="M3.2,1.5 L3.2,0.2 L6.8,0.2 L6.8,1.5" Stroke="Black" StrokeThickness="1" />
+                                        </Canvas>
+                                    </Border>
+                                </StackPanel>
+                            </controls:Win95Bevel>
 
-        <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="4" Background="Black" Padding="10"
-                              IsVisible="{Binding MostrarTerminalSimulada}" PointerPressed="Fondo_PointerPressed">
-            <ScrollViewer Name="PART_Scroll">
-                <StackPanel>
-                    <ItemsControl ItemsSource="{Binding LineasTerminal}" IsVisible="{Binding EsTabTerminal}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:TerminalLinea">
-                                <TextBlock FontFamily="{DynamicResource Win95FontFamily}" FontSize="16" TextWrapping="Wrap">
-                                    <Run Text="{Binding Prefijo}" Foreground="#00E430" /><Run
-                                        Text="{Binding Texto}"
-                                        Foreground="{Binding Color, Converter={x:Static conv:TerminalColorConverter.Instance}}" />
-                                </TextBlock>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                            <!-- contenido: simulada o PTY real, fijo por instancia (ver
+                                 TerminalInstanceViewModel.EsReal) - las dos viven en el arbol visual,
+                                 solo una se muestra (ClaudeTerminalView revisa EsReal antes de
+                                 arrancar una sesion real de verdad, ver su code-behind) -->
+                            <Grid Grid.Row="1">
+                                <views:TerminalInstanceView DataContext="{Binding}" IsVisible="{Binding !EsReal}" />
+                                <views:ClaudeTerminalView DataContext="{Binding}" IsVisible="{Binding EsReal}" />
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-                    <!-- linea viva: solo en la pestana Terminal -->
-                    <StackPanel Orientation="Horizontal" IsVisible="{Binding EsTabTerminal}">
-                        <TextBlock Text="{Binding PrefijoEntrada}" FontFamily="{DynamicResource Win95FontFamily}"
-                                   FontSize="16" Foreground="#00E430" VerticalAlignment="Center" />
-                        <TextBox Name="PART_Entrada" Text="{Binding EntradaActual, Mode=TwoWay}"
-                                 FontFamily="{DynamicResource Win95FontFamily}" FontSize="16"
-                                 Foreground="White" CaretBrush="White" Background="Transparent"
-                                 BorderThickness="0" Padding="0" MinWidth="4" VerticalAlignment="Center"
-                                 GotFocus="Entrada_GotFocus" LostFocus="Entrada_LostFocus" KeyDown="Entrada_KeyDown" />
-                    </StackPanel>
+            <!-- linea de insercion mientras se arrastra una pestaña: solo horizontal, nunca indica
+                 "arriba/abajo" - las terminales solo se agrupan al lado, nunca apiladas -->
+            <Border Name="PART_LineaInsercion" Width="3" HorizontalAlignment="Left" Background="#FF3070C0"
+                    IsVisible="False" IsHitTestVisible="False" />
 
-                    <ItemsControl ItemsSource="{Binding LineasErrores}" IsVisible="{Binding EsTabErrores}">
+            <controls:Win95Bevel Sunken="True" BevelThickness="4" Background="Black" Padding="10" IsVisible="{Binding EsTabErrores}">
+                <ScrollViewer Name="PART_ScrollErrores">
+                    <ItemsControl ItemsSource="{Binding LineasErrores}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:TerminalLinea">
                                 <TextBlock FontFamily="{DynamicResource Win95FontFamily}" FontSize="16" TextWrapping="Wrap"
@@ -70,9 +119,9 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
-            </ScrollViewer>
-        </controls:Win95Bevel>
+                </ScrollViewer>
+            </controls:Win95Bevel>
+        </Grid>
     </Grid>
 
 </UserControl>

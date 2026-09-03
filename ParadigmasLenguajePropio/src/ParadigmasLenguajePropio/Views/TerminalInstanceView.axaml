@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+             xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+             xmlns:conv="using:ParadigmasLenguajePropio.Converters"
+             xmlns:models="using:ParadigmasLenguajePropio.Models"
+             x:Class="ParadigmasLenguajePropio.Views.TerminalInstanceView"
+             x:DataType="vm:TerminalInstanceViewModel">
+
+    <UserControl.Styles>
+        <!-- marco de la instancia activa (ver TerminalViewModel.InstanciaActiva): todas las
+             columnas se ven al mismo tiempo, este es el unico indicio visual de cual tiene el
+             foco de teclado ahora mismo -->
+        <Style Selector="Border.marcoActivo">
+            <Setter Property="BorderBrush" Value="#3070C0" />
+        </Style>
+        <Style Selector="Border.marcoInactivo">
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Una columna del panel de terminales (ver TerminalView.axaml): el contenido es el mismo
+         fondo negro + salida + linea viva que antes vivia directo en TerminalView, ahora repetido
+         una vez por instancia visible. -->
+    <Border BorderThickness="2" Classes.marcoActivo="{Binding EsActiva}" Classes.marcoInactivo="{Binding !EsActiva}">
+        <controls:Win95Bevel Sunken="True" BevelThickness="4" Background="Black" Padding="10" PointerPressed="Fondo_PointerPressed">
+            <ScrollViewer Name="PART_Scroll">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding LineasTerminal}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TerminalLinea">
+                                <TextBlock FontFamily="{DynamicResource Win95FontFamily}" FontSize="16" TextWrapping="Wrap">
+                                    <Run Text="{Binding Prefijo}" Foreground="#00E430" /><Run
+                                        Text="{Binding Texto}"
+                                        Foreground="{Binding Color, Converter={x:Static conv:TerminalColorConverter.Instance}}" />
+                                </TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding PrefijoEntrada}" FontFamily="{DynamicResource Win95FontFamily}"
+                                   FontSize="16" Foreground="#00E430" VerticalAlignment="Center" />
+                        <TextBox Name="PART_Entrada" Text="{Binding EntradaActual, Mode=TwoWay}"
+                                 FontFamily="{DynamicResource Win95FontFamily}" FontSize="16"
+                                 Foreground="White" CaretBrush="White" Background="Transparent"
+                                 BorderThickness="0" Padding="0" MinWidth="4" VerticalAlignment="Center"
+                                 GotFocus="Entrada_GotFocus" LostFocus="Entrada_LostFocus" KeyDown="Entrada_KeyDown" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </controls:Win95Bevel>
+    </Border>
+
+</UserControl>

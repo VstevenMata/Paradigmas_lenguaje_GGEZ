@@ -2,49 +2,57 @@ using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Input.Platform;
-using Avalonia.Interactivity;
 using Avalonia.Threading;
 using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Views;
 
+// carga en el arrastre de una pestaña de terminal: solo la instancia (a diferencia de los tabs del
+// editor no hace falta acordarse de "de que panel salio" - solo hay una lista plana de columnas)
+record PayloadArrastreTerminal(TerminalInstanceViewModel Instancia);
+
 public partial class TerminalView : UserControl
 {
+    static readonly DataFormat<PayloadArrastreTerminal> FormatoArrastreTerminal =
+        DataFormat.CreateInProcessFormat<PayloadArrastreTerminal>("ggez/terminal-tab");
+
+    const double UmbralArrastre = 5; // pixeles antes de que un click-y-mantener se considere arrastre
+
     TerminalViewModel? ViewModel => DataContext as TerminalViewModel;
 
-    ScrollViewer _scroll = null!;
-    TextBox _entrada = null!;
-    bool _ancladoAlFinal = true; // false mientras el usuario se fue a mirar salida vieja
+    ScrollViewer _scrollErrores = null!;
+    ItemsControl _columnas = null!;
+    Border _lineaInsercion = null!;
+    bool _erroresAncladoAlFinal = true;
+    (TerminalInstanceViewModel Instancia, Point Inicio, PointerPressedEventArgs Disparador)? _candidatoArrastre;
 
     public TerminalView()
     {
         InitializeComponent();
 
-        _scroll = this.FindControl<ScrollViewer>("PART_Scroll")!;
-        _entrada = this.FindControl<TextBox>("PART_Entrada")!;
+        _scrollErrores = this.FindControl<ScrollViewer>("PART_ScrollErrores")!;
+        _columnas = this.FindControl<ItemsControl>("PART_Columnas")!;
+        _lineaInsercion = this.FindControl<Border>("PART_LineaInsercion")!;
 
-        _scroll.ScrollChanged += (_, _) =>
-            _ancladoAlFinal = _scroll.Offset.Y >= _scroll.Extent.Height - _scroll.Viewport.Height - 2;
+        _scrollErrores.ScrollChanged += (_, _) =>
+            _erroresAncladoAlFinal = _scrollErrores.Offset.Y >= _scrollErrores.Extent.Height - _scrollErrores.Viewport.Height - 2;
 
         DataContextChanged += (_, _) =>
         {
             if (ViewModel is not { } vm) return;
-            vm.LineasTerminal.CollectionChanged += SeguirAlFinalSiCorresponde;
-            vm.LineasErrores.CollectionChanged += SeguirAlFinalSiCorresponde;
+            vm.LineasErrores.CollectionChanged += SeguirErroresAlFinalSiCorresponde;
         };
+
+        DragDrop.SetAllowDrop(_columnas, true);
+        DragDrop.AddDragOverHandler(_columnas, Columnas_DragOver);
+        DragDrop.AddDragLeaveHandler(_columnas, (_, _) => _lineaInsercion.IsVisible = false);
+        DragDrop.AddDropHandler(_columnas, Columnas_Drop);
     }
 
-    // solo arrastra al final si el usuario ya estaba ahi: si se fue a leer mas arriba, se lo respeta
-    void SeguirAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
+    void SeguirErroresAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (!_ancladoAlFinal) return;
-        Dispatcher.UIThread.Post(() => _scroll.ScrollToEnd(), DispatcherPriority.Background);
-    }
-
-    void TabTerminal_PointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (ViewModel is { } vm) vm.TabActiva = 0;
+        if (!_erroresAncladoAlFinal) return;
+        Dispatcher.UIThread.Post(() => _scrollErrores.ScrollToEnd(), DispatcherPriority.Background);
     }
 
     void TabErrores_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -52,80 +60,140 @@ public partial class TerminalView : UserControl
         if (ViewModel is { } vm) vm.TabActiva = 1;
     }
 
-    // clickear en cualquier parte del fondo negro enfoca la linea viva: la caja de texto real
-    // mide unos pocos pixeles cuando esta vacia, asi que sin esto casi nunca se le acierta al clickear
-    void Fondo_PointerPressed(object? sender, PointerPressedEventArgs e)
+    // click simple en un chip oculto ya la muestra (al final de las columnas) - arrastrarlo en vez
+    // de solo clickear la suelta justo donde se quiera (ver Pestana_PointerMoved/Columnas_Drop),
+    // mismo patron de "click activa, arrastrar reordena/reubica" que las pestañas de columna.
+    // OJO: a diferencia de Pestana_PointerPressed, el comando de este chip (MostrarEnColumnaCommand)
+    // lo saca de InstanciasOcultas - ejecutarlo aca de una destruye el control bajo el puntero antes
+    // de capturarlo, y el arrastre nunca llega a empezar. Por eso se difiere a PointerReleased: si
+    // nunca crea un arrastre real (ver PointerMoved), ahi se trata como el click simple que era.
+    void InstanciaOculta_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (ViewModel is { EsTabTerminal: true }) _entrada.Focus();
+        if (sender is not Control { DataContext: TerminalInstanceViewModel instancia }) return;
+        _candidatoArrastre = (instancia, e.GetPosition(this), e);
+        e.Pointer.Capture((IInputElement)sender);
     }
 
-    void Entrada_GotFocus(object? sender, RoutedEventArgs e)
+    void InstanciaOculta_PointerMoved(object? sender, PointerEventArgs e) => Pestana_PointerMoved(sender, e);
+
+    void InstanciaOculta_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (ViewModel is { } vm) vm.TieneFoco = true;
+        var candidato = _candidatoArrastre; // sigue seteado solo si no se convirtio en arrastre real
+        _candidatoArrastre = null;
+        e.Pointer.Capture(null);
+        if (candidato is { } c && ViewModel is { } vm) vm.MostrarEnColumnaCommand.Execute(c.Instancia);
     }
 
-    void Entrada_LostFocus(object? sender, RoutedEventArgs e)
+    // ─────────────────────────── pestaña de columna: click / arrastre para reordenar o reubicar ───────────────────────────
+
+    // click simple ya la activa (igual que clickear un tab de archivo cambia la pestaña activa);
+    // recien al moverse mas de UmbralArrastre con el boton apretado se considera un arrastre real
+    void Pestana_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (ViewModel is { } vm) vm.TieneFoco = false;
+        if (sender is not Control { DataContext: TerminalInstanceViewModel instancia } || ViewModel is not { } vm) return;
+        vm.EnfocarInstanciaCommand.Execute(instancia);
+        _candidatoArrastre = (instancia, e.GetPosition(this), e);
+        // captura explicita: sin esto, en algunas plataformas (Wayland/XWayland) el estado del
+        // boton que reporta PointerMoved despues de moverse un poco deja de ser confiable, y el
+        // arrastre se cancelaba solo antes de cruzar el umbral
+        e.Pointer.Capture((IInputElement)sender);
     }
 
-    void Entrada_KeyDown(object? sender, KeyEventArgs e)
+    void Pestana_PointerMoved(object? sender, PointerEventArgs e)
     {
+        if (_candidatoArrastre is not { } candidato) return;
+        double distancia = Point.Distance(candidato.Inicio, e.GetPosition(this));
+        if (distancia < UmbralArrastre) return;
+
+        _candidatoArrastre = null;
+        e.Pointer.Capture(null); // DoDragDropAsync toma el control del puntero de aca en adelante
+        _ = IniciarArrastreAsync(candidato.Instancia, candidato.Disparador);
+    }
+
+    void Pestana_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _candidatoArrastre = null;
+        e.Pointer.Capture(null);
+    }
+
+    async Task IniciarArrastreAsync(TerminalInstanceViewModel instancia, PointerPressedEventArgs disparador)
+    {
+        var item = new DataTransferItem();
+        item.Set(FormatoArrastreTerminal, new PayloadArrastreTerminal(instancia));
+        var datos = new DataTransfer();
+        datos.Add(item);
+
+        await DragDrop.DoDragDropAsync(disparador, datos, DragDropEffects.Move);
+    }
+
+    void OcultarInstancia_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: TerminalInstanceViewModel instancia } && ViewModel is { } vm)
+            vm.CerrarDeVistaCommand.Execute(instancia);
+        e.Handled = true; // no dejar que el click tambien active/arrastre la pestaña
+    }
+
+    void EliminarInstancia_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { DataContext: TerminalInstanceViewModel instancia } && ViewModel is { } vm)
+            vm.EliminarCommand.Execute(instancia);
+        e.Handled = true;
+    }
+
+    // ─────────────────────────── soltar: reordena, nunca apila ───────────────────────────
+
+    void Columnas_DragOver(object? sender, DragEventArgs e)
+    {
+        // ViewModel is not null alcanza para aceptar el drop: si no hay NINGUNA columna visible
+        // todavia (recien se creo la primera terminal extra con "+"), soltar ahi debe poder
+        // mostrarla igual, como la primera columna
+        if (ObtenerPayload(e) == null || ViewModel is not { } vm)
+        {
+            e.DragEffects = DragDropEffects.None;
+            _lineaInsercion.IsVisible = false;
+            return;
+        }
+
+        e.DragEffects = DragDropEffects.Move;
+        MostrarLineaEn(CalcularIndiceDestino(e.GetPosition(_columnas), vm.InstanciasVisibles.Count));
+    }
+
+    void Columnas_Drop(object? sender, DragEventArgs e)
+    {
+        _lineaInsercion.IsVisible = false;
         if (ViewModel is not { } vm) return;
+        var payload = ObtenerPayload(e);
+        if (payload == null) return;
 
-        bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
-        bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
-
-        // Ctrl+Shift+C copia; se revisa antes que Ctrl+C, que corta el proceso
-        if (ctrl && shift && e.Key == Key.C) { _ = CopiarAsync(vm.TextoCompleto()); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.C) { vm.Interrumpir(); e.Handled = true; return; }
-        // Ctrl+D en Linux, Ctrl+Z en Windows: los dos sirven, para no tener que acordarse de cual va
-        if (ctrl && (e.Key == Key.D || e.Key == Key.Z)) { vm.CerrarEntradaEstandar(); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.L) { vm.LimpiarPantalla(); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.V) { _ = PegarAsync(vm); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.U) { Aplicar(vm.BorrarHastaElInicio(_entrada.Text ?? "", _entrada.CaretIndex)); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.W) { Aplicar(vm.BorrarPalabraAtras(_entrada.Text ?? "", _entrada.CaretIndex)); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.A) { _entrada.CaretIndex = 0; e.Handled = true; return; }
-        if (ctrl && e.Key == Key.E) { _entrada.CaretIndex = (_entrada.Text ?? "").Length; e.Handled = true; return; }
-
-        if (e.Key == Key.Enter) { vm.ConfirmarLinea(); e.Handled = true; return; }
-        if (e.Key == Key.Tab) { Aplicar(vm.Autocompletar(_entrada.Text ?? "", _entrada.CaretIndex)); e.Handled = true; return; }
-
-        if (e.Key == Key.Up) { vm.RecorrerHistorial(-1); e.Handled = true; return; }
-        if (e.Key == Key.Down) { vm.RecorrerHistorial(1); e.Handled = true; return; }
-
-        if (e.Key == Key.PageUp) { _scroll.PageUp(); e.Handled = true; return; }
-        if (e.Key == Key.PageDown) { _scroll.PageDown(); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.Home) { _scroll.ScrollToHome(); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.End) { _scroll.ScrollToEnd(); e.Handled = true; return; }
-
-        // el resto (flechas sin Ctrl, Ctrl+flechas de salto de palabra, Backspace/Delete, Inicio/Fin
-        // sin Ctrl) lo resuelve el TextBox nativo: no hace falta reimplementar el cursor a mano.
+        int destino = CalcularIndiceDestino(e.GetPosition(_columnas), vm.InstanciasVisibles.Count);
+        vm.MostrarEnColumnaEnPosicion(payload.Instancia, destino);
     }
 
-    void Aplicar((string Texto, int Caret) resultado)
+    static PayloadArrastreTerminal? ObtenerPayload(DragEventArgs e) =>
+        e.DataTransfer.Items.Select(i => i.TryGetValue(FormatoArrastreTerminal)).FirstOrDefault(p => p != null);
+
+    // en que posicion de la lista quedaria si se soltara ahi: columna bajo el mouse (por X, ya que
+    // UniformGrid les da a todas el mismo ancho) + si esta en su mitad izquierda o derecha
+    int CalcularIndiceDestino(Point puntoEnColumnas, int cantidadColumnas)
     {
-        _entrada.Text = resultado.Texto;
-        _entrada.CaretIndex = resultado.Caret;
+        if (cantidadColumnas == 0) return 0;
+        double anchoColumna = _columnas.Bounds.Width / cantidadColumnas;
+        if (anchoColumna <= 0) return 0;
+
+        int columna = Math.Clamp((int)(puntoEnColumnas.X / anchoColumna), 0, cantidadColumnas - 1);
+        double xDentroDeColumna = puntoEnColumnas.X - columna * anchoColumna;
+        return xDentroDeColumna > anchoColumna / 2 ? columna + 1 : columna;
     }
 
-    async Task PegarAsync(TerminalViewModel vm)
+    void MostrarLineaEn(int destino)
     {
-        var portapapeles = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (portapapeles == null) return;
-        var texto = await portapapeles.TryGetTextAsync();
-        if (string.IsNullOrEmpty(texto)) return;
+        if (ViewModel is not { } vm || vm.InstanciasVisibles.Count == 0) { _lineaInsercion.IsVisible = false; return; }
 
-        string aplanado = TerminalViewModel.AplanarParaPegar(texto);
-        int caret = _entrada.CaretIndex;
-        string actual = _entrada.Text ?? "";
-        _entrada.Text = actual.Insert(caret, aplanado);
-        _entrada.CaretIndex = caret + aplanado.Length;
-    }
+        double anchoColumna = _columnas.Bounds.Width / vm.InstanciasVisibles.Count;
+        double x = Math.Clamp(destino * anchoColumna - 1.5, 0, Math.Max(0, _columnas.Bounds.Width - 3));
 
-    async Task CopiarAsync(string texto)
-    {
-        var portapapeles = TopLevel.GetTopLevel(this)?.Clipboard;
-        if (portapapeles != null) await portapapeles.SetTextAsync(texto);
+        _lineaInsercion.IsVisible = true;
+        _lineaInsercion.Margin = new Thickness(x, 0, 0, 0);
+        _lineaInsercion.Height = _columnas.Bounds.Height;
     }
 }
