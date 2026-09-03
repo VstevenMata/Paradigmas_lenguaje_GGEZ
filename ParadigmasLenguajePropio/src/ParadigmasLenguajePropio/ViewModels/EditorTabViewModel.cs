@@ -228,6 +228,22 @@ public partial class EditorTabViewModel : ViewModelBase
         HaySeleccion = false;
     }
 
+    // comando de la extension Trim Trailing Whitespace (ver ExtensionsViewModel.TrailingWhitespace):
+    // solo quita espacios, no tabs literales - el editor inserta indentacion como espacios (ver
+    // EditorTextArea.OnKeyDown, Key.Tab -> "    "), nunca escribe '\t'
+    public void LimpiarEspaciosSobrantes()
+    {
+        GuardarEstadoParaDeshacer(TipoEdicion.Otro);
+        for (int i = 0; i < Lineas.Count; i++)
+            Lineas[i] = Lineas[i].TrimEnd(' ');
+
+        FilaCursor = Math.Clamp(FilaCursor, 0, Lineas.Count - 1);
+        ColumnaCursor = Math.Clamp(ColumnaCursor, 0, Lineas[FilaCursor].Length);
+        ColumnaDeseada = ColumnaCursor;
+        HaySeleccion = false;
+        AvisarContenido();
+    }
+
     public bool AnclaEsAntesDelCursor() => SelFila != FilaCursor ? SelFila < FilaCursor : SelColumna < ColumnaCursor;
     public (int fila, int columna) SeleccionDesde() => AnclaEsAntesDelCursor() ? (SelFila, SelColumna) : (FilaCursor, ColumnaCursor);
     public (int fila, int columna) SeleccionHasta() => AnclaEsAntesDelCursor() ? (FilaCursor, ColumnaCursor) : (SelFila, SelColumna);

@@ -94,7 +94,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // la pestaña de chat de la terminal solo se habilita con la extension instalada (ver
         // TerminalViewModel.ClaudeExtension / TerminalView.axaml)
         Terminal = new TerminalViewModel(Extensions.Claude);
-        Editor = new EditorAreaViewModel(Dialogs);
+        Editor = new EditorAreaViewModel(Dialogs, Extensions);
         MenuBar.OnOpcionElegida = ManejarOpcionMenu;
         TitleBar.BuscarArchivos = Explorer.BuscarArchivosPorNombre;
         TitleBar.AbrirResultado = ruta => AbrirArchivo(Path.GetFileName(ruta), ruta);
@@ -199,6 +199,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     void AlternarPausa() => PanelJuego.EnPausa = !PanelJuego.EnPausa;
+
+    // boton dedicado de la extension Trim Trailing Whitespace en la activity bar (ver
+    // Extensions.TrailingWhitespace.Instalada en MainWindow.axaml), mismo patron que
+    // MostrarChatClaude: solo actua si la extension esta instalada y hay un archivo abierto
+    [RelayCommand]
+    void LimpiarEspaciosSobrantes()
+    {
+        if (!Extensions.TrailingWhitespace.Instalada || !Editor.HayArchivosAbiertos) return;
+        Editor.LimpiarEspaciosSobrantes();
+    }
 
     [RelayCommand]
     void MostrarBuscar()

@@ -11,6 +11,11 @@ public partial class EditorViewModel : ViewModelBase
 {
     readonly DialogService _dialogos;
 
+    // la necesita EditorTextArea (via EditorView.axaml) para saber que extensiones de resaltado
+    // estan Instalada en cada frame de Render (rainbow-indent, trailing-whitespace, color-lens,
+    // todo-highlight, bracket-colorizer)
+    public ExtensionsViewModel Extensiones { get; }
+
     // se asigna despues de crear la Window (necesita IStorageProvider para "Guardar como")
     public FileDialogService? Archivos { get; set; }
 
@@ -72,9 +77,10 @@ public partial class EditorViewModel : ViewModelBase
         NumeroLineaTexto = "";
     }
 
-    public EditorViewModel(DialogService dialogos)
+    public EditorViewModel(DialogService dialogos, ExtensionsViewModel extensiones)
     {
         _dialogos = dialogos;
+        Extensiones = extensiones;
         Tabs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HayArchivosAbiertos));
     }
 
@@ -240,4 +246,5 @@ public partial class EditorViewModel : ViewModelBase
     public void Deshacer() => TabActiva?.Deshacer();
     public void Rehacer() => TabActiva?.Rehacer();
     public void IrALinea(int numero) => TabActiva?.IrALinea(numero);
+    public void LimpiarEspaciosSobrantes() => TabActiva?.LimpiarEspaciosSobrantes();
 }

@@ -88,6 +88,16 @@
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_NewDocumento.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
+                <!-- solo aparece si la extension "trailing-whitespace" esta Instalada (mismo patron
+                     que el boton de Claude mas abajo): limpia los espacios sobrantes del archivo activo -->
+                <Button Width="28" Height="28" Padding="2" IsVisible="{Binding Extensions.TrailingWhitespace.Instalada}"
+                        Command="{Binding LimpiarEspaciosSobrantesCommand}" ToolTip.Tip="{Binding Extensions.TrailingWhitespace.Nombre}">
+                    <Border CornerRadius="3" Background="{Binding Extensions.TrailingWhitespace.IconoColor}">
+                        <TextBlock Text="{Binding Extensions.TrailingWhitespace.Icono}" FontSize="10" FontWeight="Bold" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Button>
+
                 <controls:Win95Divider Margin="0,5" />
 
                 <!-- grupo: ejecucion -->

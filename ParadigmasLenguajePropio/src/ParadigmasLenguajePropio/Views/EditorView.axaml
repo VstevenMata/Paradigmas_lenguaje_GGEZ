@@ -65,7 +65,14 @@
                             <controls:EditorGutter Grid.Column="0" Tab="{Binding TabActiva}" />
                             <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
                                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                                <controls:EditorTextArea Name="PART_TextArea" Tab="{Binding TabActiva}" />
+                                <!-- MinWidth=ancho del viewport: sin esto, un archivo con lineas cortas/vacias
+                                     (ej. uno nuevo con solo unos Enter) mide su ancho por la linea mas larga,
+                                     que puede dar casi 0px - el resaltado de la linea actual se dibuja "pared
+                                     a pared" con Bounds.Width asi que se VE clickeable en toda la fila, pero
+                                     el area real del control (y por lo tanto donde llega el click) quedaba
+                                     angosta y el click no hacia nada -->
+                                <controls:EditorTextArea Name="PART_TextArea" Tab="{Binding TabActiva}" Extensiones="{Binding Extensiones}"
+                                                          MinWidth="{Binding #PART_ScrollHorizontal.Bounds.Width}" />
                             </ScrollViewer>
                         </Grid>
                     </ScrollViewer>

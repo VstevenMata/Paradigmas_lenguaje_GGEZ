@@ -37,9 +37,15 @@ public partial class ExtensionsViewModel : ViewModelBase
             new[] { "Formatear el archivo completo", "Formatear al guardar (opcional)" }),
     };
 
-    // referencia directa a la extension de Claude: la activity bar (MainWindow.axaml) necesita
-    // saber si esta Instalada para mostrar/ocultar su boton, sin buscarla por Id cada vez
+    // referencias directas por indice, mismo motivo que Claude: EditorTextArea (rainbow-indent,
+    // trailing-whitespace, color-lens, todo-highlight, bracket-colorizer) y MainWindow.axaml
+    // (trailing-whitespace) necesitan consultar Instalada sin buscar por Id en cada frame
     public ExtensionInfo Claude => Extensiones[0];
+    public ExtensionInfo RainbowIndent => Extensiones[1];
+    public ExtensionInfo TrailingWhitespace => Extensiones[2];
+    public ExtensionInfo ColorLens => Extensiones[3];
+    public ExtensionInfo TodoHighlight => Extensiones[4];
+    public ExtensionInfo BracketColorizer => Extensiones[5];
 
     [ObservableProperty]
     private ExtensionInfo? _seleccionada;

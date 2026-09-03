@@ -21,6 +21,7 @@ public partial class EditorAreaViewModel : ViewModelBase
     public const int MaxPaneles = 4;
 
     readonly DialogService _dialogos;
+    readonly ExtensionsViewModel _extensiones;
     FileDialogService? _archivos;
 
     [ObservableProperty]
@@ -39,9 +40,10 @@ public partial class EditorAreaViewModel : ViewModelBase
         }
     }
 
-    public EditorAreaViewModel(DialogService dialogos)
+    public EditorAreaViewModel(DialogService dialogos, ExtensionsViewModel extensiones)
     {
         _dialogos = dialogos;
+        _extensiones = extensiones;
         var primero = CrearPanel();
         Raiz = NodoPanel.Hoja(primero);
         PanelEnfocado = primero;
@@ -50,7 +52,7 @@ public partial class EditorAreaViewModel : ViewModelBase
 
     EditorViewModel CrearPanel()
     {
-        var panel = new EditorViewModel(_dialogos) { Archivos = _archivos };
+        var panel = new EditorViewModel(_dialogos, _extensiones) { Archivos = _archivos };
         panel.Tabs.CollectionChanged += (_, _) => PodarSiVacio(panel);
         return panel;
     }
@@ -168,6 +170,7 @@ public partial class EditorAreaViewModel : ViewModelBase
     public void ReemplazarUno() => PanelEnfocado.ReemplazarUno();
     public void ReemplazarTodo() => PanelEnfocado.ReemplazarTodo();
     public void ConfirmarIrALinea() => PanelEnfocado.ConfirmarIrALinea();
+    public void LimpiarEspaciosSobrantes() => PanelEnfocado.LimpiarEspaciosSobrantes();
 
     // a diferencia del resto de los proxies: guarda TODOS los paneles, no solo el enfocado
     public async Task GuardarTodoAsync()
