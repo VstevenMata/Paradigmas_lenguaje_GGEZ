@@ -59,13 +59,18 @@
                     <TextBlock Text="Sin archivos abiertos" FontSize="18" Foreground="Gray" HorizontalAlignment="Center" />
                 </StackPanel>
 
-                <!-- el minimapa y su scrollbar viven UNA sola vez en EditorAreaView (estaticos a la
-                     derecha de TODO el area de edicion, no uno por panel) - ver comentario ahi.
-                     Este ScrollViewer vuelve a su scrollbar nativa normal, EditorAreaView.axaml.cs
-                     la sincroniza con el minimapa global leyendo Extent/Viewport/Offset de
-                     cualquier panel que este enfocado en cada momento. -->
-                <Grid IsVisible="{Binding HayArchivosAbiertos}">
-                    <ScrollViewer Name="PART_ScrollVertical" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <!-- minimapa + scrollbar propios de ESTE panel (no globales/compartidos - se probo
+                     compartido entre paneles de un split y quedaba mal: un solo minimapa
+                     estirandose por la altura combinada de dos paneles apilados, sin relacion con
+                     donde termina cada archivo). Con split, cada EditorView (y por lo tanto cada
+                     panel) tiene su propio minimapa y su propia scrollbar, del mismo tamaño que
+                     ese panel. VerticalScrollBarVisibility=Hidden porque la scrollbar visible es
+                     PART_ScrollBarVertical (a la derecha del minimapa, ver mas abajo), no la nativa
+                     del ScrollViewer - Hidden no desactiva el scroll en si (rueda/teclado siguen
+                     andando), solo oculta el chrome nativo que quedaria sandwicheado entre el
+                     texto y el minimapa. Sincronizado a mano en SincronizarMinimapa (code-behind). -->
+                <Grid IsVisible="{Binding HayArchivosAbiertos}" ColumnDefinitions="*,Auto,Auto">
+                    <ScrollViewer Name="PART_ScrollVertical" Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
                         <Grid ColumnDefinitions="Auto,*">
                             <controls:EditorGutter Grid.Column="0" Tab="{Binding TabActiva}" TamanoFuente="{Binding TamanoFuente}" />
                             <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
@@ -82,6 +87,10 @@
                             </ScrollViewer>
                         </Grid>
                     </ScrollViewer>
+
+                    <controls:EditorMinimap Grid.Column="1" Name="PART_Minimap" Width="60" Tab="{Binding TabActiva}" />
+
+                    <ScrollBar Name="PART_ScrollBarVertical" Grid.Column="2" Orientation="Vertical" />
                 </Grid>
 
                 <!-- buscar / reemplazar / ir a linea: van afuera del Grid de arriba (que solo se

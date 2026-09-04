@@ -24,13 +24,6 @@ public partial class EditorViewModel : ViewModelBase
     [ObservableProperty]
     private EditorTabViewModel? _tabActiva;
 
-    // con split (varios paneles a la vez, ver EditorAreaViewModel): solo el panel enfocado muestra
-    // minimapa - de lo contrario, con dos o mas paneles abiertos cada uno con su propio minimapa
-    // se veia mal (bloques repetidos, uno por panel). La mantiene al dia EditorAreaViewModel.
-    // EnfocarPanel; el primer panel arranca enfocado (ver constructor de EditorAreaViewModel).
-    [ObservableProperty]
-    private bool _esPanelEnfocado;
-
     public bool HayArchivosAbiertos => Tabs.Count > 0;
     public string Texto => TabActiva?.Texto ?? "";
     public int LineaCursor => (TabActiva?.FilaCursor ?? 0) + 1;

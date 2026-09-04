@@ -17,16 +17,17 @@ namespace ParadigmasLenguajePropio.Controls;
 // ve mas comprimido/denso; se acepta ese trade-off por simplicidad (ver "Costo" en el .md).
 public class EditorMinimap : Control
 {
-    const double FontSizeMinimapa = 9;
-    const double AltoLineaMaximo = 11; // techo para que un archivo corto no estire el texto gigante
-    const double MargenIzquierdo = 3;
+    const double FontSizeMinimapa = 5;
+    const double AltoLineaMaximo = 6; // techo para que un archivo corto no estire el texto gigante
+    const double MargenIzquierdo = 2;
 
     static readonly IBrush FondoMinimapa = new SolidColorBrush(Color.FromRgb(246, 246, 246));
 
-    // rojo Mario (mismo #D82800 que PaletaAnidado[0] en EditorTextArea) en vez de un azul generico,
-    // para la franja de "que se esta viendo" - alpha bajo para que quede suave, no tape el
-    // coloreado de las lineas de abajo
-    static readonly IBrush ColorViewport = new SolidColorBrush(Color.FromArgb(35, 216, 40, 0));
+    // rojo Mario (mismo #D82800 que PaletaAnidado[0] en EditorTextArea), un unico tono parejo
+    // sobre todo el minimapa - sin distinguir la porcion visible del resto (eso se probo con dos
+    // intensidades distintas y se veia como dos tonalidades de rojo diferentes, no se queria).
+    // Alpha bien bajo: casi imperceptible a proposito, un tinte apenas insinuado.
+    static readonly IBrush ColorMario = new SolidColorBrush(Color.FromArgb(10, 216, 40, 0));
 
     public static readonly StyledProperty<EditorTabViewModel?> TabProperty =
         AvaloniaProperty.Register<EditorMinimap, EditorTabViewModel?>(nameof(Tab));
@@ -89,14 +90,18 @@ public class EditorMinimap : Control
             c.InvalidateVisual();
         });
 
-        AltoTotalProperty.Changed.AddClassHandler<EditorMinimap>((c, _) => c.InvalidateVisual());
-        AltoVisibleProperty.Changed.AddClassHandler<EditorMinimap>((c, _) => c.InvalidateVisual());
-        DesplazamientoProperty.Changed.AddClassHandler<EditorMinimap>((c, _) => c.InvalidateVisual());
+        // AltoTotal/AltoVisible/Desplazamiento ya no se dibujan (ver Render): solo los lee
+        // SolicitarSalto al hacer click/arrastrar, no hace falta invalidar el visual en cada
+        // scroll por cambios que no afectan nada de lo que se pinta.
     }
 
     public override void Render(DrawingContext context)
     {
         context.FillRectangle(FondoMinimapa, new Rect(Bounds.Size));
+        // un solo tono de rojo Mario parejo en TODO el minimapa, sin distinguir la porcion
+        // visible del resto - antes esa franja iba mas marcada y se notaba como dos tonalidades
+        // de rojo distintas, cosa que no se queria.
+        context.FillRectangle(ColorMario, new Rect(Bounds.Size));
         if (Tab == null || Tab.Lineas.Count == 0) return;
 
         // encoger todo el archivo al alto disponible, con un techo para que uno corto no quede
@@ -113,18 +118,6 @@ public class EditorMinimap : Control
 
             context.DrawText(EditorFont.Formatear(texto, FontSizeMinimapa, Brushes.Black, negrita: true), new Point(MargenIzquierdo, y));
         }
-
-        // se dibuja SIEMPRE, incluso si el archivo entero ya entra en la pantalla (ahi cubre el
-        // minimapa completo) - con el alpha bajo del rojo Mario eso se ve como un tinte suave, no
-        // como el bloque solido que se veia antes con el azul mas opaco. Saltear este dibujo
-        // (como se hacia antes) hacia que el resaltado "se perdiera" apenas entraba todo el
-        // archivo en pantalla, por ejemplo al maximizar la ventana.
-        if (AltoTotal <= 0) return;
-
-        double escala = Bounds.Height / AltoTotal;
-        double yViewport = Desplazamiento * escala;
-        double altoViewport = Math.Max(4, AltoVisible * escala);
-        context.FillRectangle(ColorViewport, new Rect(0, yViewport, Bounds.Width, altoViewport));
     }
 
     // click o arrastre en el minimapa: centra el editor real en el punto clickeado, igual que

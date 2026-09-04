@@ -47,7 +47,6 @@ public partial class EditorAreaViewModel : ViewModelBase
         var primero = CrearPanel();
         Raiz = NodoPanel.Hoja(primero);
         PanelEnfocado = primero;
-        primero.EsPanelEnfocado = true;
         primero.PropertyChanged += PanelEnfocado_PropertyChanged;
     }
 
@@ -113,9 +112,7 @@ public partial class EditorAreaViewModel : ViewModelBase
     {
         if (ReferenceEquals(PanelEnfocado, panel)) return;
         PanelEnfocado.PropertyChanged -= PanelEnfocado_PropertyChanged;
-        PanelEnfocado.EsPanelEnfocado = false;
         PanelEnfocado = panel;
-        panel.EsPanelEnfocado = true;
         panel.PropertyChanged += PanelEnfocado_PropertyChanged;
         NotificarTodoElProxy();
     }

@@ -6,7 +6,10 @@
 
     <!-- Arma la grilla de paneles (splits arriba/abajo/izquierda/derecha) recursivamente en el
          code-behind cada vez que Raiz cambia - splits pasan pocas veces por sesión, no hace
-         falta nada mas elaborado que reconstruir todo desde la raiz del arbol. -->
+         falta nada mas elaborado que reconstruir todo desde la raiz del arbol. Minimapa/scrollbar
+         viven DENTRO de cada EditorView (uno por panel), no aca: se probo compartido entre
+         paneles de un split y quedaba mal (un solo minimapa estirandose por la altura combinada
+         de paneles apilados, sin relacion con donde termina cada archivo). -->
     <ContentControl Name="PART_Host" />
 
 </UserControl>

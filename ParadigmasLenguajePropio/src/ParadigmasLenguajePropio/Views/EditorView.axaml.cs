@@ -28,6 +28,8 @@ public partial class EditorView : UserControl
     ScrollViewer _scrollVertical = null!;
     ScrollViewer _scrollHorizontal = null!;
     EditorTextArea _textArea = null!;
+    EditorMinimap _minimapa = null!;
+    ScrollBar _scrollBarVertical = null!;
     TextBox _campoBuscar = null!;
     TextBox _campoIrALinea = null!;
     Grid _gridRaiz = null!;
@@ -50,12 +52,6 @@ public partial class EditorView : UserControl
     // reciba el foco de teclado de verdad (una vista nueva no lo tiene por si sola)
     public void EnfocarTexto() => _textArea.Focus();
 
-    // el minimapa y su scrollbar viven UNA sola vez en EditorAreaView (estaticos a la derecha de
-    // todo el area de edicion, no uno por panel) - EditorAreaView.axaml.cs necesita este
-    // ScrollViewer para leerle Extent/Viewport/Offset y re-sincronizar el minimapa cada vez que
-    // el panel enfocado cambia o este scrollea
-    public ScrollViewer ScrollVertical => _scrollVertical;
-
     public EditorView()
     {
         InitializeComponent();
@@ -75,14 +71,10 @@ public partial class EditorView : UserControl
         _textArea.CursorMovido += AsegurarCursorVisible;
         _textArea.ZoomSolicitado += direccion => ViewModel?.CambiarZoom(direccion);
 
-        // el minimapa necesita Extent/Viewport/Offset de este ScrollViewer para dibujar el
-        // rectangulo de "que se esta viendo" y saber a donde saltar con un click - no son datos
-        // bindeables directo desde EditorView.axaml, se empujan a mano en cada ScrollChanged
+        // minimapa/scrollbar propios de este panel (ver comentario en el XAML) - se sincronizan
+        // con el ScrollViewer del propio panel, sin depender de cual panel tiene el foco
         _scrollVertical.ScrollChanged += (_, _) => SincronizarMinimapa();
         _minimapa.DesplazamientoSolicitado += y => _scrollVertical.Offset = new Vector(_scrollVertical.Offset.X, y);
-        // scrollbar propio: PART_ScrollVertical tiene su barra nativa oculta (VerticalScrollBarVisibility=
-        // Hidden en el XAML) para que el scroll quede a la derecha del minimapa en vez de sandwicheado
-        // entre el texto y el minimapa - este ScrollBar maneja lo mismo a mano
         _scrollBarVertical.Scroll += (_, e) => _scrollVertical.Offset = new Vector(_scrollVertical.Offset.X, e.NewValue);
         Loaded += (_, _) => SincronizarMinimapa();
 
@@ -150,9 +142,9 @@ public partial class EditorView : UserControl
         _minimapa.AltoVisible = _scrollVertical.Viewport.Height;
         _minimapa.Desplazamiento = _scrollVertical.Offset.Y;
 
-        // mismos tres datos, ahora para el ScrollBar propio (ver comentario en el constructor):
-        // asignar Value aca no dispara su evento Scroll (ese solo sale de interaccion del usuario),
-        // asi que no hay vuelta infinita con el handler que hace lo opuesto
+        // mismos tres datos, ahora para el ScrollBar propio: asignar Value aca no dispara su
+        // evento Scroll (ese solo sale de interaccion del usuario), asi que no hay vuelta
+        // infinita con el handler que hace lo opuesto (ver constructor)
         _scrollBarVertical.Maximum = Math.Max(0, _scrollVertical.Extent.Height - _scrollVertical.Viewport.Height);
         _scrollBarVertical.ViewportSize = _scrollVertical.Viewport.Height;
         _scrollBarVertical.Value = _scrollVertical.Offset.Y;
