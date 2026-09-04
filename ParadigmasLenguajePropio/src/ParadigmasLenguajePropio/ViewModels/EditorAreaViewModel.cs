@@ -47,6 +47,7 @@ public partial class EditorAreaViewModel : ViewModelBase
         var primero = CrearPanel();
         Raiz = NodoPanel.Hoja(primero);
         PanelEnfocado = primero;
+        primero.EsPanelEnfocado = true;
         primero.PropertyChanged += PanelEnfocado_PropertyChanged;
     }
 
@@ -112,7 +113,9 @@ public partial class EditorAreaViewModel : ViewModelBase
     {
         if (ReferenceEquals(PanelEnfocado, panel)) return;
         PanelEnfocado.PropertyChanged -= PanelEnfocado_PropertyChanged;
+        PanelEnfocado.EsPanelEnfocado = false;
         PanelEnfocado = panel;
+        panel.EsPanelEnfocado = true;
         panel.PropertyChanged += PanelEnfocado_PropertyChanged;
         NotificarTodoElProxy();
     }
@@ -130,7 +133,7 @@ public partial class EditorAreaViewModel : ViewModelBase
         nameof(LineaCursor), nameof(ColumnaCursor), nameof(BuscarVisible),
         nameof(MostrarReemplazo), nameof(PatronBusqueda), nameof(TextoReemplazo),
         nameof(DistingueMayusculas), nameof(ContadorBusqueda), nameof(IrALineaVisible),
-        nameof(NumeroLineaTexto),
+        nameof(NumeroLineaTexto), nameof(TamanoFuente),
     };
 
     // cambiar de panel enfocado no dispara por si solo el PropertyChanged de estas propiedades
@@ -156,8 +159,10 @@ public partial class EditorAreaViewModel : ViewModelBase
     public string ContadorBusqueda => PanelEnfocado.ContadorBusqueda;
     public bool IrALineaVisible { get => PanelEnfocado.IrALineaVisible; set => PanelEnfocado.IrALineaVisible = value; }
     public string NumeroLineaTexto { get => PanelEnfocado.NumeroLineaTexto; set => PanelEnfocado.NumeroLineaTexto = value; }
+    public double TamanoFuente { get => PanelEnfocado.TamanoFuente; set => PanelEnfocado.TamanoFuente = value; }
 
     public void NuevoArchivo() => PanelEnfocado.NuevoArchivo();
+    public void CambiarZoom(int direccion) => PanelEnfocado.CambiarZoom(direccion);
     public Task GuardarAsync(bool forzarElegirRuta = false) => PanelEnfocado.GuardarAsync(forzarElegirRuta);
     public void Deshacer() => PanelEnfocado.Deshacer();
     public void Rehacer() => PanelEnfocado.Rehacer();

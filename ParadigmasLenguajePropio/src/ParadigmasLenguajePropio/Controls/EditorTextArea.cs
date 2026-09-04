@@ -17,9 +17,22 @@ namespace ParadigmasLenguajePropio.Controls;
 // capa de render + entrada.
 public class EditorTextArea : Control
 {
-    public const int AltoLinea = 20;
-    const int FontSize = 18;
     const int MargenIzquierdo = 4;
+
+    // zoom (Ctrl+rueda / Ctrl +/-/0, ver OnPointerWheelChanged y OnKeyDown): reemplaza los antiguos
+    // FontSize/AltoLinea constantes. AltoLinea se deriva de TamanoFuente via EditorFont.AltoLinea
+    // (mismo calculo que usa EditorGutter) para que los numeros de linea nunca se desalineen del
+    // texto al cambiar el zoom.
+    public static readonly StyledProperty<double> TamanoFuenteProperty =
+        AvaloniaProperty.Register<EditorTextArea, double>(nameof(TamanoFuente), 18.0);
+
+    public double TamanoFuente
+    {
+        get => GetValue(TamanoFuenteProperty);
+        set => SetValue(TamanoFuenteProperty, value);
+    }
+
+    public double AltoLinea => EditorFont.AltoLinea(TamanoFuente);
 
     static readonly IBrush ColorSeleccion = new SolidColorBrush(Color.FromArgb(110, 51, 153, 255));
     static readonly IBrush ColorLineaActual = new SolidColorBrush(Color.FromRgb(235, 235, 235));
@@ -85,6 +98,12 @@ public class EditorTextArea : Control
     // se dispara cuando el cursor se mueve, para que la vista contenedora haga scroll si hace falta
     public event Action? CursorMovido;
 
+    // se dispara con Ctrl+rueda o Ctrl +/-/0: la vista contenedora lo reenvia al ViewModel (que es
+    // quien de verdad guarda TamanoFuente) en vez de que este control se cambie el zoom a si mismo -
+    // mismo motivo que CursorMovido, mantener el estado en el ViewModel. 1 = acercar, -1 = alejar,
+    // 0 = restablecer al tamaño por defecto.
+    public event Action<int>? ZoomSolicitado;
+
     bool _arrastrandoSeleccion;
     bool _caretVisible = true;
     readonly DispatcherTimer _parpadeo;
@@ -117,6 +136,10 @@ public class EditorTextArea : Control
             if (e.NewValue is ExtensionsViewModel nuevo) foreach (var ext in ExtensionesDeResaltado(nuevo)) ext.PropertyChanged += c.ExtensionInstalada_PropertyChanged;
             c.Refrescar();
         });
+
+        // el zoom cambia el ancho de cada linea (MeasureOverride) ademas de como se ve, por eso
+        // Refrescar() (que invalida measure y visual) y no solo InvalidateVisual()
+        TamanoFuenteProperty.Changed.AddClassHandler<EditorTextArea>((c, _) => c.Refrescar());
     }
 
     static IEnumerable<ExtensionInfo> ExtensionesDeResaltado(ExtensionsViewModel ext) =>
@@ -145,7 +168,7 @@ public class EditorTextArea : Control
         if (Tab == null) return default;
         double anchoMax = 0;
         foreach (var linea in Tab.Lineas)
-            anchoMax = Math.Max(anchoMax, EditorFont.MedirPrefijo(linea, FontSize));
+            anchoMax = Math.Max(anchoMax, EditorFont.MedirPrefijo(linea, TamanoFuente));
         return new Size(anchoMax + MargenIzquierdo * 2 + 20, Tab.Lineas.Count * AltoLinea + 8);
     }
 
@@ -164,6 +187,7 @@ public class EditorTextArea : Control
         bool espaciosSobrantes = Extensiones?.TrailingWhitespace.Instalada == true;
         bool todoHighlight = Extensiones?.TodoHighlight.Instalada == true;
         bool bracketColorizer = Extensiones?.BracketColorizer.Instalada == true;
+        double fontSize = TamanoFuente; // cacheado: se lee una sola vez por frame, no por linea
 
         // nivel de anidado de brackets: se acumula linea a linea (un bracket puede abrir en una
         // linea y cerrar varias mas abajo), por eso vive afuera del for en vez de reiniciarse por
@@ -187,15 +211,15 @@ public class EditorTextArea : Control
             // primero y las guias de indentacion despues: si una linea es solo espacios, las dos
             // se superponen - con las guias arriba siguen viendose sus colores en vez de quedar
             // lavadas bajo el rosa translucido del trim
-            if (espaciosSobrantes) DibujarEspaciosSobrantes(context, texto, y);
-            if (rainbowIndent) DibujarGuiaIndentacion(context, texto, y, nivelBrackets);
-            if (todoHighlight) DibujarTodoHighlight(context, texto, y);
+            if (espaciosSobrantes) DibujarEspaciosSobrantes(context, texto, y, fontSize);
+            if (rainbowIndent) DibujarGuiaIndentacion(context, texto, y, nivelBrackets, fontSize);
+            if (todoHighlight) DibujarTodoHighlight(context, texto, y, fontSize);
 
             if (texto.Length > 0)
-                context.DrawText(EditorFont.Formatear(texto, FontSize, Brushes.Black), new Point(MargenIzquierdo, y));
+                context.DrawText(EditorFont.Formatear(texto, fontSize, Brushes.Black), new Point(MargenIzquierdo, y));
 
             // recoloreado de brackets: va DESPUES del texto, se dibuja encima
-            nivelBrackets = ProcesarBrackets(context, texto, y, nivelBrackets, dibujar: bracketColorizer);
+            nivelBrackets = ProcesarBrackets(context, texto, y, nivelBrackets, fontSize, dibujar: bracketColorizer);
         }
 
         DibujarCursor(context);
@@ -203,7 +227,7 @@ public class EditorTextArea : Control
 
     // ─────────────────────────── extension: Rainbow Indent Guides ───────────────────────────
 
-    static void DibujarGuiaIndentacion(DrawingContext context, string texto, double y, int nivelBrackets)
+    static void DibujarGuiaIndentacion(DrawingContext context, string texto, double y, int nivelBrackets, double fontSize)
     {
         int espacios = 0;
         while (espacios < texto.Length && texto[espacios] == ' ') espacios++;
@@ -212,40 +236,42 @@ public class EditorTextArea : Control
         // de otro lado) y nivel de brackets (uso tipico aca: el editor no auto-indenta al escribir
         // "{" + Enter, asi que contar solo espacios casi nunca tendria nada que mostrar)
         int niveles = Math.Max(espacios / 4, nivelBrackets);
+        double altoLinea = EditorFont.AltoLinea(fontSize);
         for (int nivel = 0; nivel < niveles; nivel++)
         {
-            double x = MargenIzquierdo + EditorFont.MedirPrefijo(new string(' ', nivel * 4), FontSize);
+            double x = MargenIzquierdo + EditorFont.MedirPrefijo(new string(' ', nivel * 4), fontSize);
             var pluma = new Pen(PaletaAnidado[nivel % PaletaAnidado.Length], 1);
-            context.DrawLine(pluma, new Point(x, y), new Point(x, y + AltoLinea));
+            context.DrawLine(pluma, new Point(x, y), new Point(x, y + altoLinea));
         }
     }
 
     // ─────────────────────────── extension: Trim Trailing Whitespace ───────────────────────────
 
-    static void DibujarEspaciosSobrantes(DrawingContext context, string texto, double y)
+    static void DibujarEspaciosSobrantes(DrawingContext context, string texto, double y, double fontSize)
     {
         int inicio = texto.Length;
         while (inicio > 0 && texto[inicio - 1] == ' ') inicio--;
         if (inicio == texto.Length) return; // sin espacios sobrantes
 
-        double xInicio = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..inicio], FontSize);
-        double xFin = MargenIzquierdo + EditorFont.MedirPrefijo(texto, FontSize);
-        var rect = new Rect(xInicio, y, Math.Max(AnchoContinuacion, xFin - xInicio), AltoLinea);
+        double xInicio = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..inicio], fontSize);
+        double xFin = MargenIzquierdo + EditorFont.MedirPrefijo(texto, fontSize);
+        var rect = new Rect(xInicio, y, Math.Max(AnchoContinuacion, xFin - xInicio), EditorFont.AltoLinea(fontSize));
         context.FillRectangle(ColorEspaciosSobrantes, rect);
     }
 
     // ─────────────────────────── extension: TODO Highlight ───────────────────────────
 
-    static void DibujarTodoHighlight(DrawingContext context, string texto, double y)
+    static void DibujarTodoHighlight(DrawingContext context, string texto, double y, double fontSize)
     {
+        double altoLinea = EditorFont.AltoLinea(fontSize);
         foreach (var (palabra, color) in PalabrasTodo)
         {
             int idx = 0;
             while ((idx = texto.IndexOf(palabra, idx, StringComparison.Ordinal)) >= 0)
             {
-                double xInicio = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..idx], FontSize);
-                double xFin = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..(idx + palabra.Length)], FontSize);
-                context.FillRectangle(color, new Rect(xInicio, y, Math.Max(AnchoContinuacion, xFin - xInicio), AltoLinea));
+                double xInicio = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..idx], fontSize);
+                double xFin = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..(idx + palabra.Length)], fontSize);
+                context.FillRectangle(color, new Rect(xInicio, y, Math.Max(AnchoContinuacion, xFin - xInicio), altoLinea));
                 idx += palabra.Length;
             }
         }
@@ -258,7 +284,7 @@ public class EditorTextArea : Control
     // Ademas de ( ) [ ] { }, reconoce "gglz"/"gg" como un par de bloque (ver
     // TryAutocompletarBloqueGglz) - palabra completa, no una coincidencia adentro de otra palabra
     // (para no confundir un "gg" que aparece dentro de otra palabra).
-    static int ProcesarBrackets(DrawingContext context, string texto, double y, int nivel, bool dibujar)
+    static int ProcesarBrackets(DrawingContext context, string texto, double y, int nivel, double fontSize, bool dibujar)
     {
         int c = 0;
         while (c < texto.Length)
@@ -280,9 +306,9 @@ public class EditorTextArea : Control
 
                 if (dibujar)
                 {
-                    double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..c], FontSize);
+                    double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..c], fontSize);
                     var brush = PaletaAnidado[nivel % PaletaAnidado.Length];
-                    context.DrawText(EditorFont.Formatear(texto.Substring(c, longitud), FontSize, brush), new Point(x, y));
+                    context.DrawText(EditorFont.Formatear(texto.Substring(c, longitud), fontSize, brush), new Point(x, y));
                 }
 
                 if (esApertura) nivel++;
@@ -315,8 +341,8 @@ public class EditorTextArea : Control
         int columnaInicio = indiceLinea == fi ? ci : 0;
         int columnaFin = indiceLinea == ff ? cf : linea.Length;
 
-        double xInicio = EditorFont.MedirPrefijo(linea[..columnaInicio], FontSize);
-        double xFin = EditorFont.MedirPrefijo(linea[..columnaFin], FontSize);
+        double xInicio = EditorFont.MedirPrefijo(linea[..columnaInicio], TamanoFuente);
+        double xFin = EditorFont.MedirPrefijo(linea[..columnaFin], TamanoFuente);
         // AnchoContinuacion: antes eran 6px fijos - en una linea vacia eso da un resaltado de
         // 6px, casi invisible contra el fondo blanco (parecia que no se podia seleccionar una
         // linea en blanco). Con el ancho de un espacio se nota como un bloque de verdad, igual
@@ -331,7 +357,7 @@ public class EditorTextArea : Control
     public Rect ObtenerRectCursor()
     {
         if (Tab == null) return default;
-        double x = MargenIzquierdo + EditorFont.MedirPrefijo(Tab.Lineas[Tab.FilaCursor][..Tab.ColumnaCursor], FontSize);
+        double x = MargenIzquierdo + EditorFont.MedirPrefijo(Tab.Lineas[Tab.FilaCursor][..Tab.ColumnaCursor], TamanoFuente);
         double y = 4 + Tab.FilaCursor * AltoLinea;
         return new Rect(x, y, 2, AltoLinea);
     }
@@ -340,9 +366,9 @@ public class EditorTextArea : Control
     {
         if (Tab == null || !IsFocused || !_caretVisible) return;
 
-        double x = MargenIzquierdo + EditorFont.MedirPrefijo(Tab.Lineas[Tab.FilaCursor][..Tab.ColumnaCursor], FontSize);
+        double x = MargenIzquierdo + EditorFont.MedirPrefijo(Tab.Lineas[Tab.FilaCursor][..Tab.ColumnaCursor], TamanoFuente);
         double y = 4 + Tab.FilaCursor * AltoLinea;
-        context.FillRectangle(Brushes.Black, new Rect(x, y, 2, FontSize));
+        context.FillRectangle(Brushes.Black, new Rect(x, y, 2, TamanoFuente));
     }
 
     // ─────────────────────────── mouse: click / arrastre para seleccionar ───────────────────────────
@@ -377,17 +403,29 @@ public class EditorTextArea : Control
         e.Pointer.Capture(null);
     }
 
+    // Ctrl+rueda = zoom, en vez de dejar que el ScrollViewer que envuelve a este control scrollee
+    // verticalmente. e.Handled=true corta la propagacion del evento hacia ese ScrollViewer (ruteo
+    // bubble); sin Ctrl, cae al comportamiento normal de scroll sin tocar nada aca.
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+
+        ZoomSolicitado?.Invoke(e.Delta.Y > 0 ? 1 : -1);
+        e.Handled = true;
+    }
+
     (int fila, int columna) PosicionEnPixel(Point punto)
     {
         int fila = (int)((punto.Y - 4) / AltoLinea);
         fila = Math.Clamp(fila, 0, Tab!.Lineas.Count - 1);
 
         double xRelativo = punto.X - MargenIzquierdo;
-        int columna = ColumnaEnX(Tab.Lineas[fila], xRelativo);
+        int columna = ColumnaEnX(Tab.Lineas[fila], xRelativo, TamanoFuente);
         return (fila, columna);
     }
 
-    static int ColumnaEnX(string linea, double xRelativo)
+    static int ColumnaEnX(string linea, double xRelativo, double fontSize)
     {
         double anchoPrevio = 0;
         for (int c = 0; c < linea.Length; c++)
@@ -395,7 +433,7 @@ public class EditorTextArea : Control
             // MedirPrefijo (no Medir): un prefijo que termina en blanco (ej. clickear dentro de la
             // indentacion, o en una linea que es solo espacios) mide 0 con Medir - el click
             // colapsaba siempre al final de la linea en vez de a la columna real
-            double anchoActual = EditorFont.MedirPrefijo(linea[..(c + 1)], FontSize);
+            double anchoActual = EditorFont.MedirPrefijo(linea[..(c + 1)], fontSize);
             if (xRelativo < (anchoPrevio + anchoActual) / 2) return c;
             anchoPrevio = anchoActual;
         }
@@ -420,6 +458,13 @@ public class EditorTextArea : Control
         if (ctrl && shift && e.Key == Key.Z) { Tab.Rehacer(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.Z) { Tab.Deshacer(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.Y) { Tab.Rehacer(); e.Handled = true; return; }
+
+        // zoom: OemPlus/OemMinus son la tecla fisica "+/-" del teclado (Key reporta la tecla sin
+        // aplicar shift, por eso Ctrl+"=" y Ctrl+Shift+"=" entran los dos por la misma rama); Add/
+        // Subtract son el +/- del teclado numerico
+        if (ctrl && e.Key is Key.OemPlus or Key.Add) { ZoomSolicitado?.Invoke(1); e.Handled = true; return; }
+        if (ctrl && e.Key is Key.OemMinus or Key.Subtract) { ZoomSolicitado?.Invoke(-1); e.Handled = true; return; }
+        if (ctrl && e.Key == Key.D0) { ZoomSolicitado?.Invoke(0); e.Handled = true; return; }
 
         if (alt && e.Key == Key.Up) { Tab.MoverLineaArriba(); e.Handled = true; return; }
         if (alt && e.Key == Key.Down) { Tab.MoverLineaAbajo(); e.Handled = true; return; }

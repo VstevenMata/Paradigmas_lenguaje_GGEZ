@@ -24,6 +24,13 @@ public partial class EditorViewModel : ViewModelBase
     [ObservableProperty]
     private EditorTabViewModel? _tabActiva;
 
+    // con split (varios paneles a la vez, ver EditorAreaViewModel): solo el panel enfocado muestra
+    // minimapa - de lo contrario, con dos o mas paneles abiertos cada uno con su propio minimapa
+    // se veia mal (bloques repetidos, uno por panel). La mantiene al dia EditorAreaViewModel.
+    // EnfocarPanel; el primer panel arranca enfocado (ver constructor de EditorAreaViewModel).
+    [ObservableProperty]
+    private bool _esPanelEnfocado;
+
     public bool HayArchivosAbiertos => Tabs.Count > 0;
     public string Texto => TabActiva?.Texto ?? "";
     public int LineaCursor => (TabActiva?.FilaCursor ?? 0) + 1;
@@ -38,6 +45,24 @@ public partial class EditorViewModel : ViewModelBase
     [ObservableProperty] private string _contadorBusqueda = "";
     [ObservableProperty] private bool _irALineaVisible;
     [ObservableProperty] private string _numeroLineaTexto = "";
+
+    // zoom del editor (Ctrl+rueda / Ctrl +/-/0 en EditorTextArea, o el menu Ver): independiente
+    // por panel, igual que BuscarVisible/IrALineaVisible - cada split de EditorAreaViewModel tiene
+    // su propio EditorViewModel y por lo tanto su propio zoom.
+    const double ZoomMinimo = 10;
+    const double ZoomMaximo = 36;
+    const double ZoomPorDefecto = 18;
+    const double ZoomPaso = 2;
+
+    [ObservableProperty] private double _tamanoFuente = ZoomPorDefecto;
+
+    // direccion: 1 acercar, -1 alejar, 0 restablecer al tamaño por defecto
+    public void CambiarZoom(int direccion) => TamanoFuente = direccion switch
+    {
+        0 => ZoomPorDefecto,
+        > 0 => Math.Min(ZoomMaximo, TamanoFuente + ZoomPaso),
+        _ => Math.Max(ZoomMinimo, TamanoFuente - ZoomPaso),
+    };
 
     // busca mientras se escribe, sin esperar Enter (como el original) - estos partial methods los
     // dispara el source generator de [ObservableProperty] solo, no hace falta suscribirse a mano

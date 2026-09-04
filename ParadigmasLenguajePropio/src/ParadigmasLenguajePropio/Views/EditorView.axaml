@@ -59,10 +59,15 @@
                     <TextBlock Text="Sin archivos abiertos" FontSize="18" Foreground="Gray" HorizontalAlignment="Center" />
                 </StackPanel>
 
+                <!-- el minimapa y su scrollbar viven UNA sola vez en EditorAreaView (estaticos a la
+                     derecha de TODO el area de edicion, no uno por panel) - ver comentario ahi.
+                     Este ScrollViewer vuelve a su scrollbar nativa normal, EditorAreaView.axaml.cs
+                     la sincroniza con el minimapa global leyendo Extent/Viewport/Offset de
+                     cualquier panel que este enfocado en cada momento. -->
                 <Grid IsVisible="{Binding HayArchivosAbiertos}">
                     <ScrollViewer Name="PART_ScrollVertical" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                         <Grid ColumnDefinitions="Auto,*">
-                            <controls:EditorGutter Grid.Column="0" Tab="{Binding TabActiva}" />
+                            <controls:EditorGutter Grid.Column="0" Tab="{Binding TabActiva}" TamanoFuente="{Binding TamanoFuente}" />
                             <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
                                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <!-- MinWidth=ancho del viewport: sin esto, un archivo con lineas cortas/vacias
@@ -72,6 +77,7 @@
                                      el area real del control (y por lo tanto donde llega el click) quedaba
                                      angosta y el click no hacia nada -->
                                 <controls:EditorTextArea Name="PART_TextArea" Tab="{Binding TabActiva}" Extensiones="{Binding Extensiones}"
+                                                          TamanoFuente="{Binding TamanoFuente}"
                                                           MinWidth="{Binding #PART_ScrollHorizontal.Bounds.Width}" />
                             </ScrollViewer>
                         </Grid>

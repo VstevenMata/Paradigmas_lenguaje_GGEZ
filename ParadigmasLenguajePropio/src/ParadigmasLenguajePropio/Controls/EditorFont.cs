@@ -11,8 +11,14 @@ static class EditorFont
     public static readonly Typeface Typeface = new(FontFamily.Parse(
         "avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans"));
 
-    public static FormattedText Formatear(string texto, double fontSize, IBrush brush) =>
-        new(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, Typeface, fontSize, brush);
+    // no hay un .ttf bold separado en Assets/Fonts - misma familia con FontWeight.Bold, Skia lo
+    // emboldece de forma sintetica (usado por EditorMinimap, ver mas abajo)
+    public static readonly Typeface TypefaceNegrita = new(FontFamily.Parse(
+        "avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans"),
+        FontStyle.Normal, FontWeight.Bold);
+
+    public static FormattedText Formatear(string texto, double fontSize, IBrush brush, bool negrita = false) =>
+        new(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, negrita ? TypefaceNegrita : Typeface, fontSize, brush);
 
     public static double Medir(string texto, double fontSize) =>
         texto.Length == 0 ? 0 : Formatear(texto, fontSize, Brushes.Black).Width;
@@ -23,4 +29,9 @@ static class EditorFont
     // al final y se resta su ancho, asi el blanco queda "en el medio" y si cuenta.
     public static double MedirPrefijo(string texto, double fontSize) =>
         texto.Length == 0 ? 0 : Medir(texto + "|", fontSize) - Medir("|", fontSize);
+
+    // alto de linea derivado del tamaño de fuente (antes una constante de 20px fija a los 18px de
+    // fuente originales, ver zoom en EditorTextArea/EditorGutter): un unico lugar para esta cuenta
+    // asi el gutter y el area de texto nunca pueden desalinearse entre si al hacer zoom.
+    public static double AltoLinea(double fontSize) => fontSize + 2;
 }

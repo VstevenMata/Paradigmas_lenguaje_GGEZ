@@ -224,6 +224,9 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Explorador": AlternarExplorador(); break;
             case "Terminal": AlternarTerminal(); break;
             case "Panel derecho": AlternarPanelDerecho(); break;
+            case "Acercar": Editor.CambiarZoom(1); break;
+            case "Alejar": Editor.CambiarZoom(-1); break;
+            case "Restablecer zoom": Editor.CambiarZoom(0); break;
             case "Abrir carpeta": Explorer.AbrirCarpetaDialogoCommand.Execute(null); break;
             case "Cerrar carpeta": Explorer.CerrarCarpetaCommand.Execute(null); break;
             case "Acerca de": _ = Dialogs.ShowModalAsync("Acerca de", "Aqui va la informacion del acerca de", "Cerrar"); break;

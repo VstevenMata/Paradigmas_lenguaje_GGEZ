@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -49,6 +50,12 @@ public partial class EditorView : UserControl
     // reciba el foco de teclado de verdad (una vista nueva no lo tiene por si sola)
     public void EnfocarTexto() => _textArea.Focus();
 
+    // el minimapa y su scrollbar viven UNA sola vez en EditorAreaView (estaticos a la derecha de
+    // todo el area de edicion, no uno por panel) - EditorAreaView.axaml.cs necesita este
+    // ScrollViewer para leerle Extent/Viewport/Offset y re-sincronizar el minimapa cada vez que
+    // el panel enfocado cambia o este scrollea
+    public ScrollViewer ScrollVertical => _scrollVertical;
+
     public EditorView()
     {
         InitializeComponent();
@@ -56,6 +63,8 @@ public partial class EditorView : UserControl
         _scrollVertical = this.FindControl<ScrollViewer>("PART_ScrollVertical")!;
         _scrollHorizontal = this.FindControl<ScrollViewer>("PART_ScrollHorizontal")!;
         _textArea = this.FindControl<EditorTextArea>("PART_TextArea")!;
+        _minimapa = this.FindControl<EditorMinimap>("PART_Minimap")!;
+        _scrollBarVertical = this.FindControl<ScrollBar>("PART_ScrollBarVertical")!;
         _campoBuscar = this.FindControl<TextBox>("PART_CampoBuscar")!;
         _campoIrALinea = this.FindControl<TextBox>("PART_CampoIrALinea")!;
         _gridRaiz = this.FindControl<Grid>("PART_GridRaiz")!;
@@ -64,6 +73,18 @@ public partial class EditorView : UserControl
         _overlayDrop = this.FindControl<Border>("PART_OverlayDrop")!;
 
         _textArea.CursorMovido += AsegurarCursorVisible;
+        _textArea.ZoomSolicitado += direccion => ViewModel?.CambiarZoom(direccion);
+
+        // el minimapa necesita Extent/Viewport/Offset de este ScrollViewer para dibujar el
+        // rectangulo de "que se esta viendo" y saber a donde saltar con un click - no son datos
+        // bindeables directo desde EditorView.axaml, se empujan a mano en cada ScrollChanged
+        _scrollVertical.ScrollChanged += (_, _) => SincronizarMinimapa();
+        _minimapa.DesplazamientoSolicitado += y => _scrollVertical.Offset = new Vector(_scrollVertical.Offset.X, y);
+        // scrollbar propio: PART_ScrollVertical tiene su barra nativa oculta (VerticalScrollBarVisibility=
+        // Hidden en el XAML) para que el scroll quede a la derecha del minimapa en vez de sandwicheado
+        // entre el texto y el minimapa - este ScrollBar maneja lo mismo a mano
+        _scrollBarVertical.Scroll += (_, e) => _scrollVertical.Offset = new Vector(_scrollVertical.Offset.X, e.NewValue);
+        Loaded += (_, _) => SincronizarMinimapa();
 
         DragDrop.SetAllowDrop(_gridRaiz, true);
         DragDrop.AddDragOverHandler(_gridRaiz, GridRaiz_DragOver);
@@ -121,6 +142,20 @@ public partial class EditorView : UserControl
         if (rectCursor.Left < hOffset.X) nuevoX = rectCursor.Left;
         else if (rectCursor.Right > hOffset.X + hViewport.Width - 20) nuevoX = rectCursor.Right - hViewport.Width + 20;
         _scrollHorizontal.Offset = new Vector(Math.Max(0, nuevoX), hOffset.Y);
+    }
+
+    void SincronizarMinimapa()
+    {
+        _minimapa.AltoTotal = _scrollVertical.Extent.Height;
+        _minimapa.AltoVisible = _scrollVertical.Viewport.Height;
+        _minimapa.Desplazamiento = _scrollVertical.Offset.Y;
+
+        // mismos tres datos, ahora para el ScrollBar propio (ver comentario en el constructor):
+        // asignar Value aca no dispara su evento Scroll (ese solo sale de interaccion del usuario),
+        // asi que no hay vuelta infinita con el handler que hace lo opuesto
+        _scrollBarVertical.Maximum = Math.Max(0, _scrollVertical.Extent.Height - _scrollVertical.Viewport.Height);
+        _scrollBarVertical.ViewportSize = _scrollVertical.Viewport.Height;
+        _scrollBarVertical.Value = _scrollVertical.Offset.Y;
     }
 
     void Tab_PointerPressed(object? sender, PointerPressedEventArgs e)
