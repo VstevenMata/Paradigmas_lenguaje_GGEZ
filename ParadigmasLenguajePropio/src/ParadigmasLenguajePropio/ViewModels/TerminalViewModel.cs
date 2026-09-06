@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
@@ -43,11 +44,15 @@ public partial class TerminalViewModel : ViewModelBase
         return Instancias.Count;
     }
 
-    // el complemento: las que existen pero estan ocultas (ver CerrarDeVista) - la barra superior
-    // las lista chiquitas para poder volver a mostrarlas (ver MostrarEnColumna)
+    // el complemento: las que existen pero estan ocultas (ver CerrarDeVista) - se listan apiladas
+    // verticalmente junto a las columnas (ver TerminalView.axaml) para poder volver a mostrarlas
+    // (ver MostrarEnColumna)
     public ObservableCollection<TerminalInstanceViewModel> InstanciasOcultas { get; } = new();
 
     public bool PuedeCrearTerminal => Instancias.Count < MaxTerminales;
+
+    // el "+" solo tiene sentido con la pestaña Terminal activa y con lugar para una mas
+    public bool MuestraBotonCrear => EsTabTerminal && PuedeCrearTerminal;
 
     // la unica instancia con foco de teclado a la vez, aunque todas las columnas se vean juntas -
     // se cambia clickeando la pestaña o el contenido de cualquier terminal (ver EnfocarInstancia)
@@ -61,11 +66,16 @@ public partial class TerminalViewModel : ViewModelBase
     public ExtensionInfo ClaudeExtension { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsTabTerminal), nameof(EsTabErrores))]
+    [NotifyPropertyChangedFor(nameof(EsTabTerminal), nameof(EsTabErrores), nameof(EsTabProblemas), nameof(MuestraBotonCrear))]
     private int _tabActiva;
 
     public bool EsTabTerminal => TabActiva == 0;
     public bool EsTabErrores => TabActiva == 1;
+    public bool EsTabProblemas => TabActiva == 2;
+
+    // conectado por MainWindowViewModel: abre el archivo del problema clickeado y salta a su linea
+    // (mismo mecanismo que "Ir a linea", ver EditorAreaViewModel.IrALinea)
+    public Action<string, int>? AbrirProblema { get; set; }
 
     // carpeta inicial de cada terminal nueva y de la terminal real (ver ClaudeTerminalView) - la
     // sigue el explorador de archivos (ver EstablecerDirectorio/RegistrarAperturaArchivo). Una vez
@@ -76,6 +86,17 @@ public partial class TerminalViewModel : ViewModelBase
     public ObservableCollection<TerminalLinea> LineasErrores { get; } = new();
     bool _huboErroresReales;
 
+    // formato esperado del traductor: "archivo.ggez:12:5: error: mensaje" o "... warning: mensaje"
+    // (ver ideas/panel-problemas.md) - lineas que no matchean simplemente no generan una fila aca,
+    // siguen visibles tal cual en la pestaña Errores
+    static readonly Regex RegexProblema = new(@"^(?<archivo>[^:]+):(?<linea>\d+):(?<columna>\d+):\s*(?<severidad>error|warning)?:?\s*(?<mensaje>.+)$", RegexOptions.Compiled);
+
+    public ObservableCollection<ProblemaItem> Problemas { get; } = new();
+    public bool HayProblemas => Problemas.Count > 0;
+
+    [RelayCommand]
+    void AbrirProblemaEnEditor(ProblemaItem problema) => AbrirProblema?.Invoke(problema.Archivo, problema.Linea);
+
     public Action? OnCerrar; // lo dispara el comando "exit" de cualquier instancia
 
     public TerminalViewModel(ExtensionInfo claudeExtension)
@@ -83,6 +104,7 @@ public partial class TerminalViewModel : ViewModelBase
         ClaudeExtension = claudeExtension;
 
         LineasErrores.Add(new TerminalLinea("", "Los errores no existen", TerminalColorLinea.Escrito));
+        Problemas.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HayProblemas));
 
         // la primera terminal si se muestra de una (sin ella el panel arrancaria vacio); las que
         // se crean despues con "+" quedan en la lista de ocultas, el usuario decide donde ponerlas
@@ -121,6 +143,7 @@ public partial class TerminalViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(PuedeCrearTerminal));
+        OnPropertyChanged(nameof(MuestraBotonCrear));
     }
 
     void Instancia_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -219,6 +242,7 @@ public partial class TerminalViewModel : ViewModelBase
         Instancias.Remove(instancia);
         InstanciasOcultas.Remove(instancia);
         OnPropertyChanged(nameof(PuedeCrearTerminal));
+        OnPropertyChanged(nameof(MuestraBotonCrear));
 
         if (InstanciaActiva == instancia) EnfocarInstancia(InstanciasVisibles.FirstOrDefault());
         if (Instancias.Count == 0) CrearInstancia(mostrarDeUna: true);
@@ -239,6 +263,17 @@ public partial class TerminalViewModel : ViewModelBase
 
         LineasErrores.Add(new TerminalLinea("", texto, TerminalColorLinea.Error));
         while (LineasErrores.Count > LimiteLineasErrores) LineasErrores.RemoveAt(0);
+
+        var match = RegexProblema.Match(texto);
+        if (!match.Success) return;
+
+        var severidad = match.Groups["severidad"].Value == "warning" ? TerminalColorLinea.Aviso : TerminalColorLinea.Error;
+        Problemas.Add(new ProblemaItem(
+            match.Groups["archivo"].Value,
+            int.Parse(match.Groups["linea"].Value),
+            int.Parse(match.Groups["columna"].Value),
+            match.Groups["mensaje"].Value,
+            severidad));
     }
 
     // ─────────────────────────── directorio y limpieza ───────────────────────────

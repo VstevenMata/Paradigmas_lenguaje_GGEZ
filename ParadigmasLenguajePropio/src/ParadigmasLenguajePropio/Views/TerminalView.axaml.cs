@@ -78,6 +78,11 @@ public partial class TerminalView : UserControl
         if (ViewModel is { } vm) vm.TabActiva = 0;
     }
 
+    void TabProblemas_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ViewModel is { } vm) vm.TabActiva = 2;
+    }
+
     // click simple en un chip oculto REEMPLAZA a la activa (ver MostrarEnColumna); arrastrarlo en
     // vez de solo clickear lo suelta justo donde se quiera (ver Pestana_PointerMoved/Columnas_Drop) -
     // mismo patron "click reemplaza, arrastrar agrupa/reubica" que las pestañas de columna.

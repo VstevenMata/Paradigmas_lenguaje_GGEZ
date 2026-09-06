@@ -101,6 +101,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // el comando "exit" cierra el panel, igual que el toggle del menu Ver
         Terminal.OnCerrar = () => TerminalVisible = false;
+        // click en una fila del panel "Problemas": abre el archivo (o lo enfoca si ya esta abierto)
+        // y mueve el cursor a la linea reportada, mismo mecanismo que "Ir a linea"
+        Terminal.AbrirProblema = (ruta, linea) =>
+        {
+            AbrirArchivo(Path.GetFileName(ruta), ruta);
+            Editor.IrALinea(linea);
+        };
         // la terminal se para en la carpeta abierta, como al abrir un proyecto en VSCode
         Explorer.PropertyChanged += (_, e) =>
         {
