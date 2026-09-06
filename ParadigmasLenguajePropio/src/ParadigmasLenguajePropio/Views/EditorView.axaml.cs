@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -8,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using ParadigmasLenguajePropio.Controls;
+using ParadigmasLenguajePropio.Models;
 using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Views;
@@ -273,6 +275,28 @@ public partial class EditorView : UserControl
         if (sender is Control { DataContext: EditorTabViewModel tab } && ViewModel is { } vm)
             _ = vm.CerrarArchivoAsync(tab);
         e.Handled = true; // no dejar que el click tambien seleccione la pestaña
+    }
+
+    void Segmento_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Border { DataContext: BreadcrumbSegmentoViewModel segmento } && ViewModel is { } vm)
+            vm.AlternarSegmentoBreadcrumb(segmento);
+    }
+
+    void ItemBreadcrumb_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Border { DataContext: NodoBreadcrumb nodo } || ViewModel is not { } vm) return;
+        vm.BreadcrumbSegmentos.FirstOrDefault(s => s.EsAbierto)?.Elegir(nodo);
+    }
+
+    void ItemBreadcrumb_PointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border { DataContext: NodoBreadcrumb nodo }) nodo.EsResaltado = true;
+    }
+
+    void ItemBreadcrumb_PointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border { DataContext: NodoBreadcrumb nodo }) nodo.EsResaltado = false;
     }
 
     void CampoBuscar_KeyDown(object? sender, KeyEventArgs e)

@@ -197,6 +197,30 @@ public partial class ExplorerViewModel : ViewModelBase
             OnAbrirArchivo?.Invoke(nodo);
     }
 
+    // expande cada carpeta del camino y selecciona la carpeta elegida
+    public void RevelarCarpeta(string rutaCompleta)
+    {
+        if (Raiz == null || string.IsNullOrEmpty(rutaCompleta)) return;
+
+        var relativa = Path.GetRelativePath(Raiz.RutaCompleta, rutaCompleta);
+        if (relativa.StartsWith("..")) return; // fuera de la carpeta del proyecto, nada que revelar
+
+        var actual = Raiz;
+        if (relativa != ".")
+        {
+            foreach (var parte in relativa.Split(Path.DirectorySeparatorChar))
+            {
+                actual.Expandido = true;
+                var siguiente = actual.Hijos.FirstOrDefault(h => h.Nombre == parte);
+                if (siguiente == null) return; // no deberia pasar si la ruta viene de disco
+                actual = siguiente;
+            }
+        }
+
+        actual.Expandido = true;
+        Seleccionado = actual;
+    }
+
     // como el "Go to File" de VSCode: filtra por nombre de archivo entre todo lo que hay bajo la carpeta abierta
     public List<ResultadoBusqueda> BuscarArchivosPorNombre(string consulta)
     {

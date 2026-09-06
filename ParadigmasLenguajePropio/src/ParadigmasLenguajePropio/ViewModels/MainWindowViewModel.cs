@@ -104,12 +104,15 @@ public partial class MainWindowViewModel : ViewModelBase
         // la terminal se para en la carpeta abierta, como al abrir un proyecto en VSCode
         Explorer.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(ExplorerViewModel.CarpetaRaiz) && !string.IsNullOrEmpty(Explorer.CarpetaRaiz))
-                Terminal.EstablecerDirectorio(Explorer.CarpetaRaiz);
+            if (e.PropertyName != nameof(ExplorerViewModel.CarpetaRaiz)) return;
+            if (!string.IsNullOrEmpty(Explorer.CarpetaRaiz)) Terminal.EstablecerDirectorio(Explorer.CarpetaRaiz);
+            Editor.CarpetaRaiz = Explorer.CarpetaRaiz;
         };
 
         Explorer.OnAbrirArchivo = nodo => AbrirArchivo(nodo.Nombre, nodo.RutaCompleta);
         Explorer.OnArchivoRenombrado = Editor.ActualizarRutaSiEstaAbierta;
+        Editor.OnAbrirArchivoExterno = AbrirArchivo;
+        Editor.OnRevelarCarpeta = ruta => { Explorer.RevelarCarpeta(ruta); MostrarExplorador(); };
 
         // la posicion del cursor en la barra de estado solo aparece con un archivo abierto
         Editor.PropertyChanged += (_, e) =>

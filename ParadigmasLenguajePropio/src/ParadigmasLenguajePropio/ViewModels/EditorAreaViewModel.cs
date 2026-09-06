@@ -23,6 +23,9 @@ public partial class EditorAreaViewModel : ViewModelBase
     readonly DialogService _dialogos;
     readonly ExtensionsViewModel _extensiones;
     FileDialogService? _archivos;
+    string _carpetaRaiz = "";
+    Action<string, string>? _onAbrirArchivoExterno;
+    Action<string>? _onRevelarCarpeta;
 
     [ObservableProperty]
     private NodoPanel _raiz = null!;
@@ -40,6 +43,36 @@ public partial class EditorAreaViewModel : ViewModelBase
         }
     }
 
+    public string CarpetaRaiz
+    {
+        get => _carpetaRaiz;
+        set
+        {
+            _carpetaRaiz = value;
+            foreach (var panel in TodosLosPaneles()) panel.CarpetaRaiz = value;
+        }
+    }
+
+    public Action<string, string>? OnAbrirArchivoExterno
+    {
+        get => _onAbrirArchivoExterno;
+        set
+        {
+            _onAbrirArchivoExterno = value;
+            foreach (var panel in TodosLosPaneles()) panel.OnAbrirArchivoExterno = value;
+        }
+    }
+
+    public Action<string>? OnRevelarCarpeta
+    {
+        get => _onRevelarCarpeta;
+        set
+        {
+            _onRevelarCarpeta = value;
+            foreach (var panel in TodosLosPaneles()) panel.OnRevelarCarpeta = value;
+        }
+    }
+
     public EditorAreaViewModel(DialogService dialogos, ExtensionsViewModel extensiones)
     {
         _dialogos = dialogos;
@@ -52,7 +85,13 @@ public partial class EditorAreaViewModel : ViewModelBase
 
     EditorViewModel CrearPanel()
     {
-        var panel = new EditorViewModel(_dialogos, _extensiones) { Archivos = _archivos };
+        var panel = new EditorViewModel(_dialogos, _extensiones)
+        {
+            Archivos = _archivos,
+            CarpetaRaiz = _carpetaRaiz,
+            OnAbrirArchivoExterno = _onAbrirArchivoExterno,
+            OnRevelarCarpeta = _onRevelarCarpeta,
+        };
         panel.Tabs.CollectionChanged += (_, _) => PodarSiVacio(panel);
         return panel;
     }

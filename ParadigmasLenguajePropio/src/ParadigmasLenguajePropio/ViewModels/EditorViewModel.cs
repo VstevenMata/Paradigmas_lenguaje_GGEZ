@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using ParadigmasLenguajePropio.Models;
 using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
@@ -28,6 +30,70 @@ public partial class EditorViewModel : ViewModelBase
     public string Texto => TabActiva?.Texto ?? "";
     public int LineaCursor => (TabActiva?.FilaCursor ?? 0) + 1;
     public int ColumnaCursor => (TabActiva?.ColumnaCursor ?? 0) + 1;
+
+    [ObservableProperty] private string _carpetaRaiz = "";
+    partial void OnCarpetaRaizChanged(string value) => ActualizarBreadcrumb();
+
+    public Action<string, string>? OnAbrirArchivoExterno { get; set; }
+    public Action<string>? OnRevelarCarpeta { get; set; }
+
+    // "carpeta > subcarpeta > archivo.ggez", con cada segmento clickeable
+    public IReadOnlyList<BreadcrumbSegmentoViewModel> BreadcrumbSegmentos { get; private set; } = Array.Empty<BreadcrumbSegmentoViewModel>();
+
+    void ActualizarBreadcrumb()
+    {
+        BreadcrumbSegmentos = ConstruirBreadcrumb();
+        OnPropertyChanged(nameof(BreadcrumbSegmentos));
+    }
+
+    List<BreadcrumbSegmentoViewModel> ConstruirBreadcrumb()
+    {
+        var segmentos = new List<BreadcrumbSegmentoViewModel>();
+        if (TabActiva == null) return segmentos;
+
+        void Agregar(string texto, string carpeta) =>
+            segmentos.Add(new BreadcrumbSegmentoViewModel(texto, carpeta, mostrarSeparadorAntes: segmentos.Count > 0)
+            {
+                AlElegirArchivo = nodo => OnAbrirArchivoExterno?.Invoke(nodo.Nombre, nodo.RutaCompleta),
+                AlElegirCarpeta = nodo => OnRevelarCarpeta?.Invoke(nodo.RutaCompleta),
+            });
+
+        // archivo sin guardar: sin ruta, no hay carpeta que listar
+        if (string.IsNullOrEmpty(TabActiva.RutaCompleta))
+        {
+            Agregar(TabActiva.Nombre, "");
+            return segmentos;
+        }
+
+        if (string.IsNullOrEmpty(CarpetaRaiz))
+        {
+            Agregar(TabActiva.RutaCompleta, Path.GetDirectoryName(TabActiva.RutaCompleta) ?? "");
+            return segmentos;
+        }
+
+        var raiz = CarpetaRaiz.TrimEnd(Path.DirectorySeparatorChar);
+        Agregar(Path.GetFileName(raiz), raiz);
+
+        var partes = Path.GetRelativePath(CarpetaRaiz, TabActiva.RutaCompleta).Split(Path.DirectorySeparatorChar);
+        string acumulada = raiz;
+        for (int i = 0; i < partes.Length; i++)
+        {
+            bool esArchivo = i == partes.Length - 1;
+            // el segmento del archivo lista la carpeta que lo contiene, no a si mismo
+            if (!esArchivo) acumulada = Path.Combine(acumulada, partes[i]);
+            Agregar(partes[i], acumulada);
+        }
+        return segmentos;
+    }
+
+    public void AlternarSegmentoBreadcrumb(BreadcrumbSegmentoViewModel segmento)
+    {
+        if (string.IsNullOrEmpty(segmento.CarpetaCompleta)) return;
+
+        bool yaAbierto = segmento.EsAbierto;
+        foreach (var s in BreadcrumbSegmentos) s.EsAbierto = false;
+        segmento.EsAbierto = !yaAbierto;
+    }
 
     // barra de buscar/reemplazar (BarraBusqueda.cs original) y el cuadro de ir a línea (CuadroIrALinea.cs)
     [ObservableProperty] private bool _buscarVisible;
@@ -150,17 +216,25 @@ public partial class EditorViewModel : ViewModelBase
 
     public void CambiarArchivoActivo(EditorTabViewModel tab)
     {
-        if (TabActiva != null) { TabActiva.EsActiva = false; TabActiva.CursorCambiado -= AvisarCursor; }
+        if (TabActiva != null) { TabActiva.EsActiva = false; TabActiva.CursorCambiado -= AvisarCursor; TabActiva.PropertyChanged -= TabActiva_PropertyChanged; }
         TabActiva = tab;
         tab.EsActiva = true;
         tab.CursorCambiado += AvisarCursor;
+        tab.PropertyChanged += TabActiva_PropertyChanged;
         AvisarCursor();
+        ActualizarBreadcrumb();
     }
 
     void AvisarCursor()
     {
         OnPropertyChanged(nameof(LineaCursor));
         OnPropertyChanged(nameof(ColumnaCursor));
+    }
+
+    void TabActiva_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(EditorTabViewModel.RutaCompleta) or nameof(EditorTabViewModel.Nombre))
+            ActualizarBreadcrumb();
     }
 
     public async Task CerrarArchivoAsync(EditorTabViewModel tab)
@@ -186,9 +260,10 @@ public partial class EditorViewModel : ViewModelBase
 
         if (Tabs.Count == 0)
         {
-            if (TabActiva != null) TabActiva.CursorCambiado -= AvisarCursor;
+            if (TabActiva != null) { TabActiva.CursorCambiado -= AvisarCursor; TabActiva.PropertyChanged -= TabActiva_PropertyChanged; }
             TabActiva = null;
             AvisarCursor();
+            ActualizarBreadcrumb();
         }
         else
         {
