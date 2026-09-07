@@ -74,6 +74,11 @@
             <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="#16224E" />
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
+            <!-- flecha del scrollbar (ver TemaBase.axaml): triangulo "pixelado" a escalones de 1px,
+                 como un sprite de NES sin antialiasing - cian, mismo tono que el highlight/bisel -->
+            <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L5,1 L6,1 L6,2 L7,2 L7,3 L8,3 L8,4 L0,4 L0,3 L1,3 L1,2 L2,2 L2,1 L3,1 Z</StreamGeometry>
+            <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#55CCFF" />
+
             <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): esquinas rectas y
                  anillos pegados (sin Margen) como Win95, pero invertido y parejo en las 4 caras -
                  anillo exterior FINO claro y anillo interior GRUESO oscuro, imitando el contorno

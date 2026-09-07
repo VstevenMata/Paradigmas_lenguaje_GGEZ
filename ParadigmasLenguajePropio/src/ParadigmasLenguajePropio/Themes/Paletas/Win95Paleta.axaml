@@ -45,6 +45,11 @@
             <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="Black" />
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans</FontFamily>
 
+            <!-- flecha del scrollbar (ver TemaBase.axaml): triangulo liso sin adornos, el mismo look
+                 clasico de siempre - es la referencia "sin tema" contra la que se comparan los demas -->
+            <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L8,4 L0,4 Z</StreamGeometry>
+            <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#404040" />
+
             <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): sin esquinas
                  redondeadas, y los dos anillos recortados a un solo trazo cada uno (arriba+izquierda
                  vs. abajo+derecha) para el bisel clasico de Windows 95 -->

@@ -52,6 +52,11 @@
                  FontSize, desbordaba pestañas/botones de ancho fijo) -->
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
+            <!-- flecha del scrollbar (ver TemaBase.axaml): base curva hacia adentro en vez de recta,
+                 mas suave que un triangulo comun - dorado, mismo tono que el bisel y la Trifuerza -->
+            <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L7,4 Q4,2.6 1,4 Z</StreamGeometry>
+            <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#FFD54A" />
+
             <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble
                  redondeado, separado (Margen), parejo en las 4 caras - como los cuadros de dialogo
                  de Zelda, en vez del trazo unico y recto de Win95 -->

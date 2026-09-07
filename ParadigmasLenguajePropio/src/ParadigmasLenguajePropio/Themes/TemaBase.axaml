@@ -129,6 +129,41 @@
         <Setter Property="BorderThickness" Value="1" />
     </Style>
 
+    <!-- flechas del scrollbar: cada tema define su propia forma en TemaFlechaScrollData - UNA sola
+         geometria "apuntando arriba" en un cuadro de 8x4 (ver Paletas/*.axaml) - las otras 3
+         direcciones salen de rotarla 180/±90 en vez de redibujar cada una a mano. El Path de la
+         flecha vive DENTRO del template propio de RepeatButton (un ControlTheme anidado dentro
+         del de ScrollBar): from RepeatButton hay que seguir con un selector descendente comun
+         (espacio), no con otro "/template/" - un segundo "/template/" ahi no matchea nada. -->
+    <Style Selector="ScrollBar[Orientation=Vertical] /template/ RepeatButton#PART_LineUpButton Path">
+        <Setter Property="Data" Value="{DynamicResource TemaFlechaScrollData}" />
+        <Setter Property="Fill" Value="{DynamicResource TemaFlechaScrollBrush}" />
+    </Style>
+    <Style Selector="ScrollBar[Orientation=Vertical] /template/ RepeatButton#PART_LineDownButton Path">
+        <Setter Property="Data" Value="{DynamicResource TemaFlechaScrollData}" />
+        <Setter Property="Fill" Value="{DynamicResource TemaFlechaScrollBrush}" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="RenderTransform">
+            <RotateTransform Angle="180" />
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar[Orientation=Horizontal] /template/ RepeatButton#PART_LineUpButton Path">
+        <Setter Property="Data" Value="{DynamicResource TemaFlechaScrollData}" />
+        <Setter Property="Fill" Value="{DynamicResource TemaFlechaScrollBrush}" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="RenderTransform">
+            <RotateTransform Angle="-90" />
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar[Orientation=Horizontal] /template/ RepeatButton#PART_LineDownButton Path">
+        <Setter Property="Data" Value="{DynamicResource TemaFlechaScrollData}" />
+        <Setter Property="Fill" Value="{DynamicResource TemaFlechaScrollBrush}" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="RenderTransform">
+            <RotateTransform Angle="90" />
+        </Setter>
+    </Style>
+
     <!-- menu: fondo/hover con contraste, y el cajon de un submenu con bisel en vez del
          popup plano por defecto -->
     <Style Selector="MenuItem">

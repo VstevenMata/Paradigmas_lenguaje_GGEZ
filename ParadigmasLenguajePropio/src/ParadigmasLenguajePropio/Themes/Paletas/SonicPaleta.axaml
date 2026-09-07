@@ -57,6 +57,11 @@
                  Sans (ver ZeldaPaleta.axaml) - mismo pixel font que el resto de temas retro -->
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
+            <!-- flecha del scrollbar (ver TemaBase.axaml): chevron afilado con muesca concava en la
+                 base (mas "veloz" que un triangulo comun), rojo como la franja superior -->
+            <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L7,4 L4,2.5 L1,4 Z</StreamGeometry>
+            <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#C1272D" />
+
             <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble bien
                  redondeado, como un anillo - radio grande a proposito, en los botones chicos
                  (~22-24px) queda casi una pastilla/circulo -->
