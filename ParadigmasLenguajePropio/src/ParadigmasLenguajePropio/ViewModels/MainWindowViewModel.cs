@@ -147,6 +147,8 @@ public partial class MainWindowViewModel : ViewModelBase
             if (e.PropertyName is nameof(EditorViewModel.LineaCursor) or nameof(EditorViewModel.ColumnaCursor) or nameof(EditorViewModel.HayArchivosAbiertos))
                 ActualizarPosicionCursorEnEstado();
         };
+
+        RestaurarSesion();
     }
 
     void SincronizarTemasDisponibles()
@@ -154,6 +156,34 @@ public partial class MainWindowViewModel : ViewModelBase
         TitleBar.Temas.Clear();
         TitleBar.Temas.Add(new OpcionTema("Win95", Tema.Win95));
         foreach (var opcion in Extensions.TemasInstalados) TitleBar.Temas.Add(opcion);
+    }
+
+    // reabre carpeta, layout de splits y terminales de la ultima sesion (ver EditorAreaViewModel.
+    // RestaurarLayout/TerminalViewModel.RestaurarCantidad), saltando lo que ya no exista en disco
+    void RestaurarSesion()
+    {
+        var sesion = SesionPersistenciaService.Cargar();
+        if (sesion == null) return;
+
+        if (!string.IsNullOrEmpty(sesion.CarpetaRaiz) && Directory.Exists(sesion.CarpetaRaiz))
+            Explorer.AbrirCarpeta(sesion.CarpetaRaiz);
+
+        Editor.RestaurarLayout(sesion.Layout);
+        // por si no habia CarpetaRaiz (archivos sueltos sin proyecto): la terminal igual arranca
+        // en la carpeta del archivo activo en vez de Environment.CurrentDirectory
+        if (Editor.TabActiva != null) Terminal.RegistrarAperturaArchivo(Editor.TabActiva.RutaCompleta);
+
+        Terminal.RestaurarCantidad(sesion.CantidadTerminales, sesion.TerminalActivaIndice);
+    }
+
+    // llamado desde MainWindow.axaml.cs al cerrar la ventana
+    public void GuardarSesion()
+    {
+        SesionPersistenciaService.Guardar(new SesionGuardada(
+            Explorer.CarpetaRaiz,
+            Editor.GuardarLayout(),
+            Terminal.Instancias.Count,
+            Terminal.InstanciaActiva != null ? Terminal.Instancias.IndexOf(Terminal.InstanciaActiva) : 0));
     }
 
     void AbrirArchivo(string nombre, string rutaCompleta)

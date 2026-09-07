@@ -276,6 +276,15 @@ public partial class TerminalViewModel : ViewModelBase
             severidad));
     }
 
+    // el proceso en si no sobrevive al cierre de la app (ver SesionPersistenciaService) - esto solo
+    // recrea la cantidad de columnas que habia y reenfoca la que estaba activa. La primera instancia
+    // ya existe (ver ctor), por eso el loop parte de Instancias.Count en vez de 0.
+    public void RestaurarCantidad(int cantidad, int indiceActiva)
+    {
+        while (Instancias.Count < cantidad && PuedeCrearTerminal) CrearInstancia(mostrarDeUna: true);
+        if (indiceActiva >= 0 && indiceActiva < Instancias.Count) EnfocarInstancia(Instancias[indiceActiva]);
+    }
+
     // ─────────────────────────── directorio y limpieza ───────────────────────────
 
     public void RegistrarAperturaArchivo(string rutaCompleta)

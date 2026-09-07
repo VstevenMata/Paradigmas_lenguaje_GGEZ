@@ -322,6 +322,16 @@ public partial class EditorTabViewModel : ViewModelBase
         AvisarCursor();
     }
 
+    // fila+columna (0-based) con clamp, por si el archivo cambio afuera del IDE desde que se guardo
+    public void IrAPosicion(int fila, int columna)
+    {
+        FilaCursor = Math.Clamp(fila, 0, Lineas.Count - 1);
+        ColumnaCursor = Math.Clamp(columna, 0, Lineas[FilaCursor].Length);
+        ColumnaDeseada = ColumnaCursor;
+        HaySeleccion = false;
+        AvisarCursor();
+    }
+
     // ─────────────────────────── buscar / reemplazar ───────────────────────────
 
     public (int actual, int total) Buscar(string patron, bool distingueMayus, bool siguiente)

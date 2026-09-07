@@ -23,6 +23,7 @@ public partial class MainWindow : Window
 
         // si quedó un comando corriendo, se corta acá: si no, sobrevive a la ventana
         Closing += (_, _) => vm.Terminal.Cerrar();
+        Closing += (_, _) => vm.GuardarSesion();
 
         // la terminal puede crecer hasta la mitad de este Grid (editor+explorador+juego+terminal):
         // un tope fijo en pixeles se queda corto al maximizar y sobra en una ventana chica

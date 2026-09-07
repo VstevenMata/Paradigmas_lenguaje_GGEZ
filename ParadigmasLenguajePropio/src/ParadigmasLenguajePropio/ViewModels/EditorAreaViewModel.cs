@@ -109,6 +109,75 @@ public partial class EditorAreaViewModel : ViewModelBase
 
     public int ContarHojas() => TodosLosPaneles().Count();
 
+    // ─────────────────────────── sesion (guardar/restaurar layout) ───────────────────────────
+
+    public NodoLayoutSesion? GuardarLayout() => ConvertirALayout(Raiz);
+
+    static NodoLayoutSesion? ConvertirALayout(NodoPanel nodo)
+    {
+        if (nodo.EsHoja)
+        {
+            var panel = nodo.Panel!;
+            var tabs = panel.Tabs.Where(t => !string.IsNullOrEmpty(t.RutaCompleta))
+                .Select(t => new TabSesion(t.RutaCompleta, t.FilaCursor, t.ColumnaCursor)).ToList();
+            if (tabs.Count == 0) return null; // sin nada guardable (solo pestañas "Sin titulo", o vacio)
+
+            int indiceActivo = panel.TabActiva != null ? tabs.FindIndex(t => t.RutaCompleta == panel.TabActiva.RutaCompleta) : -1;
+            return new NodoLayoutSesion(new PanelSesion(tabs, indiceActivo), default, null, null);
+        }
+
+        var a = ConvertirALayout(nodo.A!);
+        var b = ConvertirALayout(nodo.B!);
+        // si un lado del split no tenia nada guardable, el split se colapsa en el otro (mismo
+        // criterio que Podar() al vaciarse un panel en vivo)
+        return a == null ? b : b == null ? a : new NodoLayoutSesion(null, nodo.Orientacion, a, b);
+    }
+
+    // reemplaza el panel inicial vacio por el arbol guardado, saltando archivos que ya no existan
+    // en disco (y colapsando paneles que se quedan sin ninguno)
+    public void RestaurarLayout(NodoLayoutSesion? layout)
+    {
+        if (layout == null) return;
+        var nuevaRaiz = ConstruirDesdeLayout(layout);
+        if (nuevaRaiz == null) return; // nada del layout guardado sigue existiendo
+
+        Raiz = nuevaRaiz;
+        EnfocarPanel(TodosLosPaneles().First());
+    }
+
+    NodoPanel? ConstruirDesdeLayout(NodoLayoutSesion nodo)
+    {
+        if (nodo.Panel != null)
+        {
+            var panel = PoblarPanel(nodo.Panel);
+            return panel == null ? null : NodoPanel.Hoja(panel);
+        }
+
+        var a = nodo.A != null ? ConstruirDesdeLayout(nodo.A) : null;
+        var b = nodo.B != null ? ConstruirDesdeLayout(nodo.B) : null;
+        return a == null ? b : b == null ? a : NodoPanel.Dividido(nodo.Orientacion, a, b);
+    }
+
+    EditorViewModel? PoblarPanel(PanelSesion guardado)
+    {
+        var panel = CrearPanel();
+        EditorTabViewModel? activa = null;
+        for (int i = 0; i < guardado.Tabs.Count; i++)
+        {
+            var tab = guardado.Tabs[i];
+            if (!File.Exists(tab.RutaCompleta)) continue;
+
+            panel.AbrirArchivo(Path.GetFileName(tab.RutaCompleta), tab.RutaCompleta);
+            var abierta = panel.Tabs.FirstOrDefault(t => t.RutaCompleta == tab.RutaCompleta);
+            abierta?.IrAPosicion(tab.Fila, tab.Columna);
+            if (i == guardado.IndiceActivo) activa = abierta;
+        }
+
+        if (panel.Tabs.Count == 0) return null;
+        if (activa != null) panel.CambiarArchivoActivo(activa);
+        return panel;
+    }
+
     // reemplaza la hoja que contiene "objetivo" por "reemplazo"; reusa las ramas que no
     // cambiaron (no reconstruye el arbol entero, solo el camino hasta la hoja tocada)
     static NodoPanel Reemplazar(NodoPanel nodo, EditorViewModel objetivo, NodoPanel reemplazo)
