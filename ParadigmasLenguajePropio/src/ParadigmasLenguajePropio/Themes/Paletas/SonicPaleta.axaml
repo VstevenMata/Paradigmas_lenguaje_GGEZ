@@ -2,8 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Paleta "Sonic" (Sega Genesis): cuerpo azul cobalto con textura a cuadros tipo Green Hill
-         Zone, marco doble recto rojo/dorado (en vez del bisel plano de Win95), franja superior en
-         degrade diagonal rojo-dorado, campos de texto blancos. -->
+         Zone, marco doble REDONDO dorado suave (como los anillos del juego) en vez del bisel plano
+         de Win95, franja superior en degrade diagonal rojo-dorado, campos de texto blancos. -->
 
     <Styles.Resources>
         <ResourceDictionary>
@@ -45,8 +45,8 @@
                 <GradientStop Offset="0" Color="#4A4A66" />
                 <GradientStop Offset="1" Color="#6B6B88" />
             </LinearGradientBrush>
-            <SolidColorBrush x:Key="TemaBevelLightBrush" Color="#FFD700" />
-            <SolidColorBrush x:Key="TemaBevelDarkBrush" Color="#7A1015" />
+            <SolidColorBrush x:Key="TemaBevelLightBrush" Color="#F6D983" />
+            <SolidColorBrush x:Key="TemaBevelDarkBrush" Color="#C89B3C" />
             <SolidColorBrush x:Key="TemaTooltipBackgroundBrush" Color="#FFF3C4" />
             <SolidColorBrush x:Key="TemaDisabledTextBrush" Color="#6B7A99" />
             <SolidColorBrush x:Key="TemaHoverBrush" Color="#23439E" />
@@ -57,13 +57,13 @@
                  Sans (ver ZeldaPaleta.axaml) - mismo pixel font que el resto de temas retro -->
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
-            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble RECTO
-                 (esquinas sin redondear, a diferencia de Zelda), parejo en las 4 caras y sin
-                 separacion entre anillos - mas grueso que el trazo unico de Win95 -->
-            <CornerRadius x:Key="TemaBevelRadioExterior">0</CornerRadius>
-            <CornerRadius x:Key="TemaBevelRadioInterior">0</CornerRadius>
-            <Thickness x:Key="TemaBevelGrosorExterior">2</Thickness>
-            <Thickness x:Key="TemaBevelGrosorInterior">1</Thickness>
+            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble bien
+                 redondeado, como un anillo - radio grande a proposito, en los botones chicos
+                 (~22-24px) queda casi una pastilla/circulo -->
+            <CornerRadius x:Key="TemaBevelRadioExterior">14</CornerRadius>
+            <CornerRadius x:Key="TemaBevelRadioInterior">12</CornerRadius>
+            <Thickness x:Key="TemaBevelGrosorExterior">3</Thickness>
+            <Thickness x:Key="TemaBevelGrosorInterior">2</Thickness>
             <Thickness x:Key="TemaBevelMargenInterior">2</Thickness>
         </ResourceDictionary>
     </Styles.Resources>

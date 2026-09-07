@@ -255,6 +255,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Tema: Win95": Extensions.SeleccionarTema(Tema.Win95); break;
             case "Tema: Zelda": Extensions.SeleccionarTema(Tema.Zelda); break;
             case "Tema: Sonic": Extensions.SeleccionarTema(Tema.Sonic); break;
+            case "Tema: Mega Man": Extensions.SeleccionarTema(Tema.MegaMan); break;
             case "Abrir carpeta": Explorer.AbrirCarpetaDialogoCommand.Execute(null); break;
             case "Cerrar carpeta": Explorer.CerrarCarpetaCommand.Execute(null); break;
             case "Acerca de": _ = Dialogs.ShowModalAsync("Acerca de", "Aqui va la informacion del acerca de", "Cerrar"); break;

@@ -4,7 +4,7 @@ using Avalonia.Markup.Xaml.Styling;
 
 namespace ParadigmasLenguajePropio.Services;
 
-public enum Tema { Win95, Zelda, Sonic }
+public enum Tema { Win95, Zelda, Sonic, MegaMan }
 
 // Cambia la paleta de colores incluida en App.axaml en caliente, sin reiniciar la ventana.
 public static class TemaService
@@ -27,6 +27,7 @@ public static class TemaService
                 Tema.Win95 => "Win95Paleta",
                 Tema.Zelda => "ZeldaPaleta",
                 Tema.Sonic => "SonicPaleta",
+                Tema.MegaMan => "MegaManPaleta",
                 _ => "Win95Paleta",
             };
 

@@ -38,14 +38,18 @@ public partial class ExtensionsViewModel : ViewModelBase
         new ExtensionInfo("tema-sonic", "Tema: Sonic", "GGEZ Labs", "SO", "#C1272D",
             "Reskin visual completo inspirado en Sonic the Hedgehog: paleta azul cobalto, rojo y dorado, tipografia pixel.",
             new[] { "Cambia colores, biseles y tipografia de toda la app", "Desinstalar vuelve al tema Win95 por defecto" }),
+        new ExtensionInfo("tema-megaman", "Tema: Mega Man", "GGEZ Labs", "MM", "#2255CC",
+            "Reskin visual completo inspirado en Mega Man: paleta azul cobalto y cian, contorno grueso tipo sprite de NES.",
+            new[] { "Cambia colores, biseles y tipografia de toda la app", "Desinstalar vuelve al tema Win95 por defecto" }),
     };
 
     // que Tema activa cada extension de tema y con que nombre corto se muestra en el selector
-    // rapido (ver TemasInstalados) - agregar una fila aca alcanza para un tema nuevo (Tetris, Contra)
+    // rapido (ver TemasInstalados) - agregar una fila aca alcanza para un tema nuevo (Contra)
     static readonly (string Id, Tema Tema, string Nombre)[] TemasDisponibles =
     [
         ("tema-zelda", Tema.Zelda, "Zelda"),
         ("tema-sonic", Tema.Sonic, "Sonic"),
+        ("tema-megaman", Tema.MegaMan, "Mega Man"),
     ];
 
     static readonly IReadOnlyDictionary<string, Tema> TemasPorId =

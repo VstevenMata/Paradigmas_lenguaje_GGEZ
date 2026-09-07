@@ -7,31 +7,22 @@
 
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- textura de fondo: base indigo + un par de manchas translucidas tileadas, como cuero/
-                 pergamino envejecido - alpha bien bajo (ver hex #AARRGGBB), es un tinte apenas
-                 insinuado, no un grafico que compita con el contenido de encima -->
+            <!-- textura de fondo: base indigo + la Trifuerza (3 triangulos que dejan el hueco
+                 invertido del medio, como el simbolo real) repetida en grilla via TileMode - alpha
+                 bien bajo, es un tinte apenas insinuado, no un grafico que compita con el
+                 contenido de encima -->
             <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
-                          SourceRect="0,0,48,48" DestinationRect="0,0,48,48">
+                          SourceRect="0,0,40,36" DestinationRect="0,0,40,36">
                 <DrawingBrush.Drawing>
                     <DrawingGroup>
                         <GeometryDrawing Brush="#1B1B3A">
                             <GeometryDrawing.Geometry>
-                                <RectangleGeometry Rect="0,0,48,48" />
+                                <RectangleGeometry Rect="0,0,40,36" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
                         <GeometryDrawing Brush="#14FFD54A">
                             <GeometryDrawing.Geometry>
-                                <EllipseGeometry Rect="4,6,20,12" />
-                            </GeometryDrawing.Geometry>
-                        </GeometryDrawing>
-                        <GeometryDrawing Brush="#0FFFFFFF">
-                            <GeometryDrawing.Geometry>
-                                <EllipseGeometry Rect="28,26,16,10" />
-                            </GeometryDrawing.Geometry>
-                        </GeometryDrawing>
-                        <GeometryDrawing Brush="#122A2A55">
-                            <GeometryDrawing.Geometry>
-                                <EllipseGeometry Rect="22,2,14,16" />
+                                <PathGeometry Figures="M20,7 L26,18 L14,18 Z M14,18 L20,29 L8,29 Z M26,18 L32,29 L20,29 Z" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
                     </DrawingGroup>
