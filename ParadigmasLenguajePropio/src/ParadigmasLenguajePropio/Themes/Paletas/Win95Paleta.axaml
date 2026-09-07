@@ -4,7 +4,26 @@
     <!-- Paleta original: gris clasico de Windows 95 (ver TemaBase.axaml para donde se usa cada recurso). -->
     <Styles.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="TemaBackgroundBrush" Color="#C0C0C0" />
+            <!-- textura de fondo: el dither de 1 pixel si/1 no que Windows 95 usaba de verdad para
+                 el patron "50% gris" (COLOR_BTNSHADOW sobre COLOR_BTNFACE) en texto/controles
+                 deshabilitados - alpha bajo, es la trama real de la epoca, no un logo de un juego -->
+            <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
+                          SourceRect="0,0,2,2" DestinationRect="0,0,2,2">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Brush="#C0C0C0">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,2,2" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#30404040">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,1,1" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
             <SolidColorBrush x:Key="TemaScrollTrackBrush" Color="#A0A0A0" />
             <SolidColorBrush x:Key="TemaTitleBarBrush" Color="#000080" />
             <LinearGradientBrush x:Key="TemaTitleBarActivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">

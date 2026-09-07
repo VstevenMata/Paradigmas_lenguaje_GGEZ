@@ -9,15 +9,17 @@
     <Styles.Resources>
         <ResourceDictionary>
             <!-- textura de fondo: bloques de mamposteria en "running bond" (filas alternadas
-                 desfasadas media unidad), dos tonos de azul bien cercanos igual que el piso a
-                 cuadros de SonicPaleta.axaml - un tinte, no un grafico que compita con el contenido -->
+                 desfasadas media unidad, repetida 2 veces en este tile para poder meter la pastilla
+                 de energia sin romper el patron de junta) + la pastilla de arma (el rombo que
+                 sueltan los enemigos) centrada, una cada 2 bloques - alpha bajo, un tinte, no un
+                 grafico que compita con el contenido -->
             <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
-                          SourceRect="0,0,16,8" DestinationRect="0,0,16,8">
+                          SourceRect="0,0,32,16" DestinationRect="0,0,32,16">
                 <DrawingBrush.Drawing>
                     <DrawingGroup>
                         <GeometryDrawing Brush="#16224E">
                             <GeometryDrawing.Geometry>
-                                <RectangleGeometry Rect="0,0,16,8" />
+                                <RectangleGeometry Rect="0,0,32,16" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
                         <GeometryDrawing Brush="#1C2F66">
@@ -28,6 +30,21 @@
                         <GeometryDrawing Brush="#1C2F66">
                             <GeometryDrawing.Geometry>
                                 <RectangleGeometry Rect="8,4,8,4" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#1C2F66">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="16,0,8,4" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#1C2F66">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="24,4,8,4" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#1E55CCFF">
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry Figures="M16,3 L22,8 L16,13 L10,8 Z" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
                     </DrawingGroup>

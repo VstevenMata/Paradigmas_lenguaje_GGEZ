@@ -7,26 +7,26 @@
 
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- textura de fondo: el piso a cuadros de Green Hill Zone, en dos tonos de azul bien
-                 cercanos (no blanco/azul como el piso real) para que siga siendo un fondo, no un
-                 grafico que compita con el contenido de encima -->
+            <!-- textura de fondo: el anillo dorado del juego (un toro: circulo hueco via
+                 GeometryGroup FillRule=EvenOdd, exterior menos interior) repetido en grilla,
+                 en vez del piso a cuadros - hace juego con el bisel de anillo de arriba. Alpha
+                 bien bajo, es un tinte apenas insinuado, no un grafico que compita con el
+                 contenido de encima -->
             <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
-                          SourceRect="0,0,24,24" DestinationRect="0,0,24,24">
+                          SourceRect="0,0,32,32" DestinationRect="0,0,32,32">
                 <DrawingBrush.Drawing>
                     <DrawingGroup>
                         <GeometryDrawing Brush="#12297A">
                             <GeometryDrawing.Geometry>
-                                <RectangleGeometry Rect="0,0,24,24" />
+                                <RectangleGeometry Rect="0,0,32,32" />
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
-                        <GeometryDrawing Brush="#1A3A9E">
+                        <GeometryDrawing Brush="#18F6D983">
                             <GeometryDrawing.Geometry>
-                                <RectangleGeometry Rect="0,0,12,12" />
-                            </GeometryDrawing.Geometry>
-                        </GeometryDrawing>
-                        <GeometryDrawing Brush="#1A3A9E">
-                            <GeometryDrawing.Geometry>
-                                <RectangleGeometry Rect="12,12,12,12" />
+                                <GeometryGroup FillRule="EvenOdd">
+                                    <EllipseGeometry Rect="9,9,14,14" />
+                                    <EllipseGeometry Rect="12,12,8,8" />
+                                </GeometryGroup>
                             </GeometryDrawing.Geometry>
                         </GeometryDrawing>
                     </DrawingGroup>

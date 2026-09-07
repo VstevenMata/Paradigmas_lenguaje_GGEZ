@@ -165,6 +165,22 @@
         <Setter Property="Foreground" Value="{DynamicResource TemaTextoBrush}" />
     </Style>
 
+    <!-- tooltip: fondo propio del tema (TemaTooltipBackgroundBrush, siempre un tono claro tipo
+         papel/pickup en los 4 temas) en vez del blanco por defecto de SimpleTheme. El texto NO usa
+         TemaTextoBrush (pensado para el fondo principal, blanco en Sonic/Mega Man - invisible sobre
+         un tooltip claro) sino TemaCampoTextoBrush, el mismo color ya pensado para texto sobre
+         fondos claros (TextBox/campos) - "ToolTip TextBlock" pesa mas que la regla de TextBlock de
+         arriba por ser un selector mas especifico, así que sí gana. -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource TemaTooltipBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{DynamicResource TemaFontFamily}" />
+    </Style>
+    <Style Selector="ToolTip TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TemaCampoTextoBrush}" />
+    </Style>
+
     <!-- checkbox (buscar y reemplazar: "Distingue mayúsculas") -->
     <Style Selector="CheckBox /template/ Border#NormalRectangle">
         <Setter Property="Background" Value="{DynamicResource TemaCampoFondoBrush}" />
