@@ -17,6 +17,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public ExtensionsViewModel Extensions { get; } = new();
     public TerminalViewModel Terminal { get; }
     public EditorAreaViewModel Editor { get; }
+    public SettingsViewModel Settings { get; }
     public PanelJuegoViewModel PanelJuego { get; } = new();
 
     // se asigna despues de crear la Window, la necesitan Cortar/Copiar/Pegar del menu Editar
@@ -42,6 +43,16 @@ public partial class MainWindowViewModel : ViewModelBase
     // el panel a abrirse si estaba colapsado, igual que clickear un icono de la activity bar de VS Code.
     [ObservableProperty]
     private bool _mostrarExtensiones;
+
+    // idem MostrarExtensiones, para el panel de Ajustes - mutuamente excluyentes
+    [ObservableProperty]
+    private bool _mostrarAjustes;
+
+    // true cuando ninguno de los dos paneles alternativos esta activo: ese es el momento en que
+    // el panel lateral muestra el explorador de archivos (ver MainWindow.axaml)
+    public bool MostrarPanelPorDefecto => !MostrarExtensiones && !MostrarAjustes;
+    partial void OnMostrarExtensionesChanged(bool value) => OnPropertyChanged(nameof(MostrarPanelPorDefecto));
+    partial void OnMostrarAjustesChanged(bool value) => OnPropertyChanged(nameof(MostrarPanelPorDefecto));
 
     [ObservableProperty]
     private double _anchoExplorador = AnchoExploradorInicial;
@@ -96,6 +107,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // TerminalViewModel.ClaudeExtension / TerminalView.axaml)
         Terminal = new TerminalViewModel(Extensions.Claude);
         Editor = new EditorAreaViewModel(Dialogs, Extensions);
+        Settings = new SettingsViewModel(Editor, Extensions);
         MenuBar.OnOpcionElegida = ManejarOpcionMenu;
         TitleBar.BuscarArchivos = Explorer.BuscarArchivosPorNombre;
         TitleBar.AbrirResultado = ruta => AbrirArchivo(Path.GetFileName(ruta), ruta);
@@ -249,6 +261,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Explorador": AlternarExplorador(); break;
             case "Terminal": AlternarTerminal(); break;
             case "Panel derecho": AlternarPanelDerecho(); break;
+            case "Ajustes": MostrarAjustesPanel(); break;
             case "Acercar": Editor.CambiarZoom(1); break;
             case "Alejar": Editor.CambiarZoom(-1); break;
             case "Restablecer zoom": Editor.CambiarZoom(0); break;
@@ -295,6 +308,7 @@ public partial class MainWindowViewModel : ViewModelBase
     void MostrarExplorador()
     {
         MostrarExtensiones = false;
+        MostrarAjustes = false;
         if (!ExploradorVisible) AlternarExplorador();
     }
 
@@ -302,6 +316,15 @@ public partial class MainWindowViewModel : ViewModelBase
     void MostrarExtensionesPanel()
     {
         MostrarExtensiones = true;
+        MostrarAjustes = false;
+        if (!ExploradorVisible) AlternarExplorador();
+    }
+
+    [RelayCommand]
+    void MostrarAjustesPanel()
+    {
+        MostrarAjustes = true;
+        MostrarExtensiones = false;
         if (!ExploradorVisible) AlternarExplorador();
     }
 

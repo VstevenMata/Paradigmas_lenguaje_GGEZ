@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:ParadigmasLenguajePropio.Controls"
+             xmlns:vm="using:ParadigmasLenguajePropio.ViewModels"
+             xmlns:models="using:ParadigmasLenguajePropio.Models"
+             x:Class="ParadigmasLenguajePropio.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <!-- Mismo lugar en pantalla que ExplorerView/ExtensionsView (ver MainWindow.axaml) -->
+    <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
+        <TextBlock Grid.Row="0" Text="Ajustes" FontSize="16" Margin="2,4,0,4" />
+
+        <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="3">
+            <ScrollViewer>
+                <StackPanel Margin="8">
+
+                    <TextBlock Text="Tamaño de fuente" FontSize="14" FontWeight="Bold" Foreground="Black" Margin="0,0,0,6" />
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" Margin="0,0,0,16">
+                        <Button Grid.Column="0" Content="-" Width="28" Command="{Binding AlejarCommand}" />
+                        <TextBlock Grid.Column="1" Text="{Binding TamanoFuente}" FontSize="14" Foreground="Black"
+                                   VerticalAlignment="Center" Width="40" TextAlignment="Center" />
+                        <Button Grid.Column="2" Content="+" Width="28" Command="{Binding AcercarCommand}" />
+                        <Button Grid.Column="3" Content="Restablecer" Margin="8,0,0,0" FontSize="11"
+                                Command="{Binding RestablecerZoomCommand}" />
+                    </Grid>
+
+                    <TextBlock Text="Tamaño de tab (espacios)" FontSize="14" FontWeight="Bold" Foreground="Black" Margin="0,0,0,6" />
+                    <Grid ColumnDefinitions="Auto,Auto,Auto" Margin="0,0,0,16">
+                        <Button Grid.Column="0" Content="-" Width="28" Command="{Binding DisminuirTabCommand}" />
+                        <TextBlock Grid.Column="1" Text="{Binding TamanoTab}" FontSize="14" Foreground="Black"
+                                   VerticalAlignment="Center" Width="40" TextAlignment="Center" />
+                        <Button Grid.Column="2" Content="+" Width="28" Command="{Binding AumentarTabCommand}" />
+                    </Grid>
+
+                    <TextBlock Text="Tema" FontSize="14" FontWeight="Bold" Foreground="Black" Margin="0,0,0,6" />
+                    <ItemsControl ItemsSource="{Binding Temas}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:OpcionTema">
+                                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,5" Margin="0,0,0,2"
+                                        Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ElegirTemaCommand}"
+                                        CommandParameter="{Binding}">
+                                    <TextBlock Text="{Binding Nombre}" FontSize="13" />
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </ScrollViewer>
+        </controls:Win95Bevel>
+    </Grid>
+
+</UserControl>

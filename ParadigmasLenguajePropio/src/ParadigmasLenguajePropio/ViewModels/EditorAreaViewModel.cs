@@ -169,7 +169,7 @@ public partial class EditorAreaViewModel : ViewModelBase
         nameof(LineaCursor), nameof(ColumnaCursor), nameof(BuscarVisible),
         nameof(MostrarReemplazo), nameof(PatronBusqueda), nameof(TextoReemplazo),
         nameof(DistingueMayusculas), nameof(ContadorBusqueda), nameof(IrALineaVisible),
-        nameof(NumeroLineaTexto), nameof(TamanoFuente),
+        nameof(NumeroLineaTexto), nameof(TamanoFuente), nameof(TamanoTab),
     };
 
     // cambiar de panel enfocado no dispara por si solo el PropertyChanged de estas propiedades
@@ -196,9 +196,11 @@ public partial class EditorAreaViewModel : ViewModelBase
     public bool IrALineaVisible { get => PanelEnfocado.IrALineaVisible; set => PanelEnfocado.IrALineaVisible = value; }
     public string NumeroLineaTexto { get => PanelEnfocado.NumeroLineaTexto; set => PanelEnfocado.NumeroLineaTexto = value; }
     public double TamanoFuente { get => PanelEnfocado.TamanoFuente; set => PanelEnfocado.TamanoFuente = value; }
+    public int TamanoTab { get => PanelEnfocado.TamanoTab; set => PanelEnfocado.TamanoTab = value; }
 
     public void NuevoArchivo() => PanelEnfocado.NuevoArchivo();
     public void CambiarZoom(int direccion) => PanelEnfocado.CambiarZoom(direccion);
+    public void CambiarTamanoTab(int direccion) => PanelEnfocado.CambiarTamanoTab(direccion);
     public Task GuardarAsync(bool forzarElegirRuta = false) => PanelEnfocado.GuardarAsync(forzarElegirRuta);
     public void Deshacer() => PanelEnfocado.Deshacer();
     public void Rehacer() => PanelEnfocado.Rehacer();

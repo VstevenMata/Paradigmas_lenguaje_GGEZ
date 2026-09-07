@@ -70,6 +70,17 @@
                         <Rectangle Grid.Row="1" Grid.Column="1" Fill="{DynamicResource TemaTextoBrush}" Margin="1,1,0,0" />
                     </Grid>
                 </Button>
+                <Button Width="28" Height="28" Padding="6" Command="{Binding MostrarAjustesPanelCommand}" ToolTip.Tip="Ajustes">
+                    <!-- placeholder tipo "sliders" hasta que haya pixel-art propio -->
+                    <Grid Width="13" Height="13">
+                        <Rectangle Height="2" Fill="{DynamicResource TemaTextoBrush}" VerticalAlignment="Top" />
+                        <Rectangle Height="2" Fill="{DynamicResource TemaTextoBrush}" VerticalAlignment="Center" />
+                        <Rectangle Height="2" Fill="{DynamicResource TemaTextoBrush}" VerticalAlignment="Bottom" />
+                        <Ellipse Width="4" Height="4" Fill="{DynamicResource TemaTextoBrush}" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                        <Ellipse Width="4" Height="4" Fill="{DynamicResource TemaTextoBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <Ellipse Width="4" Height="4" Fill="{DynamicResource TemaTextoBrush}" HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                    </Grid>
+                </Button>
 
                 <controls:Win95Divider Margin="0,5" />
 
@@ -154,11 +165,14 @@
                          vista pisa su propio DataContext con Explorer/Extensions, un binding puesto
                          ahi mismo se resuelve contra ese DataContext nuevo en vez del de la ventana -->
                     <Grid>
-                        <Border IsVisible="{Binding !MostrarExtensiones}">
+                        <Border IsVisible="{Binding MostrarPanelPorDefecto}">
                             <views:ExplorerView DataContext="{Binding Explorer}" />
                         </Border>
                         <Border IsVisible="{Binding MostrarExtensiones}">
                             <views:ExtensionsView DataContext="{Binding Extensions}" />
+                        </Border>
+                        <Border IsVisible="{Binding MostrarAjustes}">
+                            <views:SettingsView DataContext="{Binding Settings}" />
                         </Border>
                     </Grid>
                 </Border>

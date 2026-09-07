@@ -34,6 +34,16 @@ public class EditorTextArea : Control
 
     public double AltoLinea => EditorFont.AltoLinea(TamanoFuente);
 
+    // espacios que inserta la tecla Tab (ver OnKeyDown) - no afecta el render, no necesita Refrescar()
+    public static readonly StyledProperty<int> TamanoTabProperty =
+        AvaloniaProperty.Register<EditorTextArea, int>(nameof(TamanoTab), 4);
+
+    public int TamanoTab
+    {
+        get => GetValue(TamanoTabProperty);
+        set => SetValue(TamanoTabProperty, value);
+    }
+
     static readonly IBrush ColorSeleccion = new SolidColorBrush(Color.FromArgb(110, 51, 153, 255));
     static readonly IBrush ColorLineaActual = new SolidColorBrush(Color.FromRgb(235, 235, 235));
 
@@ -470,7 +480,7 @@ public class EditorTextArea : Control
         if (alt && e.Key == Key.Down) { Tab.MoverLineaAbajo(); e.Handled = true; return; }
 
         if (e.Key == Key.Enter) { if (!TryAutocompletarBloqueGglz()) Tab.InsertarNuevaLinea(); e.Handled = true; return; }
-        if (e.Key == Key.Tab) { Tab.InsertarTexto("    "); e.Handled = true; return; }
+        if (e.Key == Key.Tab) { Tab.InsertarTexto(new string(' ', TamanoTab)); e.Handled = true; return; }
         if (e.Key == Key.Back) { Tab.Retroceder(); e.Handled = true; return; }
         if (e.Key == Key.Delete) { Tab.Suprimir(); e.Handled = true; return; }
 

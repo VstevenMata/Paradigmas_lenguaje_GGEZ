@@ -113,7 +113,28 @@ public partial class EditorViewModel : ViewModelBase
     const double ZoomPorDefecto = 18;
     const double ZoomPaso = 2;
 
-    [ObservableProperty] private double _tamanoFuente = ZoomPorDefecto;
+    const int TamanoTabMinimo = 1;
+    const int TamanoTabMaximo = 8;
+
+    // ultimo tamaño/tab usado en cualquier panel, persistido en disco - los paneles nuevos arrancan con esto
+    static readonly ConfiguracionUsuario _configuracionInicial = ConfiguracionService.CargarGuardada();
+    public static double TamanoFuentePreferido { get; set; } = _configuracionInicial.TamanoFuente;
+    public static int TamanoTabPreferido { get; set; } = _configuracionInicial.TamanoTab;
+
+    [ObservableProperty] private double _tamanoFuente = TamanoFuentePreferido;
+    [ObservableProperty] private int _tamanoTab = TamanoTabPreferido;
+
+    partial void OnTamanoFuenteChanged(double value)
+    {
+        TamanoFuentePreferido = value;
+        ConfiguracionService.Guardar(new ConfiguracionUsuario(value, TamanoTabPreferido));
+    }
+
+    partial void OnTamanoTabChanged(int value)
+    {
+        TamanoTabPreferido = value;
+        ConfiguracionService.Guardar(new ConfiguracionUsuario(TamanoFuentePreferido, value));
+    }
 
     // direccion: 1 acercar, -1 alejar, 0 restablecer al tamaño por defecto
     public void CambiarZoom(int direccion) => TamanoFuente = direccion switch
@@ -122,6 +143,9 @@ public partial class EditorViewModel : ViewModelBase
         > 0 => Math.Min(ZoomMaximo, TamanoFuente + ZoomPaso),
         _ => Math.Max(ZoomMinimo, TamanoFuente - ZoomPaso),
     };
+
+    public void CambiarTamanoTab(int direccion) =>
+        TamanoTab = Math.Clamp(TamanoTab + direccion, TamanoTabMinimo, TamanoTabMaximo);
 
     // busca mientras se escribe, sin esperar Enter (como el original) - estos partial methods los
     // dispara el source generator de [ObservableProperty] solo, no hace falta suscribirse a mano
