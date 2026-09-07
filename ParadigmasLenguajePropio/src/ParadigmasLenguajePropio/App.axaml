@@ -5,7 +5,11 @@
 
     <Application.Styles>
         <SimpleTheme />
-        <StyleInclude Source="avares://ParadigmasLenguajePropio/Themes/Win95Theme.axaml" />
+        <!-- Win95 por defecto siempre - los demas temas viven como extensiones (ver
+             ExtensionsViewModel) y se activan solos al restaurar cuales estaban instaladas.
+             Cambiar de tema es cambiar cual paleta va aca (ver TemaService). -->
+        <StyleInclude Source="avares://ParadigmasLenguajePropio/Themes/Paletas/Win95Paleta.axaml" />
+        <StyleInclude Source="avares://ParadigmasLenguajePropio/Themes/TemaBase.axaml" />
     </Application.Styles>
 
 </Application>

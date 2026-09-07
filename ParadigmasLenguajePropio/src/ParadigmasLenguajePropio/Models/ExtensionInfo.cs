@@ -12,8 +12,9 @@ public partial class ExtensionInfo : ObservableObject
     public string Nombre { get; }
     public string Autor { get; }
 
-    // sigla corta (2-3 letras) sobre una placa de color, en vez de un emoji: Win95FontFamily
-    // (Liberation Sans) no trae glifos de emoji y salian como una caja rota/tofu
+    // sigla corta (2-3 letras) sobre una placa de color, en vez de un emoji: ninguna de las
+    // fuentes de TemaFontFamily (ver Themes/Paletas/) trae glifos de emoji, salian como una caja
+    // rota/tofu
     public string Icono { get; }
     public IBrush IconoColor { get; }
 

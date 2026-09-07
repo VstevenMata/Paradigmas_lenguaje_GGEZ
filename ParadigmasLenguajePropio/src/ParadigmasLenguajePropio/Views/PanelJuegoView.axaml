@@ -9,11 +9,11 @@
          mostraba minimizar/maximizar/cerrar). La vista del juego en si sigue sin diseñar, como en
          el original - esto es placeholder con progreso/pausa de ejemplo. -->
     <Grid RowDefinitions="Auto,*">
-        <Border Grid.Row="0" Height="26" Background="{DynamicResource Win95TitleBarBrush}">
+        <Border Grid.Row="0" Height="26" Background="{DynamicResource TemaTitleBarBrush}">
             <TextBlock Text="Juego" Foreground="White" FontSize="18" Margin="8,0,0,0" VerticalAlignment="Center" />
         </Border>
 
-        <controls:Win95Bevel Grid.Row="1" BevelThickness="2" Background="{DynamicResource Win95BackgroundBrush}" Padding="8">
+        <controls:Win95Bevel Grid.Row="1" BevelThickness="2" Background="{DynamicResource TemaBackgroundBrush}" Padding="8">
             <Grid RowDefinitions="*,Auto,Auto">
                 <controls:Win95Bevel Grid.Row="0" Sunken="True" BevelThickness="2" Background="White">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Personaje64px.png"
@@ -42,10 +42,6 @@
 
                 <Grid Grid.Row="2" Margin="0,8,0,0">
                     <TextBlock Text="En pausa" FontSize="17" VerticalAlignment="Center" IsVisible="{Binding EnPausa}" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6">
-                        <Button Content="OK" Width="72" Height="24" FontSize="16" Click="Ok_Click" />
-                        <Button Content="Cancel" Width="72" Height="24" FontSize="16" Click="Cancel_Click" />
-                    </StackPanel>
                 </Grid>
             </Grid>
         </controls:Win95Bevel>

@@ -1,0 +1,40 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Paleta original: gris clasico de Windows 95 (ver TemaBase.axaml para donde se usa cada recurso). -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="TemaBackgroundBrush" Color="#C0C0C0" />
+            <SolidColorBrush x:Key="TemaScrollTrackBrush" Color="#A0A0A0" />
+            <SolidColorBrush x:Key="TemaTitleBarBrush" Color="#000080" />
+            <LinearGradientBrush x:Key="TemaTitleBarActivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Offset="0" Color="#000080" />
+                <GradientStop Offset="1" Color="#00AEEF" />
+            </LinearGradientBrush>
+            <!-- ventana sin foco: mismo degradado pero en gris -->
+            <LinearGradientBrush x:Key="TemaTitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Offset="0" Color="#808080" />
+                <GradientStop Offset="1" Color="#C0C0C0" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="TemaBevelLightBrush" Color="White" />
+            <SolidColorBrush x:Key="TemaBevelDarkBrush" Color="#404040" />
+            <SolidColorBrush x:Key="TemaTooltipBackgroundBrush" Color="#FFFFE1" />
+            <SolidColorBrush x:Key="TemaDisabledTextBrush" Color="#808080" />
+            <SolidColorBrush x:Key="TemaHoverBrush" Color="LightGray" />
+            <SolidColorBrush x:Key="TemaTextoBrush" Color="Black" />
+            <SolidColorBrush x:Key="TemaCampoFondoBrush" Color="White" />
+            <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="Black" />
+            <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans</FontFamily>
+
+            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): sin esquinas
+                 redondeadas, y los dos anillos recortados a un solo trazo cada uno (arriba+izquierda
+                 vs. abajo+derecha) para el bisel clasico de Windows 95 -->
+            <CornerRadius x:Key="TemaBevelRadioExterior">0</CornerRadius>
+            <CornerRadius x:Key="TemaBevelRadioInterior">0</CornerRadius>
+            <Thickness x:Key="TemaBevelGrosorExterior">2,2,0,0</Thickness>
+            <Thickness x:Key="TemaBevelGrosorInterior">0,0,2,2</Thickness>
+            <Thickness x:Key="TemaBevelMargenInterior">0</Thickness>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+</Styles>

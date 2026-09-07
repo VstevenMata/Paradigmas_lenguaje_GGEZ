@@ -33,8 +33,8 @@ public class Win95Divider : Control
 
     public override void Render(DrawingContext context)
     {
-        var dark = (IBrush?)Application.Current?.FindResource("Win95BevelDarkBrush") ?? Brushes.Gray;
-        var light = (IBrush?)Application.Current?.FindResource("Win95BevelLightBrush") ?? Brushes.White;
+        var dark = (IBrush?)Application.Current?.FindResource("TemaBevelDarkBrush") ?? Brushes.Gray;
+        var light = (IBrush?)Application.Current?.FindResource("TemaBevelLightBrush") ?? Brushes.White;
 
         if (Orientation == Orientation.Horizontal)
         {

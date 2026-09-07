@@ -7,7 +7,7 @@
              x:DataType="vm:StatusBarViewModel"
              Height="36">
 
-    <Grid RowDefinitions="Auto,*" Background="{DynamicResource Win95BackgroundBrush}">
+    <Grid RowDefinitions="Auto,*" Background="{DynamicResource TemaBackgroundBrush}">
         <controls:Win95Divider Grid.Row="0" Orientation="Horizontal" />
 
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto">

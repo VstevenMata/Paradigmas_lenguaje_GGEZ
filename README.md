@@ -21,7 +21,8 @@ Paradigmas_lenguaje_GGEZ/
         ├── Services/                  ← diálogos, selector de archivos, proceso de la terminal
         ├── Controls/                  ← controles custom (bisel Win95, editor de texto, etc.)
         ├── Converters/                ← conversores de binding (íconos, colores, etc.)
-        ├── Themes/Win95Theme.axaml    ← estilos/colores Win95 reutilizados en toda la app
+        ├── Themes/TemaBase.axaml      ← mecánica de temas (Templates/Style), compartida por todos
+        ├── Themes/Paletas/            ← un .axaml por tema (Win95, Zelda, ...), solo colores/fuente
         ├── Assets/                    ← íconos y fuentes
         ├── bin/                       ← GENERADO por dotnet, no se versiona
         └── obj/                       ← GENERADO por dotnet, no se versiona

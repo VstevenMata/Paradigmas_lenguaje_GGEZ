@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
+using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
@@ -12,6 +14,25 @@ public partial class AppTitleBarViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _textoBusqueda = "";
+
+    // opciones del boton de pincel junto al buscador (ver AppTitleBarView.axaml) - Win95 siempre
+    // presente, el resto lo sincroniza MainWindowViewModel con ExtensionsViewModel.TemasInstalados
+    // (un tema no instalado no tiene que aparecer aca para elegirlo)
+    public ObservableCollection<OpcionTema> Temas { get; } = new() { new("Win95", Tema.Win95) };
+    public Action<Tema>? AplicarTema { get; set; }
+
+    [ObservableProperty]
+    private bool _menuTemaAbierto;
+
+    [RelayCommand]
+    void AlternarMenuTema() => MenuTemaAbierto = !MenuTemaAbierto;
+
+    [RelayCommand]
+    void ElegirTema(OpcionTema opcion)
+    {
+        AplicarTema?.Invoke(opcion.Valor);
+        MenuTemaAbierto = false;
+    }
 
     [ObservableProperty]
     private int _indiceSeleccionado = -1;

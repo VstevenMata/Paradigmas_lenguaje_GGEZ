@@ -20,7 +20,8 @@ public partial class MenuBarViewModel : ViewModelBase
             new("Cortar"), new("Copiar"), new("Pegar"), ItemMenu.Separador,
             new("Buscar"), new("Buscar y reemplazar"), new("Ir a línea")]),
         new("Ver", [new("Explorador"), new("Terminal"), new("Panel derecho"), ItemMenu.Separador,
-            new("Acercar"), new("Alejar"), new("Restablecer zoom")]),
+            new("Acercar"), new("Alejar"), new("Restablecer zoom"), ItemMenu.Separador,
+            new("Tema: Win95"), new("Tema: Zelda"), new("Tema: Sonic")]),
         new("Ejecutar", [new("Construir"), new("Pausar / Reanudar"), ItemMenu.Separador, new("Ver salida")]),
         new("Ayuda", [new("Acerca de"), new("Atajos de teclado"), new("Sintaxis de GGEZ")]),
     ];

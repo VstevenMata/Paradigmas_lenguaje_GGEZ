@@ -40,7 +40,7 @@
                             <Popup PlacementTarget="{Binding #PART_Encabezado}" Placement="BottomEdgeAlignedLeft"
                                    IsOpen="{Binding EsAbierto}" IsLightDismissEnabled="False" WindowManagerAddShadowHint="False"
                                    ShouldUseOverlayLayer="True">
-                                <controls:Win95Bevel BevelThickness="2" Padding="2" Background="{DynamicResource Win95BackgroundBrush}">
+                                <controls:Win95Bevel BevelThickness="2" Padding="2" Background="{DynamicResource TemaBackgroundBrush}">
                                     <ItemsControl ItemsSource="{Binding Items}" MinWidth="170">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -51,7 +51,7 @@
                                                             PointerEntered="Item_PointerEntered" PointerExited="Item_PointerExited">
                                                         <controls:Win95Bevel Sunken="True" BevelThickness="1" Padding="17,3"
                                                                              TieneBisel="{Binding EsResaltado}">
-                                                            <TextBlock Text="{Binding Texto}" FontSize="14" Foreground="Black" />
+                                                            <TextBlock Text="{Binding Texto}" FontSize="14" Foreground="{DynamicResource TemaTextoBrush}" />
                                                         </controls:Win95Bevel>
                                                     </Border>
                                                 </Panel>

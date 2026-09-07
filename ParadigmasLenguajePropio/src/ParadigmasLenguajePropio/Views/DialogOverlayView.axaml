@@ -13,13 +13,13 @@
          (PedirTexto original), alternando con EsPrompt en vez de ser dos vistas separadas. -->
     <Grid Background="#5A000000">
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-            <controls:Win95Bevel BevelThickness="4" Padding="4" Background="{DynamicResource Win95BackgroundBrush}">
+            <controls:Win95Bevel BevelThickness="4" Padding="4" Background="{DynamicResource TemaBackgroundBrush}">
                 <StackPanel MinWidth="260" MaxWidth="480">
-                    <Border Background="{DynamicResource Win95TitleBarBrush}" Padding="6,4">
+                    <Border Background="{DynamicResource TemaTitleBarBrush}" Padding="6,4">
                         <TextBlock Text="{Binding Titulo}" Foreground="White" FontSize="16" />
                     </Border>
 
-                    <TextBlock Text="{Binding Mensaje}" Foreground="Black" FontSize="16"
+                    <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource TemaTextoBrush}" FontSize="16"
                                TextWrapping="Wrap" Margin="16,16,16,0" />
 
                     <TextBox Name="PART_CampoPrompt" Text="{Binding ValorTexto, Mode=TwoWay}"
@@ -44,24 +44,24 @@
             </controls:Win95Bevel>
 
             <!-- remaches en las 4 esquinas, como el marco de ventana original -->
-            <Border Width="6" Height="6" Background="{DynamicResource Win95BevelDarkBrush}"
+            <Border Width="6" Height="6" Background="{DynamicResource TemaBevelDarkBrush}"
                     HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3">
-                <Border Width="4" Height="4" Background="{DynamicResource Win95BevelLightBrush}"
+                <Border Width="4" Height="4" Background="{DynamicResource TemaBevelLightBrush}"
                         HorizontalAlignment="Left" VerticalAlignment="Top" />
             </Border>
-            <Border Width="6" Height="6" Background="{DynamicResource Win95BevelDarkBrush}"
+            <Border Width="6" Height="6" Background="{DynamicResource TemaBevelDarkBrush}"
                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="3">
-                <Border Width="4" Height="4" Background="{DynamicResource Win95BevelLightBrush}"
+                <Border Width="4" Height="4" Background="{DynamicResource TemaBevelLightBrush}"
                         HorizontalAlignment="Left" VerticalAlignment="Top" />
             </Border>
-            <Border Width="6" Height="6" Background="{DynamicResource Win95BevelDarkBrush}"
+            <Border Width="6" Height="6" Background="{DynamicResource TemaBevelDarkBrush}"
                     HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="3">
-                <Border Width="4" Height="4" Background="{DynamicResource Win95BevelLightBrush}"
+                <Border Width="4" Height="4" Background="{DynamicResource TemaBevelLightBrush}"
                         HorizontalAlignment="Left" VerticalAlignment="Top" />
             </Border>
-            <Border Width="6" Height="6" Background="{DynamicResource Win95BevelDarkBrush}"
+            <Border Width="6" Height="6" Background="{DynamicResource TemaBevelDarkBrush}"
                     HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="3">
-                <Border Width="4" Height="4" Background="{DynamicResource Win95BevelLightBrush}"
+                <Border Width="4" Height="4" Background="{DynamicResource TemaBevelLightBrush}"
                         HorizontalAlignment="Left" VerticalAlignment="Top" />
             </Border>
         </Grid>

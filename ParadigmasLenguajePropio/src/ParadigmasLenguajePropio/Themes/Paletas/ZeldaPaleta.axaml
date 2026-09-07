@@ -1,0 +1,75 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Paleta "Zelda" (A Link to the Past): cuerpo azul-indigo con textura tipo pergamino, marco
+         doble dorado redondeado (en vez del bisel plano de Win95), franja superior verde tunica
+         de Link, campos de texto color pergamino. -->
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- textura de fondo: base indigo + un par de manchas translucidas tileadas, como cuero/
+                 pergamino envejecido - alpha bien bajo (ver hex #AARRGGBB), es un tinte apenas
+                 insinuado, no un grafico que compita con el contenido de encima -->
+            <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
+                          SourceRect="0,0,48,48" DestinationRect="0,0,48,48">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Brush="#1B1B3A">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,48,48" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#14FFD54A">
+                            <GeometryDrawing.Geometry>
+                                <EllipseGeometry Rect="4,6,20,12" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#0FFFFFFF">
+                            <GeometryDrawing.Geometry>
+                                <EllipseGeometry Rect="28,26,16,10" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#122A2A55">
+                            <GeometryDrawing.Geometry>
+                                <EllipseGeometry Rect="22,2,14,16" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+            <SolidColorBrush x:Key="TemaScrollTrackBrush" Color="#12122A" />
+            <SolidColorBrush x:Key="TemaTitleBarBrush" Color="#256029" />
+            <LinearGradientBrush x:Key="TemaTitleBarActivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Offset="0" Color="#1B5E20" />
+                <GradientStop Offset="1" Color="#4CAF50" />
+            </LinearGradientBrush>
+            <!-- ventana sin foco: mismo degradado pero desaturado -->
+            <LinearGradientBrush x:Key="TemaTitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Offset="0" Color="#33334D" />
+                <GradientStop Offset="1" Color="#4A4A66" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="TemaBevelLightBrush" Color="#FFD54A" />
+            <SolidColorBrush x:Key="TemaBevelDarkBrush" Color="#6B4E16" />
+            <SolidColorBrush x:Key="TemaTooltipBackgroundBrush" Color="#F5E6C8" />
+            <SolidColorBrush x:Key="TemaDisabledTextBrush" Color="#7A7A99" />
+            <SolidColorBrush x:Key="TemaHoverBrush" Color="#33335E" />
+            <SolidColorBrush x:Key="TemaTextoBrush" Color="#F2E3B3" />
+            <SolidColorBrush x:Key="TemaCampoFondoBrush" Color="#F5E6C8" />
+            <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="#3B2A12" />
+            <!-- Silkscreen en vez de Press Start 2P: misma altura de mayuscula relativa al tamaño de
+                 fuente que Liberation Sans (Press Start 2P renderiza ~45% mas grande al mismo
+                 FontSize, desbordaba pestañas/botones de ancho fijo) -->
+            <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
+
+            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble
+                 redondeado, separado (Margen), parejo en las 4 caras - como los cuadros de dialogo
+                 de Zelda, en vez del trazo unico y recto de Win95 -->
+            <CornerRadius x:Key="TemaBevelRadioExterior">6</CornerRadius>
+            <CornerRadius x:Key="TemaBevelRadioInterior">4</CornerRadius>
+            <Thickness x:Key="TemaBevelGrosorExterior">2</Thickness>
+            <Thickness x:Key="TemaBevelGrosorInterior">1</Thickness>
+            <Thickness x:Key="TemaBevelMargenInterior">3</Thickness>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+</Styles>

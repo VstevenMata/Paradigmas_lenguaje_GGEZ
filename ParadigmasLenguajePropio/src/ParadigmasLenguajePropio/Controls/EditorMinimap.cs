@@ -21,14 +21,6 @@ public class EditorMinimap : Control
     const double AltoLineaMaximo = 6; // techo para que un archivo corto no estire el texto gigante
     const double MargenIzquierdo = 2;
 
-    static readonly IBrush FondoMinimapa = new SolidColorBrush(Color.FromRgb(246, 246, 246));
-
-    // rojo Mario (mismo #D82800 que PaletaAnidado[0] en EditorTextArea), un unico tono parejo
-    // sobre todo el minimapa - sin distinguir la porcion visible del resto (eso se probo con dos
-    // intensidades distintas y se veia como dos tonalidades de rojo diferentes, no se queria).
-    // Alpha bien bajo: casi imperceptible a proposito, un tinte apenas insinuado.
-    static readonly IBrush ColorMario = new SolidColorBrush(Color.FromArgb(10, 216, 40, 0));
-
     public static readonly StyledProperty<EditorTabViewModel?> TabProperty =
         AvaloniaProperty.Register<EditorMinimap, EditorTabViewModel?>(nameof(Tab));
 
@@ -97,11 +89,17 @@ public class EditorMinimap : Control
 
     public override void Render(DrawingContext context)
     {
-        context.FillRectangle(FondoMinimapa, new Rect(Bounds.Size));
-        // un solo tono de rojo Mario parejo en TODO el minimapa, sin distinguir la porcion
-        // visible del resto - antes esa franja iba mas marcada y se notaba como dos tonalidades
-        // de rojo distintas, cosa que no se queria.
-        context.FillRectangle(ColorMario, new Rect(Bounds.Size));
+        var fondo = (IBrush?)Application.Current?.FindResource("TemaCampoFondoBrush") ?? Brushes.WhiteSmoke;
+        var texto = (IBrush?)Application.Current?.FindResource("TemaCampoTextoBrush") ?? Brushes.Black;
+
+        context.FillRectangle(fondo, new Rect(Bounds.Size));
+        // un solo tono parejo del acento del tema activo en TODO el minimapa, sin distinguir la
+        // porcion visible del resto - antes esa franja iba mas marcada y se notaba como dos
+        // tonalidades distintas, cosa que no se queria. Alpha bien bajo: casi imperceptible a
+        // proposito, un tinte apenas insinuado.
+        if (Application.Current?.FindResource("TemaTitleBarBrush") is ISolidColorBrush acento)
+            context.FillRectangle(new SolidColorBrush(acento.Color, 10.0 / 255), new Rect(Bounds.Size));
+
         if (Tab == null || Tab.Lineas.Count == 0) return;
 
         // encoger todo el archivo al alto disponible, con un techo para que uno corto no quede
@@ -110,13 +108,13 @@ public class EditorMinimap : Control
 
         for (int i = 0; i < Tab.Lineas.Count; i++)
         {
-            string texto = Tab.Lineas[i];
-            if (texto.Length == 0) continue;
+            string linea = Tab.Lineas[i];
+            if (linea.Length == 0) continue;
 
             double y = i * altoLinea;
             if (y > Bounds.Height) break; // el resto ya cae fuera de lo visible, no vale la pena seguir
 
-            context.DrawText(EditorFont.Formatear(texto, FontSizeMinimapa, Brushes.Black, negrita: true), new Point(MargenIzquierdo, y));
+            context.DrawText(EditorFont.Formatear(linea, FontSizeMinimapa, texto, negrita: true), new Point(MargenIzquierdo, y));
         }
     }
 

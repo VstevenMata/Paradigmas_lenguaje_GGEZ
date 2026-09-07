@@ -49,7 +49,7 @@ public partial class AppTitleBarView : UserControl
     {
         bool activa = _window?.IsActive ?? true;
         _fondo.Background = (Avalonia.Media.IBrush?)this.FindResource(
-            activa ? "Win95TitleBarActivaBrush" : "Win95TitleBarInactivaBrush");
+            activa ? "TemaTitleBarActivaBrush" : "TemaTitleBarInactivaBrush");
     }
 
     // sin decoracion nativa no hay barra que el SO arrastre solo: BeginMoveDrag delega el arrastre

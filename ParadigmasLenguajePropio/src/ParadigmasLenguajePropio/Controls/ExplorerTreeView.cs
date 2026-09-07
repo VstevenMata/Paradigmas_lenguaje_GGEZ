@@ -140,7 +140,7 @@ public class ExplorerTreeView : Control
         bool seleccionado = nodo == Seleccionado;
         if (seleccionado)
         {
-            var brushSeleccion = (IBrush?)Application.Current?.FindResource("Win95TitleBarBrush") ?? Brushes.Navy;
+            var brushSeleccion = (IBrush?)Application.Current?.FindResource("TemaTitleBarBrush") ?? Brushes.Navy;
             context.FillRectangle(brushSeleccion, new Rect(0, y, Bounds.Width, AltoFila));
         }
 

@@ -1,0 +1,71 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Paleta "Sonic" (Sega Genesis): cuerpo azul cobalto con textura a cuadros tipo Green Hill
+         Zone, marco doble recto rojo/dorado (en vez del bisel plano de Win95), franja superior en
+         degrade diagonal rojo-dorado, campos de texto blancos. -->
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- textura de fondo: el piso a cuadros de Green Hill Zone, en dos tonos de azul bien
+                 cercanos (no blanco/azul como el piso real) para que siga siendo un fondo, no un
+                 grafico que compita con el contenido de encima -->
+            <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
+                          SourceRect="0,0,24,24" DestinationRect="0,0,24,24">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Brush="#12297A">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,24,24" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#1A3A9E">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="0,0,12,12" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                        <GeometryDrawing Brush="#1A3A9E">
+                            <GeometryDrawing.Geometry>
+                                <RectangleGeometry Rect="12,12,12,12" />
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+
+            <SolidColorBrush x:Key="TemaScrollTrackBrush" Color="#0A1A52" />
+            <SolidColorBrush x:Key="TemaTitleBarBrush" Color="#C1272D" />
+            <!-- degrade diagonal (no horizontal como los demas temas) - efecto "velocidad" -->
+            <LinearGradientBrush x:Key="TemaTitleBarActivaBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#C1272D" />
+                <GradientStop Offset="1" Color="#F2A900" />
+            </LinearGradientBrush>
+            <!-- ventana sin foco: mismo degradado pero desaturado -->
+            <LinearGradientBrush x:Key="TemaTitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#4A4A66" />
+                <GradientStop Offset="1" Color="#6B6B88" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="TemaBevelLightBrush" Color="#FFD700" />
+            <SolidColorBrush x:Key="TemaBevelDarkBrush" Color="#7A1015" />
+            <SolidColorBrush x:Key="TemaTooltipBackgroundBrush" Color="#FFF3C4" />
+            <SolidColorBrush x:Key="TemaDisabledTextBrush" Color="#6B7A99" />
+            <SolidColorBrush x:Key="TemaHoverBrush" Color="#23439E" />
+            <SolidColorBrush x:Key="TemaTextoBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="TemaCampoFondoBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="#12297A" />
+            <!-- Silkscreen: misma altura de mayuscula relativa al tamaño de fuente que Liberation
+                 Sans (ver ZeldaPaleta.axaml) - mismo pixel font que el resto de temas retro -->
+            <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
+
+            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble RECTO
+                 (esquinas sin redondear, a diferencia de Zelda), parejo en las 4 caras y sin
+                 separacion entre anillos - mas grueso que el trazo unico de Win95 -->
+            <CornerRadius x:Key="TemaBevelRadioExterior">0</CornerRadius>
+            <CornerRadius x:Key="TemaBevelRadioInterior">0</CornerRadius>
+            <Thickness x:Key="TemaBevelGrosorExterior">2</Thickness>
+            <Thickness x:Key="TemaBevelGrosorInterior">1</Thickness>
+            <Thickness x:Key="TemaBevelMargenInterior">2</Thickness>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+</Styles>

@@ -2,6 +2,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ParadigmasLenguajePropio.Models;
 using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
@@ -98,6 +99,13 @@ public partial class MainWindowViewModel : ViewModelBase
         MenuBar.OnOpcionElegida = ManejarOpcionMenu;
         TitleBar.BuscarArchivos = Explorer.BuscarArchivosPorNombre;
         TitleBar.AbrirResultado = ruta => AbrirArchivo(Path.GetFileName(ruta), ruta);
+        TitleBar.AplicarTema = Extensions.SeleccionarTema;
+        // el selector rapido de temas solo lista los que estan instalados (mas Win95, siempre fijo)
+        SincronizarTemasDisponibles();
+        Extensions.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ExtensionsViewModel.TemasInstalados)) SincronizarTemasDisponibles();
+        };
 
         // el comando "exit" cierra el panel, igual que el toggle del menu Ver
         Terminal.OnCerrar = () => TerminalVisible = false;
@@ -127,6 +135,13 @@ public partial class MainWindowViewModel : ViewModelBase
             if (e.PropertyName is nameof(EditorViewModel.LineaCursor) or nameof(EditorViewModel.ColumnaCursor) or nameof(EditorViewModel.HayArchivosAbiertos))
                 ActualizarPosicionCursorEnEstado();
         };
+    }
+
+    void SincronizarTemasDisponibles()
+    {
+        TitleBar.Temas.Clear();
+        TitleBar.Temas.Add(new OpcionTema("Win95", Tema.Win95));
+        foreach (var opcion in Extensions.TemasInstalados) TitleBar.Temas.Add(opcion);
     }
 
     void AbrirArchivo(string nombre, string rutaCompleta)
@@ -237,6 +252,9 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Acercar": Editor.CambiarZoom(1); break;
             case "Alejar": Editor.CambiarZoom(-1); break;
             case "Restablecer zoom": Editor.CambiarZoom(0); break;
+            case "Tema: Win95": Extensions.SeleccionarTema(Tema.Win95); break;
+            case "Tema: Zelda": Extensions.SeleccionarTema(Tema.Zelda); break;
+            case "Tema: Sonic": Extensions.SeleccionarTema(Tema.Sonic); break;
             case "Abrir carpeta": Explorer.AbrirCarpetaDialogoCommand.Execute(null); break;
             case "Cerrar carpeta": Explorer.CerrarCarpetaCommand.Execute(null); break;
             case "Acerca de": _ = Dialogs.ShowModalAsync("Acerca de", "Aqui va la informacion del acerca de", "Cerrar"); break;
