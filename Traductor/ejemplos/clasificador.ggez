@@ -1,0 +1,37 @@
+travel physics from arsenal
+
+/w Clasifica a un jugador segun su puntaje
+combo clasificar{score puntos} drops lore glhf
+    loadout puntos split 10 glhf
+        pick 10 | 9 glhf reward "Pro" gg
+        pick 8 | 7  glhf reward "Decente" gg
+        noob        glhf reward "Noob" gg
+    gg
+gg
+
+lobby.launch{start THE GAME} glhf
+    hardcoded score MINIMO set 60
+    stash squad[score] marcador set <95 | 72 | 40>
+    stash score i set 0
+
+    farm i set 0 | i under marcador.size | i buff glhf
+        scan marcador<i> mismatch afk glhf
+            scan marcador<i> atleast MINIMO glhf
+                chat.send{clasificar{marcador<i>}}
+            gg fallback glhf
+                chat.send{"Eliminado"}
+            gg
+        gg
+    gg
+
+    stash aim promedio set physics.avg{marcador} split marcador.size
+    chat.send{"Promedio: " gain promedio}
+
+    clutch glhf
+        stash score riesgo set 100 split {MINIMO drain 60}
+    gg revive {e} glhf
+        chat.rage{"GAME OVER: " gain e.reason}
+    gg checkpoint glhf
+        chat.send{"Partida finalizada"}
+    gg
+gg
