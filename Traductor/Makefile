@@ -1,18 +1,22 @@
-BIN := bin/ggezc
-SRC := src/traductor.pas
+PY := python
+ENTRADA := ggezc.py
 
-.PHONY: build run clean
-
-build: $(BIN)
-
-$(BIN): $(SRC)
-	mkdir -p bin
-	fpc -FEbin -FUbin -o$(BIN) $(SRC)
+.PHONY: run tokens test clean
 
 # make run ARCHIVO=ruta/al/archivo.ggez
-run: build
+run:
 	@test -n "$(ARCHIVO)" || (echo "uso: make run ARCHIVO=ruta/al/archivo.ggez" >&2; exit 1)
-	./$(BIN) run "$(ARCHIVO)"
+	$(PY) $(ENTRADA) run "$(ARCHIVO)"
+
+# make tokens ARCHIVO=ruta/al/archivo.ggez
+tokens:
+	@test -n "$(ARCHIVO)" || (echo "uso: make tokens ARCHIVO=ruta/al/archivo.ggez" >&2; exit 1)
+	$(PY) $(ENTRADA) tokens "$(ARCHIVO)"
+
+# pasa los dos ejemplos del documento por el traductor
+test:
+	$(PY) $(ENTRADA) run ejemplos/clasificador.ggez
+	$(PY) $(ENTRADA) run ejemplos/poo.ggez
 
 clean:
-	rm -rf bin
+	rm -rf src/ggez/__pycache__ __pycache__
