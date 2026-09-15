@@ -1,0 +1,29 @@
+guild Jugador glhf
+    solo lore nombre
+    solo score puntos
+
+    combo Jugador{lore n | score p} drops noloot glhf
+        me.nombre set n
+        me.puntos set p
+    gg
+
+    open combo subirNivel{score extra} drops noloot glhf
+        me.puntos boost extra
+    gg
+
+    open combo esPro{} drops win glhf
+        reward me.puntos atleast 90
+    gg
+gg
+
+lobby.launch{start THE GAME} glhf
+    stash Jugador p1 set spawn Jugador{"mjsq" | 85}
+    p1.subirNivel{10}
+
+    stash queue[lore] turnos
+    turnos.enlist{p1.nombre}
+
+    scan p1.esPro{} matches hit glhf
+        chat.send{"Rango Pro"}
+    gg
+gg

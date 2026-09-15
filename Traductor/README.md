@@ -1,48 +1,58 @@
 # Traductor de GGEZ
 
-Acá va el código fuente (Pascal) del traductor/intérprete de GGEZ. Para el diseño interno
-(lexer → parser → evaluador) ver [`../traductor-ggez.md`](../traductor-ggez.md) — este README
-cubre otra cosa: el **contrato de invocación**, o sea qué comando exacto va a correr el IDE en
-C#, con qué argumentos, y qué espera recibir de vuelta. Esto existe para que la persona que
-escriba el traductor y la persona que lo conecte al IDE puedan trabajar en paralelo sin
-pisarse: mientras se respete este contrato, no importa cómo esté implementado adentro.
+Código fuente (**Python**) del traductor/intérprete de GGEZ. Para la definición del
+lenguaje (gramática BNF, precedencia, semántica) ver [`GRAMATICA.md`](GRAMATICA.md) — este
+README cubre otra cosa: el **contrato de invocación**, o sea qué comando exacto va a correr
+el IDE en C#, con qué argumentos, y qué espera recibir de vuelta. Esto existe para que la
+persona que escriba el traductor y la persona que lo conecte al IDE puedan trabajar en
+paralelo sin pisarse: mientras se respete este contrato, no importa cómo esté implementado
+adentro.
+
+> **Nota:** el traductor se iba a escribir en Pascal, pero el equipo decidió hacerlo en
+> Python. El contrato de más abajo **no cambió** — es agnóstico del lenguaje de
+> implementación. `src/traductor.pas` quedó vacío del plan anterior y se puede borrar.
 
 ## Estructura
 
 ```
 Traductor/
-├── README.md         ← este archivo
-├── Makefile           ← build/run desde terminal
-├── .gitignore          ← bin/ y los intermedios de fpc (*.o, *.ppu)
-├── src/
-│   └── traductor.pas   ← punto de entrada; ahí crece el lexer/parser/evaluador
-└── bin/                ← GENERADO por `make build`, no se versiona
-    └── ggezc
+├── README.md            ← este archivo (contrato con el IDE)
+├── GRAMATICA.md         ← definición formal del lenguaje (BNF/EBNF)
+├── Makefile             ← atajos para correr desde terminal
+├── ggezc.py             ← punto de entrada: el "binario" que invoca el IDE
+├── ejemplos/
+│   ├── clasificador.ggez  ← ejemplo imperativo del documento
+│   └── poo.ggez           ← ejemplo de POO del documento
+└── src/ggez/
+    ├── tokens.py        ← tipos de token + las 60 palabras reservadas
+    ├── lexer.py         ← análisis léxico             [LISTO]
+    ├── errores.py       ← errores con archivo:línea:columna
+    ├── cli.py           ← argumentos y códigos de salida
+    ├── parser.py        ← análisis sintáctico         [pendiente]
+    ├── semantico.py     ← análisis semántico          [pendiente]
+    └── evaluador.py     ← ejecución                   [pendiente]
 ```
 
-`bin/` es análogo al `bin/`/`obj/` de `ParadigmasLenguajePropio/` (ver
-[`../README.md`](../README.md)): lo regenera `fpc`, no se toca a mano ni se commitea.
+No hace falta compilar nada ni instalar dependencias: solo Python 3.10 o superior.
 
 ## Correrlo a mano
 
-Necesita el [Free Pascal Compiler](https://www.freepascal.org/) (`fpc`) instalado.
-
 ```bash
 cd Traductor
-make build                          # compila src/traductor.pas -> bin/ggezc
-make run ARCHIVO=ruta/al/archivo.ggez   # compila (si hace falta) y corre
+python ggezc.py run ejemplos/clasificador.ggez
+python ggezc.py tokens ejemplos/poo.ggez     # vuelca los tokens, para depurar
 ```
 
-O directo, una vez compilado:
+O con el Makefile:
 
 ```bash
-./bin/ggezc run ruta/al/archivo.ggez
+make run ARCHIVO=ejemplos/clasificador.ggez
+make test                                    # pasa los dos ejemplos
 ```
 
-Ahora mismo `traductor.pas` es un **stub**: valida argumentos y que el archivo exista, pero
-todavía no interpreta nada — sale con código 1 y un mensaje de "todavía no está implementado".
-Es la base sobre la que se agrega el lexer/parser/evaluador de `../traductor-ggez.md`, sin
-tocar el contrato de abajo.
+**Estado actual:** el analizador léxico está terminado y pasa los dos ejemplos del
+documento (190 y 121 tokens). El analizador sintáctico todavía no existe, así que `run`
+reporta cuántos tokens reconoció y sale con código 1.
 
 ## El contrato (esto es lo que no puede cambiar sin avisar del otro lado)
 
@@ -52,13 +62,11 @@ tocar el contrato de abajo.
 ggezc run <archivo.ggez>
 ```
 
-- `ggezc` es el binario compilado (`bin/ggezc`). El lado C# lo va a invocar por su **ruta
-  completa** (ej. `<raíz-del-repo>/Traductor/bin/ggezc`), no por nombre en el PATH — no hay que
-  instalarlo en ningún lado, solo compilarlo una vez.
-- Un solo subcomando por ahora: `run`, que interpreta y ejecuta directo (opción 2 de las tres
-  que lista `../traductor-ggez.md` — la más simple para arrancar; si más adelante se pasa a
-  transpilar o a bytecode+VM, este comando puede quedar igual por fuera aunque cambie por
-  dentro).
+- `ggezc` es el punto de entrada (`ggezc.py`). El lado C# lo va a invocar por su **ruta
+  completa** (ej. `python <raíz-del-repo>/Traductor/ggezc.py`), no por nombre en el PATH —
+  no hay que instalarlo en ningún lado.
+- Un solo subcomando obligatorio: `run`, que interpreta y ejecuta directo. (`tokens` existe
+  solo para depurar; el IDE no lo usa.)
 - Working directory: la carpeta del proyecto abierto en el IDE (la misma que ya usa la
   terminal — ver `Explorer.CarpetaRaiz` / `TerminalInstanceViewModel.DirectorioActual`), así
   que `<archivo.ggez>` puede ir como ruta relativa a eso.
@@ -66,10 +74,10 @@ ggezc run <archivo.ggez>
 ### stdout / stderr / código de salida
 
 - **stdout**: la salida real del programa GGEZ (lo que el usuario debe ver correr).
-- **stderr**: errores — uno por línea. Mientras no exista un panel de problemas que parsee
-  posición (ver `../ideas/panel-problemas.md`), el formato exacto no es crítico, pero conviene
-  ir dejando `archivo:línea:columna: mensaje` (estilo gcc) como costumbre, para que a futuro se
-  pueda parsear sin tocar el traductor.
+- **stderr**: errores — uno por línea, con el formato
+  `archivo:línea:columna: etapa: mensaje` (estilo gcc), donde *etapa* es `error lexico`,
+  `error sintactico`, `error semantico` o `error en ejecucion`. Ya está implementado en
+  `src/ggez/errores.py`.
 - **Código de salida**: `0` = corrió sin errores. Distinto de `0` = algo falló (léxico,
   sintáctico o en ejecución) — no importa cuál, alcanza con no-cero.
 
@@ -82,6 +90,9 @@ ya marca en rojo `[el comando terminó con código X]` cuando el código no es 0
 línea de stderr a la pestaña "Errores" (`OnError`, línea 87 del mismo archivo) sin que haga
 falta escribir nada nuevo para eso.
 
+El panel **Problemas** además parsea ese formato con la expresión regular de
+`TerminalViewModel.cs:89` y arma una fila clickeable que salta a la línea del error.
+
 ### Condiciones antes de invocarlo (responsabilidad del lado C#)
 
 1. **El archivo tiene que estar guardado en disco** — el traductor lee del filesystem, no del
@@ -89,9 +100,8 @@ falta escribir nada nuevo para eso.
    (ver más abajo), así que esto ya está cubierto.
 2. **Tiene que haber un `.ggez` para pasarle** — si no hay ningún archivo abierto, no hay nada
    que ejecutar; no lanzar el proceso en ese caso.
-3. **El binario tiene que existir** (`bin/ggezc`) — si `Traductor/` todavía no se compiló, se
-   puede compilar al vuelo con `make -C Traductor build` antes de correr, o simplemente fallar
-   con un mensaje claro en la terminal en vez de un error críptico de "comando no encontrado".
+3. **Tiene que estar Python disponible** — si `python` no está en el PATH, conviene fallar con
+   un mensaje claro en la terminal en vez de un error críptico de "comando no encontrado".
 
 ## Cómo se conecta con el botón Play/Construir del IDE
 
@@ -99,7 +109,7 @@ Ya existe el enganche, solo falta que llame al comando de arriba. Ahora mismo:
 
 - El menú **Ejecutar → Construir** (`MenuBarViewModel.cs:24`) dispara
   `ManejarOpcionMenu("Construir")` (`MainWindowViewModel.cs:247`), que llama
-  `ConstruirAsync()` (`MainWindowViewModel.cs:163`). Hoy esa función solo guarda todo y abre la
+  `ConstruirAsync()` (`MainWindowViewModel.cs:187`). Hoy esa función solo guarda todo y abre la
   terminal — ahí es donde hay que agregar el lanzamiento real, algo como:
 
   ```csharp
@@ -109,16 +119,15 @@ Ya existe el enganche, solo falta que llame al comando de arriba. Ahora mismo:
       await Editor.GuardarTodoAsync();
       TerminalVisible = true;
       Terminal.TabActiva = 1;
-      // agregar acá: lanzar "<raíz>/Traductor/bin/ggezc run <archivo activo>"
+      // agregar acá: lanzar "python <raíz>/Traductor/ggezc.py run <archivo activo>"
       // en la instancia de terminal activa (mismo Process.Start que ya usa
       // TerminalProcessService.Lanzar para cualquier otro comando)
   }
   ```
 
 - **Ejecutar → Pausar/Reanudar** y el botón de pausa de `PanelJuegoViewModel` ya están armados
-  para alternar `PanelJuego.EnPausa`; falta que ese toggle también mande `SIGSTOP`/`SIGCONT` al
-  proceso del traductor en Linux (o la alternativa de `ntdll.dll` en Windows) — el detalle
-  completo de esa parte ya está en `../traductor-ggez.md`.
+  para alternar `PanelJuego.EnPausa`; falta que ese toggle también suspenda el proceso del
+  traductor (`SIGSTOP`/`SIGCONT` en Linux, la alternativa de `ntdll.dll` en Windows).
 - **Ejecutar → Ver salida** ya cambia a la pestaña de terminal/errores — no necesita cambios.
 
 Con esto, "botón play" y "comando de terminal" son la misma ruta: ambos terminan llamando
