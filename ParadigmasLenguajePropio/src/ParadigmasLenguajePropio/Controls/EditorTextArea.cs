@@ -34,6 +34,29 @@ public class EditorTextArea : Control
 
     public double AltoLinea => EditorFont.AltoLinea(TamanoFuente);
 
+    // los sincroniza a mano EditorView.axaml.cs en cada ScrollChanged (mismo patron que
+    // EditorMinimap.AltoTotal/AltoVisible/Desplazamiento): con esto, Render() sabe que rango de
+    // lineas cae dentro del viewport y no tiene que dibujar el documento entero en cada frame -
+    // antes CADA resize/scroll/keystroke volvia a mandar a shapear (FormattedText, lo caro de
+    // Skia) TODAS las lineas del archivo, incluso las que ni se ven.
+    public static readonly StyledProperty<double> DesplazamientoYProperty =
+        AvaloniaProperty.Register<EditorTextArea, double>(nameof(DesplazamientoY));
+
+    public double DesplazamientoY
+    {
+        get => GetValue(DesplazamientoYProperty);
+        set => SetValue(DesplazamientoYProperty, value);
+    }
+
+    public static readonly StyledProperty<double> AltoVisibleProperty =
+        AvaloniaProperty.Register<EditorTextArea, double>(nameof(AltoVisible));
+
+    public double AltoVisible
+    {
+        get => GetValue(AltoVisibleProperty);
+        set => SetValue(AltoVisibleProperty, value);
+    }
+
     // espacios que inserta la tecla Tab (ver OnKeyDown) - no afecta el render, no necesita Refrescar()
     public static readonly StyledProperty<int> TamanoTabProperty =
         AvaloniaProperty.Register<EditorTextArea, int>(nameof(TamanoTab), 4);
@@ -150,6 +173,11 @@ public class EditorTextArea : Control
         // el zoom cambia el ancho de cada linea (MeasureOverride) ademas de como se ve, por eso
         // Refrescar() (que invalida measure y visual) y no solo InvalidateVisual()
         TamanoFuenteProperty.Changed.AddClassHandler<EditorTextArea>((c, _) => c.Refrescar());
+
+        // scroll: cambia que rango de lineas hay que dibujar, pero no el tamaño total del
+        // documento - solo InvalidateVisual(), no hace falta volver a medir
+        DesplazamientoYProperty.Changed.AddClassHandler<EditorTextArea>((c, _) => c.InvalidateVisual());
+        AltoVisibleProperty.Changed.AddClassHandler<EditorTextArea>((c, _) => c.InvalidateVisual());
     }
 
     static IEnumerable<ExtensionInfo> ExtensionesDeResaltado(ExtensionsViewModel ext) =>
@@ -198,22 +226,40 @@ public class EditorTextArea : Control
         bool todoHighlight = Extensiones?.TodoHighlight.Instalada == true;
         bool bracketColorizer = Extensiones?.BracketColorizer.Instalada == true;
         double fontSize = TamanoFuente; // cacheado: se lee una sola vez por frame, no por linea
+        double altoLinea = AltoLinea;
+
+        // viewport: que lineas caen dentro de lo que se ve (+2 de margen para que no se note un
+        // parpadeo blanco al scrollear un pelin). Si todavia no llego el primer ScrollChanged
+        // (AltoVisible en 0, ej. el primer frame) se dibuja el documento entero como antes -
+        // mejor un frame de mas trabajo que un editor vacio.
+        int primeraLinea = 0;
+        int ultimaLinea = Tab.Lineas.Count - 1;
+        if (AltoVisible > 0)
+        {
+            primeraLinea = Math.Max(0, (int)(DesplazamientoY / altoLinea) - 2);
+            ultimaLinea = Math.Min(Tab.Lineas.Count - 1, (int)((DesplazamientoY + AltoVisible) / altoLinea) + 2);
+        }
 
         // nivel de anidado de brackets: se acumula linea a linea (un bracket puede abrir en una
         // linea y cerrar varias mas abajo), por eso vive afuera del for en vez de reiniciarse por
         // linea. Se calcula SIEMPRE (no solo con bracket-colorizer instalado): rainbow-indent
         // tambien lo usa para saber el nivel de anidado de una linea sin indentacion real (este
         // editor no auto-indenta al escribir "{" + Enter, asi que contar solo espacios dejaba las
-        // guias sin nada que dibujar en el uso tipico)
+        // guias sin nada que dibujar en el uso tipico).
+        // Para las lineas antes del viewport hace falta igual saber en que nivel se entra (si no,
+        // el color de la guia/bracket "saltaria" al llegar ahi con scroll) - se cuenta sin dibujar,
+        // que es mucho mas barato que shapear texto (no crea FormattedText, solo recorre chars).
         int nivelBrackets = 0;
+        for (int i = 0; i < primeraLinea; i++)
+            nivelBrackets = ProcesarBrackets(context, Tab.Lineas[i], y: 0, nivelBrackets, fontSize, dibujar: false);
 
-        for (int i = 0; i < Tab.Lineas.Count; i++)
+        for (int i = primeraLinea; i <= ultimaLinea; i++)
         {
-            double y = 4 + i * AltoLinea;
+            double y = 4 + i * altoLinea;
             var texto = Tab.Lineas[i];
 
             if (i == Tab.FilaCursor)
-                context.FillRectangle(ColorLineaActual, new Rect(0, y, Bounds.Width, AltoLinea));
+                context.FillRectangle(ColorLineaActual, new Rect(0, y, Bounds.Width, altoLinea));
 
             DibujarSeleccionEnLinea(context, i, y);
 

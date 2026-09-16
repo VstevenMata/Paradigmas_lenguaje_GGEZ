@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using Avalonia.Media;
 
@@ -20,8 +21,28 @@ static class EditorFont
     public static FormattedText Formatear(string texto, double fontSize, IBrush brush, bool negrita = false) =>
         new(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, negrita ? TypefaceNegrita : Typeface, fontSize, brush);
 
-    public static double Medir(string texto, double fontSize) =>
-        texto.Length == 0 ? 0 : Formatear(texto, fontSize, Brushes.Black).Width;
+    // Medir()/MedirPrefijo() se llaman decenas de veces por linea (seleccion, guias de indentacion,
+    // resaltado de brackets, TODO, click-to-column...) y CADA linea se vuelve a medir en CADA
+    // keystroke porque EditorTextArea redibuja el documento entero (ver Render/MeasureOverride) -
+    // sin cache, tipear una letra vuelve a mandar a shapear texto (FormattedText, el trabajo caro de
+    // Skia) miles de veces incluso para lineas que no cambiaron. El contenido+tamaño de fuente es la
+    // clave: el ancho de un mismo texto al mismo tamaño no cambia, asi que una vez medido alcanza.
+    static readonly Dictionary<(string Texto, double FontSize), double> _cacheAnchos = new();
+    const int LimiteCache = 50_000; // valvula de seguridad: una sesion larga no debe crecer sin tope
+
+    public static double Medir(string texto, double fontSize)
+    {
+        if (texto.Length == 0) return 0;
+
+        var clave = (texto, fontSize);
+        if (_cacheAnchos.TryGetValue(clave, out double anchoCacheado)) return anchoCacheado;
+
+        if (_cacheAnchos.Count >= LimiteCache) _cacheAnchos.Clear();
+
+        double ancho = Formatear(texto, fontSize, Brushes.Black).Width;
+        _cacheAnchos[clave] = ancho;
+        return ancho;
+    }
 
     // Medir() recorta el avance de los blancos AL FINAL del texto (por eso una corrida de solo
     // espacios mide 0, ver AnchoContinuacion en EditorTextArea) - para medir un prefijo de linea

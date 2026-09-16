@@ -130,7 +130,7 @@
                 <Grid IsVisible="{Binding HayArchivosAbiertos}" ColumnDefinitions="*,Auto,Auto">
                     <ScrollViewer Name="PART_ScrollVertical" Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
                         <Grid ColumnDefinitions="Auto,*">
-                            <controls:EditorGutter Grid.Column="0" Tab="{Binding TabActiva}" TamanoFuente="{Binding TamanoFuente}" />
+                            <controls:EditorGutter Name="PART_Gutter" Grid.Column="0" Tab="{Binding TabActiva}" TamanoFuente="{Binding TamanoFuente}" />
                             <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
                                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <!-- MinWidth=ancho del viewport: sin esto, un archivo con lineas cortas/vacias

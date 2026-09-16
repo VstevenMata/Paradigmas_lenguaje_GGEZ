@@ -11,10 +11,6 @@
         <controls:Win95Divider Grid.Row="0" Orientation="Horizontal" />
 
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-            <controls:Win95Bevel Grid.Column="0" Sunken="True" BevelThickness="1" Margin="2,2,0,2" Padding="6,4" MinWidth="400">
-                <TextBlock Text="{Binding Mensaje}" FontSize="15" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            </controls:Win95Bevel>
-
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <controls:Win95Bevel Sunken="True" BevelThickness="1" Margin="2,2,0,2" Padding="6,4"
                                       IsVisible="{Binding PosicionCursor, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">

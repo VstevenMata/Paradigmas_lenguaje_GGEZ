@@ -383,6 +383,11 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         catch { return ruta; }
     }
 
-    // corta el proceso que haya quedado vivo, tanto al eliminar esta instancia como al cerrar la app
-    public void Cerrar() => _proceso.Cerrar();
+    // corta el proceso que haya quedado vivo y para el timer de drenado, tanto al eliminar esta
+    // instancia como al cerrar la app - si no, el timer sigue corriendo cada 33ms para siempre
+    public void Cerrar()
+    {
+        _timer.Stop();
+        _proceso.Cerrar();
+    }
 }

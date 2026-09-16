@@ -63,6 +63,27 @@ public class EditorGutter : Control
 
     public double AltoLinea => EditorFont.AltoLinea(TamanoFuente);
 
+    // mismo par que EditorTextArea.DesplazamientoY/AltoVisible, sincronizado desde el mismo lugar
+    // (EditorView.axaml.cs, en cada ScrollChanged) - sin esto Render() dibujaba los numeros de
+    // TODAS las lineas del archivo en cada frame, aunque el gutter solo muestre unas pocas decenas
+    public static readonly StyledProperty<double> DesplazamientoYProperty =
+        AvaloniaProperty.Register<EditorGutter, double>(nameof(DesplazamientoY));
+
+    public double DesplazamientoY
+    {
+        get => GetValue(DesplazamientoYProperty);
+        set => SetValue(DesplazamientoYProperty, value);
+    }
+
+    public static readonly StyledProperty<double> AltoVisibleProperty =
+        AvaloniaProperty.Register<EditorGutter, double>(nameof(AltoVisible));
+
+    public double AltoVisible
+    {
+        get => GetValue(AltoVisibleProperty);
+        set => SetValue(AltoVisibleProperty, value);
+    }
+
     static EditorGutter()
     {
         TabProperty.Changed.AddClassHandler<EditorGutter>((c, e) =>
@@ -73,6 +94,11 @@ public class EditorGutter : Control
         });
 
         TamanoFuenteProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.Refrescar());
+
+        // scroll: no cambia el tamaño total del gutter, solo que rango dibuja - alcanza con
+        // InvalidateVisual()
+        DesplazamientoYProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.InvalidateVisual());
+        AltoVisibleProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.InvalidateVisual());
     }
 
     void Refrescar()
@@ -94,12 +120,23 @@ public class EditorGutter : Control
         // repetirlo una vez por linea (ya no cambia dentro de este frame)
         double anchoNumeros = AnchoNumeros;
         double margenDerecho = MargenNumeros / 2.0;
+        double altoLinea = AltoLinea;
 
-        for (int i = 0; i < Tab.Lineas.Count; i++)
+        // mismo viewport que EditorTextArea.Render (ver comentario ahi): solo los numeros que
+        // realmente se ven, no el archivo entero en cada frame
+        int primeraLinea = 0;
+        int ultimaLinea = Tab.Lineas.Count - 1;
+        if (AltoVisible > 0)
+        {
+            primeraLinea = Math.Max(0, (int)(DesplazamientoY / altoLinea) - 2);
+            ultimaLinea = Math.Min(Tab.Lineas.Count - 1, (int)((DesplazamientoY + AltoVisible) / altoLinea) + 2);
+        }
+
+        for (int i = primeraLinea; i <= ultimaLinea; i++)
         {
             string numero = (i + 1).ToString("D3");
             var formatted = EditorFont.Formatear(numero, TamanoFuente, Brushes.DarkGray);
-            double y = i * AltoLinea;
+            double y = i * altoLinea;
             context.DrawText(formatted, new Point(anchoNumeros - formatted.Width - margenDerecho, y));
         }
     }

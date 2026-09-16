@@ -157,13 +157,17 @@
                                       MinWidth="0" MaxWidth="560" />
                 </Grid.ColumnDefinitions>
 
-                <!-- sin IsVisible: el contenido se recorta solo (ClipToBounds) a medida que el ancho
-                     anima hacia 0, igual que el original (que seguia dibujando hasta que el ancho
-                     llegaba justo a 0) -->
-                <Border Grid.Column="0" ClipToBounds="True">
-                    <!-- el IsVisible va en el Border envolvente (no en la vista) porque, apenas la
-                         vista pisa su propio DataContext con Explorer/Extensions, un binding puesto
-                         ahi mismo se resuelve contra ese DataContext nuevo en vez del de la ventana -->
+                <!-- IsVisible en el Border de afuera: el ancho ya cambia de una (sin animacion), pero
+                     mientras se arrastra el GridSplitter en vivo el ancho pasa por valores chicos
+                     sin que ExploradorVisible cambie - ClipToBounds sigue haciendo falta para eso.
+                     Con IsVisible=False (panel cerrado del todo) ni siquiera se mide/dibuja el
+                     contenido de adentro (arbol de archivos/extensiones/ajustes), en vez de
+                     seguir viva a ancho 0 -->
+                <Border Grid.Column="0" ClipToBounds="True" IsVisible="{Binding ExploradorVisible}">
+                    <!-- el IsVisible de cada vista va en el Border envolvente (no en la vista) porque,
+                         apenas la vista pisa su propio DataContext con Explorer/Extensions, un
+                         binding puesto ahi mismo se resuelve contra ese DataContext nuevo en vez del
+                         de la ventana -->
                     <Grid>
                         <Border IsVisible="{Binding MostrarPanelPorDefecto}">
                             <views:ExplorerView DataContext="{Binding Explorer}" />
@@ -185,7 +189,7 @@
                 <GridSplitter Grid.Column="3" Width="6" Background="Transparent" ResizeDirection="Columns"
                               IsVisible="{Binding PanelDerechoVisible}" />
 
-                <Border Grid.Column="4" ClipToBounds="True">
+                <Border Grid.Column="4" ClipToBounds="True" IsVisible="{Binding PanelDerechoVisible}">
                     <views:PanelJuegoView DataContext="{Binding PanelJuego}" />
                 </Border>
             </Grid>

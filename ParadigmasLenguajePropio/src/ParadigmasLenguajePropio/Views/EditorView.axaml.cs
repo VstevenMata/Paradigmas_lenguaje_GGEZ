@@ -30,6 +30,7 @@ public partial class EditorView : UserControl
     ScrollViewer _scrollVertical = null!;
     ScrollViewer _scrollHorizontal = null!;
     EditorTextArea _textArea = null!;
+    EditorGutter _gutter = null!;
     EditorMinimap _minimapa = null!;
     ScrollBar _scrollBarVertical = null!;
     TextBox _campoBuscar = null!;
@@ -61,6 +62,7 @@ public partial class EditorView : UserControl
         _scrollVertical = this.FindControl<ScrollViewer>("PART_ScrollVertical")!;
         _scrollHorizontal = this.FindControl<ScrollViewer>("PART_ScrollHorizontal")!;
         _textArea = this.FindControl<EditorTextArea>("PART_TextArea")!;
+        _gutter = this.FindControl<EditorGutter>("PART_Gutter")!;
         _minimapa = this.FindControl<EditorMinimap>("PART_Minimap")!;
         _scrollBarVertical = this.FindControl<ScrollBar>("PART_ScrollBarVertical")!;
         _campoBuscar = this.FindControl<TextBox>("PART_CampoBuscar")!;
@@ -143,6 +145,14 @@ public partial class EditorView : UserControl
         _minimapa.AltoTotal = _scrollVertical.Extent.Height;
         _minimapa.AltoVisible = _scrollVertical.Viewport.Height;
         _minimapa.Desplazamiento = _scrollVertical.Offset.Y;
+
+        // idem para el area de texto y el gutter: asi Render() sabe que rango de lineas dibujar
+        // en vez de redibujar el archivo entero en cada scroll/resize (ver comentario en
+        // EditorTextArea.DesplazamientoY)
+        _textArea.DesplazamientoY = _scrollVertical.Offset.Y;
+        _textArea.AltoVisible = _scrollVertical.Viewport.Height;
+        _gutter.DesplazamientoY = _scrollVertical.Offset.Y;
+        _gutter.AltoVisible = _scrollVertical.Viewport.Height;
 
         // mismos tres datos, ahora para el ScrollBar propio: asignar Value aca no dispara su
         // evento Scroll (ese solo sale de interaccion del usuario), asi que no hay vuelta

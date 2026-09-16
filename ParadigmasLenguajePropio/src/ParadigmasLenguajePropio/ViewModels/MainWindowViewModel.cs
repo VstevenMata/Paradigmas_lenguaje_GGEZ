@@ -1,5 +1,4 @@
 using Avalonia.Input.Platform;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
@@ -31,9 +30,6 @@ public partial class MainWindowViewModel : ViewModelBase
     const double AnchoPanelDerechoInicial = 340;
     const double AlturaTerminalMinima = 80;
     const double AlturaTerminalInicial = 160;
-
-    // px/seg: misma velocidad que velocidadColapsoExplorador/VelocidadAnimacion en el original
-    const double VelocidadColapso = 1400;
 
     [ObservableProperty]
     private bool _exploradorVisible = true;
@@ -95,10 +91,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     double _anchoExploradorGuardado = AnchoExploradorInicial;
     double _anchoPanelDerechoGuardado = AnchoPanelDerechoInicial;
-    double _anchoExploradorObjetivo = AnchoExploradorInicial;
-    double _anchoPanelDerechoObjetivo = AnchoPanelDerechoInicial;
-    DispatcherTimer? _timerColapso;
-    DateTime _ultimoTickColapso;
 
     public MainWindowViewModel()
     {
@@ -326,10 +318,16 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     void AlternarExplorador()
     {
-        if (ExploradorVisible) _anchoExploradorGuardado = AnchoExplorador > 0 ? AnchoExplorador : _anchoExploradorGuardado;
+        if (ExploradorVisible)
+        {
+            _anchoExploradorGuardado = AnchoExplorador > 0 ? AnchoExplorador : _anchoExploradorGuardado;
+            AnchoExplorador = 0;
+        }
+        else
+        {
+            AnchoExplorador = _anchoExploradorGuardado;
+        }
         ExploradorVisible = !ExploradorVisible;
-        _anchoExploradorObjetivo = ExploradorVisible ? _anchoExploradorGuardado : 0;
-        AsegurarAnimacionColapsoCorriendo();
     }
 
     // botones dedicados de la activity bar (📁 / 🧩): a diferencia de AlternarExplorador, estos no
@@ -361,40 +359,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     void AlternarPanelDerecho()
     {
-        if (PanelDerechoVisible) _anchoPanelDerechoGuardado = AnchoPanelDerecho > 0 ? AnchoPanelDerecho : _anchoPanelDerechoGuardado;
-        PanelDerechoVisible = !PanelDerechoVisible;
-        _anchoPanelDerechoObjetivo = PanelDerechoVisible ? _anchoPanelDerechoGuardado : 0;
-        AsegurarAnimacionColapsoCorriendo();
-    }
-
-    // reemplaza la easing manual con GetFrameTime() del original (para el explorador, en Ggez.cs,
-    // y para el panel derecho, en PanelJuego.Update()): un unico timer que corre solo mientras algo
-    // se esta animando, y se para solo cuando ambos anchos llegan a su objetivo.
-    void AsegurarAnimacionColapsoCorriendo()
-    {
-        if (_timerColapso != null) return;
-        _ultimoTickColapso = DateTime.UtcNow;
-        _timerColapso = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-        _timerColapso.Tick += (_, _) => TickAnimacionColapso();
-        _timerColapso.Start();
-    }
-
-    void TickAnimacionColapso()
-    {
-        var ahora = DateTime.UtcNow;
-        double paso = VelocidadColapso * (ahora - _ultimoTickColapso).TotalSeconds;
-        _ultimoTickColapso = ahora;
-
-        AnchoExplorador = Avanzar(AnchoExplorador, _anchoExploradorObjetivo, paso);
-        AnchoPanelDerecho = Avanzar(AnchoPanelDerecho, _anchoPanelDerechoObjetivo, paso);
-
-        if (AnchoExplorador == _anchoExploradorObjetivo && AnchoPanelDerecho == _anchoPanelDerechoObjetivo)
+        if (PanelDerechoVisible)
         {
-            _timerColapso!.Stop();
-            _timerColapso = null;
+            _anchoPanelDerechoGuardado = AnchoPanelDerecho > 0 ? AnchoPanelDerecho : _anchoPanelDerechoGuardado;
+            AnchoPanelDerecho = 0;
         }
+        else
+        {
+            AnchoPanelDerecho = _anchoPanelDerechoGuardado;
+        }
+        PanelDerechoVisible = !PanelDerechoVisible;
     }
-
-    static double Avanzar(double actual, double objetivo, double paso) =>
-        Math.Abs(objetivo - actual) <= paso ? objetivo : actual + Math.Sign(objetivo - actual) * paso;
 }
