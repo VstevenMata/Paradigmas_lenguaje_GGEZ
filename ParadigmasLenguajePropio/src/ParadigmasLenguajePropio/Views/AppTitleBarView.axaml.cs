@@ -20,11 +20,20 @@ public partial class AppTitleBarView : UserControl
         InitializeComponent();
 
         _fondo = this.FindControl<Border>("PART_Fondo")!;
-        this.FindControl<Button>("PART_Minimizar")!.Click += (_, _) => { if (_window != null) _window.WindowState = WindowState.Minimized; };
+        this.FindControl<Button>("PART_Minimizar")!.Click += (_, _) =>
+        {
+            if (_window == null) return;
+            // niri no tiene minimizar: lo mas parecido es mandar la ventana al workspace de abajo sin seguirla
+            if (EnNiri) NiriAccion("move-window-to-workspace-down", "--focus", "false");
+            else _window.WindowState = WindowState.Minimized;
+        };
         this.FindControl<Button>("PART_Maximizar")!.Click += (_, _) =>
         {
             if (_window == null) return;
-            _window.WindowState = _window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            // bajo niri la app corre por xwayland-satellite, que ignora el pedido X11 de maximizar
+            // (_NET_WM_STATE_MAXIMIZED): se le pide directo a niri, que ademas alterna solo
+            if (EnNiri) NiriAccion("maximize-window-to-edges");
+            else _window.WindowState = _window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         };
         this.FindControl<Button>("PART_Cerrar")!.Click += (_, _) => _window?.Close();
 
@@ -32,6 +41,15 @@ public partial class AppTitleBarView : UserControl
         campo.KeyDown += CampoBusqueda_KeyDown;
 
         _fondo.PointerPressed += Fondo_PointerPressed;
+    }
+
+    static bool EnNiri => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NIRI_SOCKET"));
+
+    // las acciones de niri van sobre la ventana enfocada, que es esta: se acaba de clickear su boton
+    static void NiriAccion(params string[] args)
+    {
+        try { System.Diagnostics.Process.Start("niri", ["msg", "action", .. args]); }
+        catch (System.ComponentModel.Win32Exception) { } // niri no esta en el PATH
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
