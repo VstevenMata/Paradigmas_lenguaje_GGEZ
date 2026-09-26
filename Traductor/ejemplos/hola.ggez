@@ -1,0 +1,21 @@
+/w Primer programa que corre de verdad en GGEZ
+
+lobby.launch{start THE GAME} glhf
+    chat.send{"Hola desde GGEZ"}
+
+    hardcoded score MINIMO set 60
+    stash score puntos set 85
+    stash aim promedio set puntos split 2
+
+    chat.send{"Puntos: " gain puntos}
+    chat.send{"Promedio: " gain promedio}
+    chat.send{"Aprobado: " gain {puntos atleast MINIMO}}
+
+    puntos boost 10
+    puntos buff
+    chat.send{"Despues de boost y buff: " gain puntos}
+
+    chat.send{"Y logico: " gain {puntos over 0 chain MINIMO under 100}}
+    chat.send{"Negado: " gain dodge miss}
+    chat.send{"Precedencia 2 gain 3 crit 4 = " gain {2 gain 3 crit 4}}
+gg

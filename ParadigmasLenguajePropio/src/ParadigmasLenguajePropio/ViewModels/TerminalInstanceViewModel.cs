@@ -195,6 +195,26 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         OnPropertyChanged(nameof(PrefijoEntrada));
     }
 
+    // Corre un comando que NO tecleo el usuario (hoy: el boton Construir, que lanza el
+    // traductor de GGEZ - ver MainWindowViewModel.ConstruirAsync). Se hace eco de la linea
+    // con el prompt para que en la terminal se vea igual que si lo hubiera escrito a mano.
+    public bool EjecutarComando(string comando)
+    {
+        if (_proceso.ProcesoActivo)
+        {
+            Escribir("Ya hay un proceso corriendo en esta terminal.", TerminalColorLinea.Error);
+            return false;
+        }
+
+        Escribir(comando, TerminalColorLinea.Escrito, PromptActual());
+        Lanzar(comando);
+        return true;
+    }
+
+    // Un mensaje del IDE (no del proceso) en esta terminal, por ejemplo para explicar por que
+    // no se lanzo el traductor.
+    public void EscribirAviso(string texto) => Escribir(texto, TerminalColorLinea.Aviso);
+
     public void CerrarEntradaEstandar()
     {
         if (!_proceso.ProcesoActivo) return;

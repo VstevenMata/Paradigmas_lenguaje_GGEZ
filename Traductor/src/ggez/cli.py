@@ -16,8 +16,11 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import semantico
 from .errores import ErrorGgez
+from .evaluador import ejecutar
 from .lexer import tokenizar
+from .sintactico import parsear
 from .tokens import TipoToken
 
 EXITO = 0
@@ -40,13 +43,12 @@ def _comando_tokens(ruta: Path) -> int:
 
 
 def _comando_run(ruta: Path) -> int:
+    """Las cuatro etapas: lexico -> sintactico -> semantico -> ejecucion."""
     tokens = tokenizar(_leer(ruta), ruta.name)
-    # TODO: parser -> analisis semantico -> evaluador.
-    # Mientras tanto se reporta el avance real en vez de fingir que ejecuta.
-    reales = [t for t in tokens if t.tipo not in (TipoToken.FIN_LINEA, TipoToken.FIN_ARCHIVO)]
-    print(f"Analisis lexico correcto: {len(reales)} tokens en {ruta.name}.")
-    print("El analizador sintactico todavia no esta implementado.")
-    return FALLO_TRADUCCION
+    arbol = parsear(tokens, ruta.name)
+    semantico.analizar(arbol, ruta.name)
+    ejecutar(arbol, ruta.name)
+    return EXITO
 
 
 def main(argv: list[str] | None = None) -> int:
