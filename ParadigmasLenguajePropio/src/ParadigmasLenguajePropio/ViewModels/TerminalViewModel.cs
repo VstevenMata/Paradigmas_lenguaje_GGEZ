@@ -59,6 +59,15 @@ public partial class TerminalViewModel : ViewModelBase
     [ObservableProperty]
     private TerminalInstanceViewModel? _instanciaActiva;
 
+    // Donde mandar un comando que no tecleo el usuario (el boton Construir). Se prefiere la que
+    // tiene el foco; si esa quedo oculta o todavia no hay ninguna activa, la primera visible.
+    // Se saltan las terminales reales de la extension de Claude: esas corren una PTY con su
+    // propia sesion interactiva y meterles un comando por este camino no haria lo esperado.
+    public TerminalInstanceViewModel? InstanciaParaComando =>
+        InstanciaActiva is { EnColumna: true, EsReal: false } activa
+            ? activa
+            : InstanciasVisibles.FirstOrDefault(i => !i.EsReal);
+
     // la extension de Claude (ver ExtensionsViewModel.Claude): decide con que corre CADA columna
     // NUEVA (ver TerminalInstanceViewModel.EsReal) - una PTY real (ClaudeTerminalView) en vez de la
     // simulada por pipes, fijo para esa instancia de por vida (instalar/desinstalar la extension
@@ -204,7 +213,7 @@ public partial class TerminalViewModel : ViewModelBase
     // TerminalView.axaml.cs y TerminalInstanceView.axaml.cs) - null limpio quita el resaltado sin
     // marcar ninguna (ver Instancia_PropertyChanged al ocultar la ultima activa visible)
     [RelayCommand]
-    void EnfocarInstancia(TerminalInstanceViewModel? instancia)
+    public void EnfocarInstancia(TerminalInstanceViewModel? instancia)
     {
         if (InstanciaActiva == instancia) return;
         if (InstanciaActiva != null) InstanciaActiva.EsActiva = false;

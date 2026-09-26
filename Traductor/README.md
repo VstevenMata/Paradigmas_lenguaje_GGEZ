@@ -105,31 +105,35 @@ El panel **Problemas** además parsea ese formato con la expresión regular de
 
 ## Cómo se conecta con el botón Play/Construir del IDE
 
-Ya existe el enganche, solo falta que llame al comando de arriba. Ahora mismo:
+**Ya está cableado.** El menú **Ejecutar → Construir** (`MenuBarViewModel.cs:24`) dispara
+`ManejarOpcionMenu("Construir")`, que llama `ConstruirAsync()` en `MainWindowViewModel`.
+Esa función ahora:
 
-- El menú **Ejecutar → Construir** (`MenuBarViewModel.cs:24`) dispara
-  `ManejarOpcionMenu("Construir")` (`MainWindowViewModel.cs:247`), que llama
-  `ConstruirAsync()` (`MainWindowViewModel.cs:187`). Hoy esa función solo guarda todo y abre la
-  terminal — ahí es donde hay que agregar el lanzamiento real, algo como:
+1. Guarda todos los archivos (`Editor.GuardarTodoAsync()`), porque el traductor lee del disco.
+2. Abre el panel de la terminal en la pestaña **Terminal**, que es donde cae la salida del
+   programa. Los errores se copian solos a la pestaña **Errores**.
+3. Toma el archivo activo (`Editor.TabActiva?.RutaCompleta`) y verifica que sea un `.ggez`.
+4. Localiza el traductor con `RutaDelTraductor()`, que **sube desde `AppContext.BaseDirectory`
+   buscando `Traductor/ggezc.py`**. Con `dotnet run` el binario queda en `bin/Debug/netX/`, seis
+   niveles debajo de la raíz del repo; subir hasta encontrarlo evita configurar la ruta a mano
+   en cada máquina.
+5. Lanza `python "<ruta>/Traductor/ggezc.py" run "<archivo>"` en la terminal.
 
-  ```csharp
-  async Task ConstruirAsync()
-  {
-      if (!HayLugarParaTerminal) return;
-      await Editor.GuardarTodoAsync();
-      TerminalVisible = true;
-      Terminal.TabActiva = 1;
-      // agregar acá: lanzar "python <raíz>/Traductor/ggezc.py run <archivo activo>"
-      // en la instancia de terminal activa (mismo Process.Start que ya usa
-      // TerminalProcessService.Lanzar para cualquier otro comando)
-  }
-  ```
+Si algo falta (archivo sin guardar, no es `.ggez`, no aparece el traductor) escribe un aviso en
+la terminal en vez de fallar en silencio.
 
-- **Ejecutar → Pausar/Reanudar** y el botón de pausa de `PanelJuegoViewModel` ya están armados
-  para alternar `PanelJuego.EnPausa`; falta que ese toggle también suspenda el proceso del
-  traductor (`SIGSTOP`/`SIGCONT` en Linux, la alternativa de `ntdll.dll` en Windows).
-- **Ejecutar → Ver salida** ya cambia a la pestaña de terminal/errores — no necesita cambios.
+Piezas que se agregaron del lado C# para esto, por si hay que tocarlas:
 
-Con esto, "botón play" y "comando de terminal" son la misma ruta: ambos terminan llamando
-`TerminalProcessService.Lanzar(comando, directorioActual)` con el mismo `comando`. No hace
-falta un camino separado para cada botón.
+| Miembro | Dónde | Para qué |
+|---|---|---|
+| `TerminalInstanceViewModel.EjecutarComando(string)` | público | corre un comando que no tecleó el usuario, con eco del prompt |
+| `TerminalInstanceViewModel.EscribirAviso(string)` | público | un mensaje del IDE, no del proceso |
+| `TerminalViewModel.InstanciaParaComando` | propiedad | a qué terminal mandarlo: la enfocada, o la primera visible; salta las PTY reales de la extensión de Claude |
+| `TerminalViewModel.EnfocarInstancia(...)` | pasó de privado a público | |
+
+**Pendiente:** **Ejecutar → Pausar/Reanudar** y el botón de pausa de `PanelJuegoViewModel` ya
+alternan `PanelJuego.EnPausa`, pero ese toggle todavía no suspende el proceso del traductor
+(`SIGSTOP`/`SIGCONT` en Linux, la alternativa de `ntdll.dll` en Windows).
+
+"Botón play" y "comando de terminal" son la misma ruta: ambos terminan llamando
+`TerminalProcessService.Lanzar(comando, directorioActual)` con el mismo `comando`.

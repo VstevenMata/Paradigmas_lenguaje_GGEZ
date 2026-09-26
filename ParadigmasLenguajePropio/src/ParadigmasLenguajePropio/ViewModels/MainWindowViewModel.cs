@@ -218,13 +218,61 @@ public partial class MainWindowViewModel : ViewModelBase
     // propio ejecutable, no la del proyecto del usuario)
     bool HayLugarParaTerminal => Explorer.HayProyecto || Editor.HayArchivosAbiertos;
 
+    // Ejecuta el .ggez abierto con el traductor (Traductor/ggezc.py). El contrato esta en
+    // Traductor/README.md: stdout es la salida del programa, stderr lleva los errores como
+    // archivo:linea:columna: etapa: mensaje, y el codigo de salida dice si fallo. Nada de eso
+    // necesita codigo nuevo aca: la terminal ya separa stdout de stderr, ya copia stderr a la
+    // pestaña Errores y ya marca en rojo el codigo distinto de cero.
     [RelayCommand]
     async Task ConstruirAsync()
     {
         if (!HayLugarParaTerminal) return;
         await Editor.GuardarTodoAsync();
         TerminalVisible = true;
-        Terminal.TabActiva = 1;
+        // antes saltaba a la pestaña Errores (1); ahora que el comando corre de verdad, lo que
+        // el usuario quiere ver primero es la salida del programa, que vive en Terminal (0).
+        // Los errores igual se copian solos a la pestaña Errores (ver OnError).
+        Terminal.TabActiva = 0;
+
+        var terminal = Terminal.InstanciaParaComando;
+        if (terminal == null) return;
+        Terminal.EnfocarInstancia(terminal);
+
+        // el traductor lee del disco, no del buffer: sin ruta no hay nada que ejecutar
+        string? archivo = Editor.TabActiva?.RutaCompleta;
+        if (string.IsNullOrEmpty(archivo))
+        {
+            terminal.EscribirAviso("Guarde el archivo antes de construir.");
+            return;
+        }
+
+        if (!archivo.EndsWith(".ggez", StringComparison.OrdinalIgnoreCase))
+        {
+            terminal.EscribirAviso($"'{Path.GetFileName(archivo)}' no es un archivo .ggez.");
+            return;
+        }
+
+        string? traductor = RutaDelTraductor();
+        if (traductor == null)
+        {
+            terminal.EscribirAviso("No se encontro Traductor/ggezc.py subiendo desde el ejecutable.");
+            return;
+        }
+
+        terminal.EjecutarComando($"python \"{traductor}\" run \"{archivo}\"");
+    }
+
+    // Busca Traductor/ggezc.py subiendo desde la carpeta del ejecutable: con 'dotnet run' el
+    // binario queda en bin/Debug/netX/, varios niveles debajo de la raiz del repo. Subir hasta
+    // encontrarlo evita tener que configurar la ruta a mano en cada maquina.
+    static string? RutaDelTraductor()
+    {
+        for (var carpeta = new DirectoryInfo(AppContext.BaseDirectory); carpeta != null; carpeta = carpeta.Parent)
+        {
+            string candidato = Path.Combine(carpeta.FullName, "Traductor", "ggezc.py");
+            if (File.Exists(candidato)) return candidato;
+        }
+        return null;
     }
 
     // comandos de la barra lateral de iconos (MainWindow.axaml): el original la tenia como una
