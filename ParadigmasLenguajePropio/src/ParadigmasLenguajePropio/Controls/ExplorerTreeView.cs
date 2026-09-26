@@ -22,7 +22,7 @@ public class ExplorerTreeView : Control
     const int MargenIzquierdo = 4;
     const double UmbralDobleClickMs = 400;
 
-    static readonly IBrush ColorGuia = new SolidColorBrush(Color.FromRgb(190, 190, 190));
+    static readonly IPen PlumaGuia = new Pen(new SolidColorBrush(Color.FromRgb(190, 190, 190)));
 
     public static readonly StyledProperty<NodoArchivos?> RaizProperty =
         AvaloniaProperty.Register<ExplorerTreeView, NodoArchivos?>(nameof(Raiz));
@@ -72,10 +72,11 @@ public class ExplorerTreeView : Control
     static void SuscribirRecursivo(NodoArchivos nodo, Action refrescar)
     {
         nodo.PropertyChanged += (_, _) => refrescar();
-        nodo.Hijos.CollectionChanged += (_, _) =>
+        nodo.Hijos.CollectionChanged += (_, e) =>
         {
             refrescar();
-            foreach (var hijo in nodo.Hijos) SuscribirRecursivo(hijo, refrescar);
+            // solo los nuevos: re-suscribir a todos duplicaba handlers en cada cambio
+            if (e.NewItems != null) foreach (NodoArchivos hijo in e.NewItems) SuscribirRecursivo(hijo, refrescar);
         };
         foreach (var hijo in nodo.Hijos) SuscribirRecursivo(hijo, refrescar);
     }
@@ -129,7 +130,7 @@ public class ExplorerTreeView : Control
         double xGuia = MargenIzquierdo + nivel * IndentacionPorNivel + LadoIconoCarpeta / 2.0;
         double yInicio = filaInicioHijos * AltoFila;
         double yFin = fila * AltoFila;
-        context.DrawLine(new Pen(ColorGuia), new Point(xGuia, yInicio), new Point(xGuia, yFin));
+        context.DrawLine(PlumaGuia, new Point(xGuia, yInicio), new Point(xGuia, yFin));
     }
 
     void DibujarFila(DrawingContext context, NodoArchivos nodo, int nivel, int fila)

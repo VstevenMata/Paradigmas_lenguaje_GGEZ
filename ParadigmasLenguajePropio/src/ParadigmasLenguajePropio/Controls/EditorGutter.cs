@@ -88,8 +88,8 @@ public class EditorGutter : Control
     {
         TabProperty.Changed.AddClassHandler<EditorGutter>((c, e) =>
         {
-            if (e.OldValue is EditorTabViewModel viejo) { viejo.ContenidoCambiado -= c.Refrescar; viejo.CursorCambiado -= c.Refrescar; }
-            if (e.NewValue is EditorTabViewModel nuevo) { nuevo.ContenidoCambiado += c.Refrescar; nuevo.CursorCambiado += c.Refrescar; }
+            if (e.OldValue is EditorTabViewModel viejo) viejo.ContenidoCambiado -= c.Refrescar;
+            if (e.NewValue is EditorTabViewModel nuevo) nuevo.ContenidoCambiado += c.Refrescar;
             c.Refrescar();
         });
 

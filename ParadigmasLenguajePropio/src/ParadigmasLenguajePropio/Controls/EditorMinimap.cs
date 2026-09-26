@@ -106,7 +106,9 @@ public class EditorMinimap : Control
         // con letras gigantes (ver comentario de clase)
         double altoLinea = Math.Min(AltoLineaMaximo, Bounds.Height / Tab.Lineas.Count);
 
-        for (int i = 0; i < Tab.Lineas.Count; i++)
+        // con mas lineas que pixeles de alto se dibuja una de cada N: el resto caeria encimado
+        int paso = Math.Max(1, (int)(1 / altoLinea));
+        for (int i = 0; i < Tab.Lineas.Count; i += paso)
         {
             string linea = Tab.Lineas[i];
             if (linea.Length == 0) continue;

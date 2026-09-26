@@ -15,6 +15,7 @@ public partial class TerminalInstanceView : UserControl
     ScrollViewer _scroll = null!;
     TextBox _entrada = null!;
     bool _ancladoAlFinal = true; // false mientras el usuario se fue a mirar salida vieja
+    bool _scrollPendiente;
 
     public TerminalInstanceView()
     {
@@ -35,8 +36,10 @@ public partial class TerminalInstanceView : UserControl
 
     void SeguirAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (!_ancladoAlFinal) return;
-        Dispatcher.UIThread.Post(() => _scroll.ScrollToEnd(), DispatcherPriority.Background);
+        // un comando ruidoso agrega cientos de lineas por tick: un solo ScrollToEnd alcanza
+        if (!_ancladoAlFinal || _scrollPendiente) return;
+        _scrollPendiente = true;
+        Dispatcher.UIThread.Post(() => { _scrollPendiente = false; _scroll.ScrollToEnd(); }, DispatcherPriority.Background);
     }
 
     // clickear en cualquier parte del fondo negro enfoca la linea viva: la caja de texto real

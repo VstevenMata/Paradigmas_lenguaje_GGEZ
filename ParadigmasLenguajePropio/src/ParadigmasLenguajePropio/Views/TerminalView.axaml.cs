@@ -25,6 +25,7 @@ public partial class TerminalView : UserControl
     ItemsControl _columnas = null!;
     Border _lineaInsercion = null!;
     bool _erroresAncladoAlFinal = true;
+    bool _scrollErroresPendiente;
     (TerminalInstanceViewModel Instancia, Point Inicio, PointerPressedEventArgs Disparador)? _candidatoArrastre;
 
     public TerminalView()
@@ -64,8 +65,10 @@ public partial class TerminalView : UserControl
 
     void SeguirErroresAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (!_erroresAncladoAlFinal) return;
-        Dispatcher.UIThread.Post(() => _scrollErrores.ScrollToEnd(), DispatcherPriority.Background);
+        // un comando ruidoso agrega cientos de lineas por tick: un solo ScrollToEnd alcanza
+        if (!_erroresAncladoAlFinal || _scrollErroresPendiente) return;
+        _scrollErroresPendiente = true;
+        Dispatcher.UIThread.Post(() => { _scrollErroresPendiente = false; _scrollErrores.ScrollToEnd(); }, DispatcherPriority.Background);
     }
 
     void TabErrores_PointerPressed(object? sender, PointerPressedEventArgs e)

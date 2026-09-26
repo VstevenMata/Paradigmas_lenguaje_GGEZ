@@ -71,10 +71,8 @@ public class EditorTextArea : Control
     static readonly IBrush ColorLineaActual = new SolidColorBrush(Color.FromRgb(235, 235, 235));
 
     // ancho del resaltado de seleccion en una linea vacia (o al final de una linea que sigue en
-    // la proxima): OJO, no se puede medir con EditorFont.Medir(" ", FontSize) - el ancho de
-    // tinta de un espacio da 0 en este motor de texto (no cuenta el avance de blancos), lo que
-    // dejaria el resaltado invisible de nuevo. Un valor fijo, mas grande que un caracter
-    // angosto tipico, se ve como un bloque de verdad en vez de una raya de unos pocos px.
+    // la proxima): un valor fijo, mas grande que un caracter angosto tipico, se ve como un bloque
+    // de verdad en vez de una raya de unos pocos px.
     const double AnchoContinuacion = 10;
 
     // paleta compartida de Rainbow Indent Guides y Bracket Pair Colorizer (ver
@@ -100,6 +98,7 @@ public class EditorTextArea : Control
         new SolidColorBrush(Color.Parse("#940000")), // Vino/rojo oscuro (fuego apagado)
         new SolidColorBrush(Color.Parse("#005850")), // Verde azul petroleo (agua nocturna)
     };
+    static readonly IPen[] PlumasAnidado = PaletaAnidado.Select(b => (IPen)new Pen(b, 1)).ToArray();
     static readonly IBrush ColorEspaciosSobrantes = new SolidColorBrush(Color.FromArgb(90, 239, 68, 68));
     static readonly (string Palabra, IBrush Color)[] PalabrasTodo =
     {
@@ -141,15 +140,18 @@ public class EditorTextArea : Control
     bool _caretVisible = true;
     readonly DispatcherTimer _parpadeo;
 
+    // nivel de anidado con el que ENTRA cada linea; se recalcula solo cuando cambia el contenido,
+    // no en cada frame de scroll
+    int[]? _nivelesEntrada;
+
     public EditorTextArea()
     {
         Focusable = true;
         _parpadeo = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _parpadeo.Tick += (_, _) => { _caretVisible = !_caretVisible; if (IsFocused) InvalidateVisual(); };
-        _parpadeo.Start();
+        _parpadeo.Tick += (_, _) => { _caretVisible = !_caretVisible; InvalidateVisual(); };
 
-        GotFocus += (_, _) => { _caretVisible = true; InvalidateVisual(); };
-        LostFocus += (_, _) => InvalidateVisual();
+        GotFocus += (_, _) => { _caretVisible = true; _parpadeo.Start(); InvalidateVisual(); };
+        LostFocus += (_, _) => { _parpadeo.Stop(); InvalidateVisual(); };
     }
 
     static EditorTextArea()
@@ -190,6 +192,7 @@ public class EditorTextArea : Control
 
     void Refrescar()
     {
+        _nivelesEntrada = null;
         InvalidateMeasure();
         InvalidateVisual();
     }
@@ -197,6 +200,7 @@ public class EditorTextArea : Control
     void RefrescarCursor()
     {
         _caretVisible = true;
+        if (_parpadeo.IsEnabled) { _parpadeo.Stop(); _parpadeo.Start(); } // no parpadear mientras se tipea/mueve
         InvalidateVisual();
         CursorMovido?.Invoke();
     }
@@ -240,18 +244,10 @@ public class EditorTextArea : Control
             ultimaLinea = Math.Min(Tab.Lineas.Count - 1, (int)((DesplazamientoY + AltoVisible) / altoLinea) + 2);
         }
 
-        // nivel de anidado de brackets: se acumula linea a linea (un bracket puede abrir en una
-        // linea y cerrar varias mas abajo), por eso vive afuera del for en vez de reiniciarse por
-        // linea. Se calcula SIEMPRE (no solo con bracket-colorizer instalado): rainbow-indent
-        // tambien lo usa para saber el nivel de anidado de una linea sin indentacion real (este
-        // editor no auto-indenta al escribir "{" + Enter, asi que contar solo espacios dejaba las
-        // guias sin nada que dibujar en el uso tipico).
-        // Para las lineas antes del viewport hace falta igual saber en que nivel se entra (si no,
-        // el color de la guia/bracket "saltaria" al llegar ahi con scroll) - se cuenta sin dibujar,
-        // que es mucho mas barato que shapear texto (no crea FormattedText, solo recorre chars).
-        int nivelBrackets = 0;
-        for (int i = 0; i < primeraLinea; i++)
-            nivelBrackets = ProcesarBrackets(context, Tab.Lineas[i], y: 0, nivelBrackets, fontSize, dibujar: false);
+        // nivel de anidado: lo usan bracket-colorizer y rainbow-indent (este editor no auto-indenta
+        // al escribir "{" + Enter, asi que contar solo espacios dejaba las guias vacias)
+        bool usaNiveles = rainbowIndent || bracketColorizer;
+        int nivelBrackets = usaNiveles ? NivelesEntrada()[primeraLinea] : 0;
 
         for (int i = primeraLinea; i <= ultimaLinea; i++)
         {
@@ -275,10 +271,20 @@ public class EditorTextArea : Control
                 context.DrawText(EditorFont.Formatear(texto, fontSize, Brushes.Black), new Point(MargenIzquierdo, y));
 
             // recoloreado de brackets: va DESPUES del texto, se dibuja encima
-            nivelBrackets = ProcesarBrackets(context, texto, y, nivelBrackets, fontSize, dibujar: bracketColorizer);
+            if (usaNiveles) nivelBrackets = ProcesarBrackets(bracketColorizer ? context : null, texto, y, nivelBrackets, fontSize);
         }
 
         DibujarCursor(context);
+    }
+
+    int[] NivelesEntrada()
+    {
+        if (_nivelesEntrada != null) return _nivelesEntrada;
+        var lineas = Tab!.Lineas;
+        var niveles = new int[lineas.Count];
+        for (int i = 1; i < lineas.Count; i++)
+            niveles[i] = ProcesarBrackets(null, lineas[i - 1], 0, niveles[i - 1], 0);
+        return _nivelesEntrada = niveles;
     }
 
     // ─────────────────────────── extension: Rainbow Indent Guides ───────────────────────────
@@ -293,11 +299,11 @@ public class EditorTextArea : Control
         // "{" + Enter, asi que contar solo espacios casi nunca tendria nada que mostrar)
         int niveles = Math.Max(espacios / 4, nivelBrackets);
         double altoLinea = EditorFont.AltoLinea(fontSize);
+        double anchoNivel = EditorFont.MedirPrefijo("    ", fontSize);
         for (int nivel = 0; nivel < niveles; nivel++)
         {
-            double x = MargenIzquierdo + EditorFont.MedirPrefijo(new string(' ', nivel * 4), fontSize);
-            var pluma = new Pen(PaletaAnidado[nivel % PaletaAnidado.Length], 1);
-            context.DrawLine(pluma, new Point(x, y), new Point(x, y + altoLinea));
+            double x = MargenIzquierdo + nivel * anchoNivel;
+            context.DrawLine(PlumasAnidado[nivel % PlumasAnidado.Length], new Point(x, y), new Point(x, y + altoLinea));
         }
     }
 
@@ -335,12 +341,11 @@ public class EditorTextArea : Control
 
     // ─────────────────────────── extension: Bracket Pair Colorizer ───────────────────────────
 
-    // cuenta el nivel de anidado SIEMPRE (lo necesita tambien rainbow-indent, ver Render); solo
-    // dibuja los caracteres recoloreados si bracket-colorizer esta instalado.
+    // devuelve el nivel de anidado al final de la linea; con context null solo cuenta, sin dibujar.
     // Ademas de ( ) [ ] { }, reconoce "gglz"/"gg" como un par de bloque (ver
     // TryAutocompletarBloqueGglz) - palabra completa, no una coincidencia adentro de otra palabra
     // (para no confundir un "gg" que aparece dentro de otra palabra).
-    static int ProcesarBrackets(DrawingContext context, string texto, double y, int nivel, double fontSize, bool dibujar)
+    static int ProcesarBrackets(DrawingContext? context, string texto, double y, int nivel, double fontSize)
     {
         int c = 0;
         while (c < texto.Length)
@@ -360,7 +365,7 @@ public class EditorTextArea : Control
             {
                 if (esCierre) nivel = Math.Max(0, nivel - 1);
 
-                if (dibujar)
+                if (context != null)
                 {
                     double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..c], fontSize);
                     var brush = PaletaAnidado[nivel % PaletaAnidado.Length];

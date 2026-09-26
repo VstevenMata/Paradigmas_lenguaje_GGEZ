@@ -4,9 +4,7 @@ using Avalonia.Media;
 
 namespace ParadigmasLenguajePropio.Controls;
 
-// tipografia compartida entre EditorGutter y EditorTextArea, y helper de medicion
-// (reemplaza Win95Style.MeasureText para el editor: FormattedText mide en vez de la
-// tabla de anchos por letra armada a mano).
+// tipografia compartida entre EditorGutter, EditorTextArea y EditorMinimap, con cache de shaping
 static class EditorFont
 {
     public static readonly Typeface Typeface = new(FontFamily.Parse(
@@ -18,38 +16,35 @@ static class EditorFont
         "avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans"),
         FontStyle.Normal, FontWeight.Bold);
 
-    public static FormattedText Formatear(string texto, double fontSize, IBrush brush, bool negrita = false) =>
-        new(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, negrita ? TypefaceNegrita : Typeface, fontSize, brush);
+    // Render() corre en cada tick de scroll: shapear (HarfBuzz) es lo caro, asi que se reusa el
+    // FormattedText mientras la linea no cambie. Tope bajo porque cada entrada guarda glyph runs.
+    static readonly Dictionary<(string, double, IBrush, bool), FormattedText> _cacheTextos = new();
+    const int LimiteCacheTextos = 4_000;
 
-    // Medir()/MedirPrefijo() se llaman decenas de veces por linea (seleccion, guias de indentacion,
-    // resaltado de brackets, TODO, click-to-column...) y CADA linea se vuelve a medir en CADA
-    // keystroke porque EditorTextArea redibuja el documento entero (ver Render/MeasureOverride) -
-    // sin cache, tipear una letra vuelve a mandar a shapear texto (FormattedText, el trabajo caro de
-    // Skia) miles de veces incluso para lineas que no cambiaron. El contenido+tamaño de fuente es la
-    // clave: el ancho de un mismo texto al mismo tamaño no cambia, asi que una vez medido alcanza.
-    static readonly Dictionary<(string Texto, double FontSize), double> _cacheAnchos = new();
-    const int LimiteCache = 50_000; // valvula de seguridad: una sesion larga no debe crecer sin tope
-
-    public static double Medir(string texto, double fontSize)
+    public static FormattedText Formatear(string texto, double fontSize, IBrush brush, bool negrita = false)
     {
-        if (texto.Length == 0) return 0;
-
-        var clave = (texto, fontSize);
-        if (_cacheAnchos.TryGetValue(clave, out double anchoCacheado)) return anchoCacheado;
-
-        if (_cacheAnchos.Count >= LimiteCache) _cacheAnchos.Clear();
-
-        double ancho = Formatear(texto, fontSize, Brushes.Black).Width;
-        _cacheAnchos[clave] = ancho;
-        return ancho;
+        var clave = (texto, fontSize, brush, negrita);
+        if (_cacheTextos.TryGetValue(clave, out var ft)) return ft;
+        if (_cacheTextos.Count >= LimiteCacheTextos) _cacheTextos.Clear();
+        return _cacheTextos[clave] = new FormattedText(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            negrita ? TypefaceNegrita : Typeface, fontSize, brush);
     }
 
-    // Medir() recorta el avance de los blancos AL FINAL del texto (por eso una corrida de solo
-    // espacios mide 0, ver AnchoContinuacion en EditorTextArea) - para medir un prefijo de linea
-    // que puede terminar en blanco (indentacion, espacios sobrantes) se le pega un caracter no-blanco
-    // al final y se resta su ancho, asi el blanco queda "en el medio" y si cuenta.
-    public static double MedirPrefijo(string texto, double fontSize) =>
-        texto.Length == 0 ? 0 : Medir(texto + "|", fontSize) - Medir("|", fontSize);
+    // anchos aparte (solo doubles): MeasureOverride recorre TODAS las lineas en cada tecla y no
+    // debe vaciar el cache de textos de arriba
+    static readonly Dictionary<(string, double), double> _cacheAnchos = new();
+    const int LimiteCacheAnchos = 50_000;
+
+    // incluye blancos finales (Width los recorta: una indentacion sola mediria 0)
+    public static double MedirPrefijo(string texto, double fontSize)
+    {
+        if (texto.Length == 0) return 0;
+        var clave = (texto, fontSize);
+        if (_cacheAnchos.TryGetValue(clave, out double ancho)) return ancho;
+        if (_cacheAnchos.Count >= LimiteCacheAnchos) _cacheAnchos.Clear();
+        return _cacheAnchos[clave] = new FormattedText(texto, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            Typeface, fontSize, Brushes.Black).WidthIncludingTrailingWhitespace;
+    }
 
     // alto de linea derivado del tamaño de fuente (antes una constante de 20px fija a los 18px de
     // fuente originales, ver zoom en EditorTextArea/EditorGutter): un unico lugar para esta cuenta

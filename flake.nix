@@ -30,7 +30,17 @@
           pkgs.freetype
           pkgs.libice
           pkgs.libsm
+          # sin libGL, Avalonia no puede abrir GLX y cae en silencio a render por CPU (~30 fps)
+          pkgs.libGL
+          pkgs.mesa
         ];
+
+        # fuera de NixOS el libGL de nix no encuentra los drivers de mesa por si solo
+        gpuEnv = ''
+          export LIBGL_DRIVERS_PATH="${pkgs.mesa}/lib/dri"
+          export __EGL_VENDOR_LIBRARY_FILENAMES="${pkgs.mesa}/share/glvnd/egl_vendor.d/50_mesa.json"
+          export GBM_BACKENDS_PATH="${pkgs.mesa}/lib/gbm"
+        '';
 
         up = pkgs.writeShellApplication {
           name = "up";
@@ -40,6 +50,7 @@
             cd "$repo_root/ParadigmasLenguajePropio"
             export DOTNET_CLI_TELEMETRY_OPTOUT=1
             export LD_LIBRARY_PATH="${graphicsLibPath}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+            ${gpuEnv}
             echo "Compilando y levantando ParadigmasLenguajePropio..."
             dotnet run --project src/ParadigmasLenguajePropio
           '';
@@ -55,6 +66,7 @@
 
           shellHook = ''
             export DOTNET_CLI_TELEMETRY_OPTOUT=1
+            ${gpuEnv}
             echo "dotnet SDK: $(dotnet --version)"
           '';
         };
