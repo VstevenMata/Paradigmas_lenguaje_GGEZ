@@ -98,7 +98,7 @@ Las 60 palabras reservadas, agrupadas como en el documento original:
 |---|---|
 | Estructura | `lobby` `launch` `start` `THE` `GAME` `travel` `from` `server` `region` `quit` |
 | Declaración | `stash` `hardcoded` `noloot` `afk` |
-| Tipos | `score` `aim` `lore` `win` `pixel` `squad` `stack` `queue` `inventory` |
+| Tipos | `score` `aim` `lore` `win` `pixel` `squad` `inventory` (más `stack` y `queue`, reservadas pero fuera del lenguaje, ver `[D-21]`) |
 | Booleanos | `hit` `miss` |
 | Flujo | `scan` `fallback` `farm` `survive` `grind` `loadout` `pick` `noob` `ragequit` `respawn` |
 | Funciones | `combo` `reward` `drops` |
@@ -182,12 +182,15 @@ gg
 
 <tipo-simple>     ::= "score" | "aim" | "lore" | "win" | "pixel"
 <tipo-coleccion>  ::= <constructor-col> "[" <tipo> "]"
-<constructor-col> ::= "squad" | "stack" | "queue"
+<constructor-col> ::= "squad"
 ```
 
-Los cinco tipos simples son los que pide la práctica de la Semana 2. Los
-compuestos son las tres colecciones genéricas más `inventory` (registro) y las
-clases (`guild`), que se nombran con `<identificador>`.
+Esto da exactamente lo que pide la práctica de la Semana 2: **cinco tipos simples**
+(`score`, `aim`, `lore`, `win`, `pixel`) y **dos compuestos** (`squad`, el vector
+genérico, e `inventory`, el registro). Las clases (`guild`) también se nombran con
+`<identificador>`.
+
+`squad` es la única colección: ver la decisión `[D-21]`.
 
 ---
 
@@ -450,8 +453,40 @@ mover cualquiera es tocar una tabla, no reescribir el traductor.
 | D-17 | El combo homónimo del guild es el constructor | 3.7 |
 | D-18 | `chat` en minúscula, con llaves: `chat.send{...}` | 2.1, 2.2 |
 | D-19 | Un `gg` cierra la sentencia sin consumirse, y el salto tras `glhf` es opcional: así un bloque cabe en una línea | surgió al implementar el `loadout`; el ejemplo del Word ya lo usaba |
+| D-20 | Métodos de `squad` (ver abajo) | 3.6 |
+| D-21 | **`stack` y `queue` quedan fuera del lenguaje**: la única colección es `squad` | decisión del equipo, 2026-09-26 |
 
-**Sigue pendiente de decisión del equipo** (no bloquea el analizador léxico, sí el
-analizador semántico): los nombres de los métodos de `squad`/`stack`/`queue`
-(punto 3.6) y si `questline` entra en la versión 1 (punto 3.4). La gramática de
-`questline` ya quedó escrita arriba por si entra.
+### D-21 · Solo vectores
+
+La Propuesta de Lenguaje listaba tres colecciones —Vector (`squad`), Pila (`stack`) y
+Cola (`queue`)—. El equipo decidió quedarse **solo con el vector**.
+
+Con eso GGEZ tiene exactamente los tipos que pide la práctica de la Semana 2:
+**cinco simples** (`score`, `aim`, `lore`, `win`, `pixel`) y **dos compuestos**
+(`squad` e `inventory`).
+
+`stack` y `queue` siguen siendo palabras reservadas, para que quien las escriba reciba
+un mensaje claro en vez de que se interpreten como el nombre de un tipo inventado:
+
+```
+GGEZ no tiene 'stack': la unica coleccion es squad. Use squad[T] en su lugar.
+```
+
+> **Pendiente:** la Propuesta de Lenguaje (el Word) todavía lista Pila y Cola como
+> tipos. Hay que quitarlas de ahí para que el documento entregado y el traductor digan
+> lo mismo.
+
+### D-20 · Los métodos de `squad`
+
+De la Propuesta solo venía fijado `.size`. Los otros dos son propuestas:
+
+| Cuántos | Agregar al final | Sacar por índice |
+|---|---|---|
+| `.size` | `.recruit{x}` | `.kick{i}` |
+
+`.recruit{x}` exige que `x` sea del tipo interno del vector; `.kick{i}` exige un `score`.
+Para leer o cambiar una posición se usa el indexado directo: `v<0>` y `v<0> set 99`.
+
+**Sigue pendiente de decisión del equipo:** si `questline` (las interfaces) entra en
+la versión 1 (punto 3.4 del txt de pendientes). La gramática de `questline` ya quedó
+escrita arriba por si entra.

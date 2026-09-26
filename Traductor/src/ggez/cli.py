@@ -1,13 +1,10 @@
-"""Linea de comandos del traductor: el binario 'ggezc' que invoca el IDE.
+"""El comando ggezc, que es lo que lanza el IDE.
 
-Respeta el contrato acordado con el lado C# (ver Traductor/README.md):
+    ggezc run <archivo.ggez>     ejecuta
+    ggezc tokens <archivo.ggez>  solo vuelca tokens, para depurar
 
-    ggezc run <archivo.ggez>     interpreta y ejecuta
-    ggezc tokens <archivo.ggez>  vuelca la lista de tokens (para depurar)
-
-    stdout -> la salida del programa GGEZ
-    stderr -> los errores, uno por linea, como archivo:linea:columna: etapa: mensaje
-    codigo -> 0 si corrio bien, distinto de 0 si fallo
+stdout = salida del programa, stderr = errores, codigo 0 = ok.
+Contrato completo en Traductor/README.md.
 """
 
 from __future__ import annotations
@@ -29,7 +26,7 @@ FALLO_ARCHIVO = 2
 
 
 def _leer(ruta: Path) -> str:
-    # utf-8-sig para tolerar el BOM que dejan algunos editores en Windows
+    # utf-8-sig: se come el BOM que meten algunos editores en Windows
     return ruta.read_text(encoding="utf-8-sig")
 
 
@@ -76,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
             return _comando_tokens(ruta)
         return _comando_run(ruta)
     except ErrorGgez as err:
-        # el formato que el panel Problemas del IDE sabe parsear
+        # este formato lo parsea el panel Problemas del IDE
         print(err.formatear(ruta.name), file=sys.stderr)
         return FALLO_TRADUCCION
     except OSError as err:

@@ -1,15 +1,10 @@
-"""Analizador semantico de GGEZ.
+"""Paso 3: revisa que el programa tenga sentido.
 
-Tercera fase de la traduccion. Mantiene la TABLA DE SIMBOLOS -- la misma que
-aparece al costado del diagrama de etapas de Problemas de traduccion de
-lenguajes.pdf -- y con ella verifica lo que la sintaxis no puede:
+Aca esta la TABLA DE SIMBOLOS, la del dibujo de etapas del PDF del curso.
 
-  - que toda variable este declarada antes de usarse
-  - que los tipos calcen (con promocion score -> aim, nunca al reves)
-  - que no se reasigne un hardcoded
-  - que no se tape (shadowing) un nombre de un bloque exterior  (D-8)
-  - que exista exactamente un lobby.launch                      (D-13)
-  - que una variable de tipo simple se declare con 'set'        (D-9)
+Agarra lo que el paso 2 no puede ver: usar una variable que no existe, meter
+texto en un numero, tocar un hardcoded, un scan con una condicion que no es
+win. O sea: esta bien escrito, pero no tiene sentido.
 """
 
 from __future__ import annotations
@@ -20,9 +15,35 @@ from . import arbol
 from .errores import ErrorSemantico
 from .tokens import TIPOS_SIMPLES
 
-# score se promueve a aim automaticamente; al reves es error (D "4.3" del txt
-# de pendientes): perder decimales tiene que ser explicito.
+# un entero se vuelve decimal solo. Al reves no, porque se perderian decimales
 NUMERICOS = ("score", "aim")
+
+# Metodos de squad, la unica coleccion -> D-21. Nombres propuestos -> D-20.
+# Cada entrada: (cuantos args, de que tipo, que devuelve)
+#   "T"  = el tipo interno (el score de squad[score])
+#   None = no devuelve nada
+METODOS_COLECCION: dict[str, dict[str, tuple[int, str | None, str | None]]] = {
+    "squad": {                       # vector: se recluta y se echa gente
+        "recruit": (1, "T", None),       # agregar al final
+        "kick":    (1, "score", None),   # sacar por indice
+    },
+}
+
+
+def tipo_interno(tipo: str) -> str | None:
+    """squad[score] -> score. Si no es coleccion, None."""
+    for constructor in METODOS_COLECCION:
+        if tipo.startswith(constructor + "[") and tipo.endswith("]"):
+            return tipo[len(constructor) + 1:-1]
+    return None
+
+
+def constructor_de(tipo: str) -> str | None:
+    """squad[score] -> squad."""
+    for constructor in METODOS_COLECCION:
+        if tipo.startswith(constructor + "["):
+            return constructor
+    return None
 
 
 @dataclass
@@ -35,10 +56,10 @@ class Simbolo:
 
 @dataclass
 class Firma:
-    """Lo que hay que saber de un combo para verificar sus llamadas."""
+    """Lo que hay que saber de un combo para revisar como lo llaman."""
     nombre: str
-    parametros: list[tuple[str, str]]     # (tipo, nombre) en orden
-    retorno: str | None                   # None cuando es 'drops noloot'
+    parametros: list[tuple[str, str]]     # (tipo, nombre), en orden
+    retorno: str | None                   # None = drops noloot
     linea: int
 
 
@@ -53,7 +74,7 @@ class Alcance:
         self.simbolos[simbolo.nombre] = simbolo
 
     def buscar(self, nombre: str) -> Simbolo | None:
-        """Busca en este alcance y hacia afuera: un bloque interno ve los externos."""
+        """Busca aca y si no esta va subiendo. De adentro se ve lo de afuera."""
         alcance: Alcance | None = self
         while alcance is not None:
             if nombre in alcance.simbolos:
@@ -63,7 +84,7 @@ class Alcance:
 
 
 class Semantico:
-    # modulos de la libreria estandar que existen sin importar (4.6 del txt)
+    # modulos que existen sin tener que importarlos
     MODULOS = {"chat"}
 
     def __init__(self, archivo: str = "<entrada>") -> None:
@@ -71,12 +92,13 @@ class Semantico:
         self.global_ = Alcance()
         self.alcance = self.global_
         self.puntos_entrada = 0
-        # cuantos ciclos anidados estamos recorriendo: ragequit y respawn solo
-        # valen adentro de uno (D-14)
+        # para saber si estoy dentro de un ciclo. Lo usan ragequit y respawn -> D-14
         self.profundidad_ciclo = 0
-        # firmas de todos los combo, recolectadas antes de recorrer los cuerpos
+        # los combo que existen. Se llena antes de mirar ningun cuerpo
         self.combos: dict[str, Firma] = {}
-        # el combo que estamos recorriendo, para verificar sus reward
+        # los inventory: nombre -> [(tipo, campo)]
+        self.registros: dict[str, list[tuple[str, str]]] = {}
+        # en que combo estoy parado, para revisar sus reward
         self.combo_actual: Firma | None = None
 
     def _error(self, mensaje: str, nodo: arbol.Nodo) -> ErrorSemantico:
@@ -85,9 +107,11 @@ class Semantico:
     # ---------------------------------------------------------------- recorrido
 
     def analizar(self, programa: arbol.Programa) -> arbol.Programa:
-        # Primera pasada: registrar la firma de todos los combo antes de mirar
-        # ningun cuerpo. Asi un combo puede llamar a otro declarado mas abajo, y
-        # la recursion mutua funciona sin declaraciones adelantadas.
+        # DOS VUELTAS. En la primera solo anoto que combos existen, sin mirar
+        # que hacen. Asi uno puede llamar a otro que esta escrito mas abajo
+        for declaracion in programa.declaraciones:
+            if isinstance(declaracion, arbol.DeclInventory):
+                self.registrar_inventory(declaracion)
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.DeclCombo):
                 self.registrar_combo(declaracion)
@@ -96,13 +120,24 @@ class Semantico:
             self.declaracion(declaracion)
 
         if self.puntos_entrada == 0:
-            # Un archivo sin punto de entrada es valido como biblioteca (D-13),
-            # pero no se puede ejecutar, que es lo que pide 'ggezc run'.
+            # sin punto de entrada sirve como biblioteca, pero no se ejecuta -> D-13
             raise ErrorSemantico(
                 "el programa no tiene punto de entrada: falta lobby.launch{start THE GAME}",
                 1, 1, self.archivo,
             )
         return programa
+
+    def registrar_inventory(self, nodo: arbol.DeclInventory) -> None:
+        if nodo.nombre in self.registros:
+            raise self._error(f"ya existe un inventory llamado '{nodo.nombre}'", nodo)
+
+        vistos: set[str] = set()
+        for campo in nodo.campos:
+            if campo.nombre in vistos:
+                raise self._error(f"el campo '{campo.nombre}' esta repetido", campo)
+            vistos.add(campo.nombre)
+
+        self.registros[nodo.nombre] = [(str(c.tipo), c.nombre) for c in nodo.campos]
 
     def registrar_combo(self, nodo: arbol.DeclCombo) -> None:
         if nodo.nombre in self.combos:
@@ -131,9 +166,8 @@ class Semantico:
     def decl_combo(self, nodo: arbol.DeclCombo) -> None:
         firma = self.combos[nodo.nombre]
 
-        # El cuerpo de un combo NO ve las variables de quien lo llama: su alcance
-        # cuelga del global, no del alcance actual. Sin esto, un combo llamado
-        # desde adentro del lobby podria usar las variables del lobby por accidente.
+        # OJO: arranca desde el nivel de afuera de todo, no desde donde estoy.
+        # Adentro del combo no se ven las variables del que lo llamo
         anterior, ciclos, combo_previo = self.alcance, self.profundidad_ciclo, self.combo_actual
         self.alcance = Alcance(self.global_)
         self.profundidad_ciclo = 0
@@ -156,12 +190,10 @@ class Semantico:
             )
 
     def _siempre_devuelve(self, bloque: arbol.Bloque) -> bool:
-        """True si toda ejecucion del bloque pasa por un 'reward'.
+        """True si no hay forma de salir sin pasar por un reward.
 
-        Es un analisis de caminos simple: alcanza con que alguna sentencia lo
-        garantice. Un 'scan' solo cuenta si tiene fallback Y las dos ramas
-        devuelven; un 'loadout' solo si tiene 'noob' y todas sus ramas devuelven.
-        Los ciclos no cuentan: pueden dar cero vueltas.
+        Un scan cuenta solo si tiene fallback y devuelven las dos ramas.
+        Los ciclos nunca cuentan, porque pueden no dar ni una vuelta.
         """
         for sentencia in bloque.sentencias:
             if isinstance(sentencia, arbol.Reward):
@@ -226,6 +258,15 @@ class Semantico:
 
         if isinstance(nodo, arbol.DeclCombo):
             self.decl_combo(nodo)
+            return
+
+        if isinstance(nodo, arbol.DeclInventory):
+            # los campos ya se validaron al registrar; falta ver que los tipos existan
+            for tipo, campo in self.registros[nodo.nombre]:
+                if not self._tipo_existe(tipo):
+                    raise self._error(
+                        f"el campo '{campo}' usa un tipo desconocido: {tipo}", nodo
+                    )
             return
 
         if isinstance(nodo, arbol.PuntoEntrada):
@@ -345,8 +386,7 @@ class Semantico:
 
         previo = self.alcance.buscar(nombre)
         if previo is not None:
-            # D-8: prohibido tapar un nombre de afuera. Evita bugs sutiles y es
-            # mas facil de implementar que resolver el shadowing bien.
+            # prohibido tapar un nombre de afuera -> D-8
             raise self._error(
                 f"'{nombre}' ya existe en un bloque exterior (linea {previo.linea}); "
                 f"GGEZ no permite taparla",
@@ -401,7 +441,25 @@ class Semantico:
         if destino == origen or origen == "desconocido":
             return
         if destino == "aim" and origen == "score":
-            return                                  # promocion permitida
+            return                                  # score -> aim, permitido
+
+        # el <a | b | c> no sabe de que tipo es: se lo pone el que lo recibe
+        if origen.startswith("coleccion["):
+            interno_destino = tipo_interno(destino)
+            if interno_destino is None:
+                raise self._error(
+                    f"se esperaba {destino} y se obtuvo un literal de coleccion", nodo
+                )
+            if origen == "coleccion[]":
+                return                              # literal vacio: sirve para cualquiera
+            interno_origen = origen[len("coleccion["):-1]
+            if interno_origen != interno_destino:
+                raise self._error(
+                    f"la coleccion es de {interno_destino} y el literal trae "
+                    f"{interno_origen}",
+                    nodo,
+                )
+            return
         if destino == "score" and origen == "aim":
             raise self._error(
                 "no se puede asignar un aim a un score: se perderian los decimales", nodo
@@ -437,25 +495,120 @@ class Semantico:
             return self.binaria(nodo)
 
         if isinstance(nodo, arbol.Acceso):
-            objeto = self.expresion(nodo.objeto)
-            if objeto == "modulo":
-                return "desconocido"                # lo resuelve el evaluador
-            return "desconocido"                    # campos: bloque 5
+            return self.acceso(nodo)
 
         if isinstance(nodo, arbol.Llamada):
             return self.llamada(nodo)
 
-        if isinstance(nodo, (arbol.Indice, arbol.LiteralColeccion, arbol.Me)):
-            return "desconocido"                    # colecciones y POO: bloques 4 y 5
+        if isinstance(nodo, arbol.Spawn):
+            return self.spawn(nodo)
+
+        if isinstance(nodo, arbol.Indice):
+            coleccion = self.expresion(nodo.objeto)
+            indice = self.expresion(nodo.indice)
+
+            if indice not in ("score", "desconocido"):
+                raise self._error(f"el indice debe ser un score y se obtuvo {indice}", nodo)
+            if coleccion == "desconocido":
+                return "desconocido"
+
+            interno = tipo_interno(coleccion)
+            if interno is None:
+                raise self._error(f"{coleccion} no se puede indexar", nodo)
+            return interno
+
+        if isinstance(nodo, arbol.LiteralColeccion):
+            # aca solo miro que sean todos del mismo tipo. El tipo de verdad
+            # se lo pone despues la declaracion que lo recibe
+            if not nodo.elementos:
+                return "coleccion[]"
+            tipos = [self.expresion(e) for e in nodo.elementos]
+            primero = tipos[0]
+            for tipo, elemento in zip(tipos[1:], nodo.elementos[1:]):
+                if tipo != primero:
+                    raise self._error(
+                        f"los elementos de la coleccion deben ser del mismo tipo: "
+                        f"empezo con {primero} y aparecio un {tipo}",
+                        elemento,
+                    )
+            return f"coleccion[{primero}]"
+
+        if isinstance(nodo, arbol.Me):
+            return "desconocido"                    # falta: bloque 5
 
         raise self._error("expresion no reconocida", nodo)
 
+    def _tipo_existe(self, tipo: str) -> bool:
+        if tipo in TIPOS_SIMPLES or tipo in self.registros:
+            return True
+        interno = tipo_interno(tipo)
+        return interno is not None and self._tipo_existe(interno)
+
+    def acceso(self, nodo: arbol.Acceso) -> str:
+        objeto = self.expresion(nodo.objeto)
+
+        if objeto in ("modulo", "desconocido"):
+            return "desconocido"
+
+        # .size
+        if nodo.campo == "size" and constructor_de(objeto) is not None:
+            return "score"
+
+        # devuelvo una marca y la Llamada de afuera se encarga
+        constructor = constructor_de(objeto)
+        if constructor is not None:
+            if nodo.campo in METODOS_COLECCION[constructor]:
+                return f"metodo:{objeto}:{nodo.campo}"
+            disponibles = ", ".join(
+                ["size"] + sorted(METODOS_COLECCION[constructor])
+            )
+            raise self._error(
+                f"{constructor} no tiene '{nodo.campo}'. Tiene: {disponibles}", nodo
+            )
+
+        # campo de un inventory
+        if objeto in self.registros:
+            for tipo, campo in self.registros[objeto]:
+                if campo == nodo.campo:
+                    return tipo
+            campos = ", ".join(c for _, c in self.registros[objeto])
+            raise self._error(
+                f"el inventory {objeto} no tiene el campo '{nodo.campo}'. Tiene: {campos}",
+                nodo,
+            )
+
+        raise self._error(f"{objeto} no tiene campos a los que acceder", nodo)
+
+    def spawn(self, nodo: arbol.Spawn) -> str:
+        campos = self.registros.get(nodo.tipo)
+        if campos is None:
+            raise self._error(f"no existe un inventory llamado '{nodo.tipo}'", nodo)
+
+        if len(nodo.argumentos) != len(campos):
+            raise self._error(
+                f"{nodo.tipo} tiene {len(campos)} campo(s) y se pasaron "
+                f"{len(nodo.argumentos)} valor(es)",
+                nodo,
+            )
+
+        for (esperado, campo), argumento in zip(campos, nodo.argumentos):
+            obtenido = self.expresion(argumento)
+            self._verificar_asignable(esperado, obtenido, argumento)
+
+        return nodo.tipo
+
     def llamada(self, nodo: arbol.Llamada) -> str:
+        # si es un metodo del vector, el Acceso ya dejo la marca
+        if isinstance(nodo.destino, arbol.Acceso):
+            marca = self.expresion(nodo.destino)
+            if isinstance(marca, str) and marca.startswith("metodo:"):
+                _, coleccion, metodo = marca.split(":", 2)
+                return self.metodo_coleccion(nodo, coleccion, metodo)
+
         tipos = [self.expresion(a) for a in nodo.argumentos]
 
-        # Solo se puede verificar cuando se llama a un combo por su nombre. Las
-        # llamadas a modulos (chat.send, physics.avg) todavia no tienen firma
-        # declarada, asi que pasan sin revisar -- eso es el bloque 6.
+        # solo puedo revisar los combo nuestros. chat.send y esos todavia no
+        # tienen firma declarada -> bloque 6
         if not isinstance(nodo.destino, arbol.Identificador):
             self.expresion(nodo.destino)
             return "desconocido"
@@ -476,7 +629,7 @@ class Semantico:
             if obtenido == "desconocido" or obtenido == esperado:
                 continue
             if esperado == "aim" and obtenido == "score":
-                continue                             # promocion permitida
+                continue                             # score -> aim, permitido
             raise self._error(
                 f"el parametro '{nombre}' de '{firma.nombre}' es {esperado} y se "
                 f"paso un {obtenido}",
@@ -486,6 +639,27 @@ class Semantico:
         if firma.retorno is None:
             return "noloot"
         return firma.retorno
+
+    def metodo_coleccion(self, nodo: arbol.Llamada, coleccion: str, metodo: str) -> str:
+        constructor = constructor_de(coleccion)
+        interno = tipo_interno(coleccion)
+        cantidad, tipo_arg, retorno = METODOS_COLECCION[constructor][metodo]   # type: ignore[index]
+
+        if len(nodo.argumentos) != cantidad:
+            raise self._error(
+                f"'{metodo}' de {constructor} espera {cantidad} argumento(s) y "
+                f"recibio {len(nodo.argumentos)}",
+                nodo,
+            )
+
+        if cantidad:
+            esperado = interno if tipo_arg == "T" else tipo_arg
+            obtenido = self.expresion(nodo.argumentos[0])
+            self._verificar_asignable(esperado, obtenido, nodo.argumentos[0])   # type: ignore[arg-type]
+
+        if retorno is None:
+            return "noloot"
+        return interno if retorno == "T" else retorno       # type: ignore[return-value]
 
     def binaria(self, nodo: arbol.Binaria) -> str:
         izq = self.expresion(nodo.izquierda)
@@ -511,14 +685,13 @@ class Semantico:
             return "win"
 
         if op == "gain":
-            # gain suma Y concatena: si un lado es lore, el otro se convierte a
-            # texto (4.1 del txt de pendientes)
+            # gain suma numeros, pero si un lado es texto los pega
             if izq == "lore" or der == "lore":
                 return "lore"
             return self._numerica(izq, der, op, nodo)
 
         if op == "split":
-            # la division siempre da aim, aunque los dos lados sean score (4.2)
+            # split siempre da decimal, aunque dividas dos enteros
             self._numerica(izq, der, op, nodo)
             return "aim"
 

@@ -20,8 +20,8 @@ lobby.launch{start THE GAME} glhf
     stash Jugador p1 set spawn Jugador{"mjsq" | 85}
     p1.subirNivel{10}
 
-    stash queue[lore] turnos
-    turnos.enlist{p1.nombre}
+    stash squad[lore] turnos
+    turnos.recruit{p1.nombre}
 
     scan p1.esPro{} matches hit glhf
         chat.send{"Rango Pro"}

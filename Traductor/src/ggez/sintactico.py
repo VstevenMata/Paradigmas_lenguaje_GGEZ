@@ -1,13 +1,10 @@
-"""Analizador sintactico de GGEZ.
+"""Paso 2: con los tokens arma el arbol.
 
-Segunda fase de la traduccion. Descenso recursivo: hay UNA FUNCION POR
-NO-TERMINAL de GRAMATICA.md, con el mismo nombre, de modo que se puede leer la
-gramatica y el codigo en paralelo. La cascada de expresiones de la seccion 8 ya
-codifica la precedencia, asi que no hace falta resolver ambiguedades aparte.
+Una funcion por cada regla de GRAMATICA.md, con el mismo nombre, asi se pueden
+ir leyendo los dos al lado.
 
-Alcance actual (bloque 1 del TODO): punto de entrada, bloques, declaraciones de
-variables y constantes, asignaciones y la cascada completa de expresiones.
-Control de flujo, funciones, colecciones y POO son los bloques 2 a 5.
+Que el por vaya antes que el mas no esta escrito en ningun lado: sale solo del
+orden en que las funciones de expresion se llaman entre si.
 """
 
 from __future__ import annotations
@@ -15,6 +12,7 @@ from __future__ import annotations
 from . import arbol
 from .errores import ErrorSintactico
 from .tokens import (
+    COLECCIONES_RETIRADAS,
     CONSTRUCTORES_COLECCION,
     MODIFICADORES,
     OP_ADITIVOS,
@@ -72,11 +70,10 @@ class Sintactico:
         return self._avanzar()
 
     def _fin_linea(self) -> None:
-        """Consume el cierre de sentencia. En GGEZ no hay ';': es el salto de linea.
+        """Cierra la sentencia. En GGEZ no hay ';', es el salto de linea.
 
-        Un 'gg' tambien cierra la sentencia, sin consumirlo: eso permite escribir
-        un bloque entero en una linea, como en el ejemplo de la Propuesta de
-        Lenguaje ('pick 10 | 9 glhf reward "Pro" gg').
+        Un gg tambien la cierra, sin consumirlo -> D-19. Eso permite escribir
+        un bloque en una linea:  pick 10 | 9 glhf reward "Pro" gg
         """
         if self.actual.tipo is TipoToken.FIN_ARCHIVO or self.actual.es("gg"):
             return
@@ -112,6 +109,8 @@ class Sintactico:
             return self.punto_entrada()
         if self.actual.es("combo") or self.actual.es(*MODIFICADORES):
             return self.decl_combo()
+        if self.actual.es("inventory"):
+            return self.decl_inventory()
         raise self._error(
             f"aqui se esperaba una declaracion de nivel superior (travel, combo o "
             f"lobby.launch) y se encontro {self._describir(self.actual)}"
@@ -133,8 +132,7 @@ class Sintactico:
                 parametros.append(self.parametro())
         self._consumir(TipoToken.LLAVE_DER, "'}' para cerrar los parametros")
 
-        # 'drops' es obligatorio siempre; un combo que no devuelve escribe
-        # 'drops noloot' (D-12). Mas verboso, pero no hay que adivinar.
+        # drops es obligatorio siempre; sin retorno se escribe drops noloot -> D-12
         self._consumir_reservada("drops")
         if self.actual.es("noloot"):
             self._avanzar()
@@ -147,6 +145,23 @@ class Sintactico:
             nombre, parametros, retorno, cuerpo, modificador,
             linea=t.linea, columna=t.columna,
         )
+
+    def decl_inventory(self) -> arbol.DeclInventory:
+        t = self._consumir_reservada("inventory")
+        nombre = self._consumir(TipoToken.IDENTIFICADOR, "el nombre del inventory").lexema
+        self._consumir_reservada("glhf")
+        self._saltar_lineas()
+
+        campos: list[arbol.Parametro] = []
+        while not self.actual.es("gg"):
+            if self.actual.tipo is TipoToken.FIN_ARCHIVO:
+                raise self._error("inventory sin cerrar: falta 'gg'", t)
+            campos.append(self.parametro())
+            self._fin_linea()
+            self._saltar_lineas()
+
+        self._consumir_reservada("gg")
+        return arbol.DeclInventory(nombre, campos, linea=t.linea, columna=t.columna)
 
     def parametro(self) -> arbol.Parametro:
         t = self.actual
@@ -163,7 +178,7 @@ class Sintactico:
         return arbol.Travel(modulo, paquete, linea=t.linea, columna=t.columna)
 
     def punto_entrada(self) -> arbol.PuntoEntrada:
-        # lobby.launch{start THE GAME} -- 'start THE GAME' es texto fijo (D-8)
+        # 'start THE GAME' es texto fijo, no son parametros -> D-8
         t = self._consumir_reservada("lobby")
         self._consumir(TipoToken.PUNTO, "'.' despues de lobby")
         self._consumir_reservada("launch")
@@ -179,14 +194,13 @@ class Sintactico:
         return cuerpo
 
     def _cuerpo_bloque(self) -> arbol.Bloque:
-        """Lee 'glhf' y las sentencias, y se detiene ANTES del 'gg' sin consumirlo.
+        """glhf + sentencias, frenando ANTES del gg sin consumirlo.
 
-        Hace falta separarlo de bloque() porque hay construcciones donde el 'gg'
-        no cierra la sentencia: 'gg fallback glhf' (el else) y 'gg survive {...}'
-        (el do-while). Quien llame decide que hacer despues de verlo.
+        Separado de bloque() porque hay casos donde el gg no cierra nada:
+        'gg fallback' (el else) y 'gg survive' (el grind).
         """
         t = self._consumir_reservada("glhf")
-        self._saltar_lineas()   # opcional: el bloque puede seguir en la misma linea
+        self._saltar_lineas()   # opcional, el bloque puede seguir en la misma linea
         sentencias: list[arbol.Nodo] = []
 
         while not self.actual.es("gg"):
@@ -223,9 +237,8 @@ class Sintactico:
         if self.actual.es("reward"):
             return self.sent_reward()
 
-        # Cualquier otra sentencia empieza por una expresion. Si despues de esa
-        # expresion viene set/boost/sap o buff/nerf, era en realidad el
-        # designador de una asignacion.
+        # el resto arranca con una expresion. Si despues aparece set/boost/sap
+        # o buff/nerf, era el destino de una asignacion
         inicio = self.actual
         expresion = self.expresion()
 
@@ -252,14 +265,13 @@ class Sintactico:
         )
 
     def _verificar_designador(self, nodo: arbol.Nodo, token: Token) -> None:
-        """Solo un identificador, un campo o un indice pueden ir a la izquierda."""
+        """A la izquierda del set solo va un nombre, un campo o un indice."""
         if not isinstance(nodo, (arbol.Identificador, arbol.Acceso, arbol.Indice, arbol.Me)):
             raise self._error("el lado izquierdo de una asignacion no es asignable", token)
 
     def sent_reward(self) -> arbol.Reward:
         t = self._consumir_reservada("reward")
-        # 'reward' a secas solo vale en un combo con 'drops noloot'; que el tipo
-        # calce lo revisa el analizador semantico, aca alcanza con ver si hay algo
+        # si el tipo esta bien lo revisa el paso 3; aca solo miro si hay valor
         vacio = (
             self.actual.tipo in (TipoToken.FIN_LINEA, TipoToken.FIN_ARCHIVO)
             or self.actual.es("gg")
@@ -276,10 +288,8 @@ class Sintactico:
         entonces = self._cuerpo_bloque()
         self._consumir_reservada("gg")
 
-        # Aca esta el unico punto del lenguaje que necesita mirar un token mas
-        # adelante: el 'gg' que acabamos de consumir puede cerrar el scan, o
-        # venir seguido de 'fallback'. Con esa anticipacion la gramatica sigue
-        # siendo LL(1).
+        # OJO: el unico lugar donde hay que mirar el token que sigue. Ese gg
+        # puede cerrar el scan, o puede venir un fallback despues
         sino: arbol.Bloque | arbol.Scan | None = None
         if self.actual.es("fallback"):
             self._avanzar()
@@ -332,8 +342,7 @@ class Sintactico:
         return arbol.Survive(condicion, cuerpo, linea=t.linea, columna=t.columna)
 
     def sent_grind(self) -> arbol.Grind:
-        # grind glhf ... gg survive {cond} -- la condicion va al final, que es lo
-        # que lo distingue del survive: el cuerpo corre al menos una vez (D-10)
+        # la condicion va al FINAL: por eso el cuerpo corre minimo una vez -> D-10
         t = self._consumir_reservada("grind")
         cuerpo = self._cuerpo_bloque()
         self._consumir_reservada("gg")
@@ -387,8 +396,7 @@ class Sintactico:
         return valores
 
     def _valor_pick(self) -> arbol.Nodo:
-        # la gramatica pide literales: un pick se compara por valor, no evalua
-        # expresiones que dependan del estado
+        # solo numeros/textos sueltos: el pick compara y ya, no calcula nada
         t = self.actual
         nodo = self.primario()
         if not isinstance(nodo, arbol.Literal):
@@ -414,6 +422,13 @@ class Sintactico:
     def tipo(self) -> arbol.Tipo:
         t = self.actual
 
+        # stack y queue quedaron reservadas solo para dar este mensaje -> D-21
+        if t.es(*COLECCIONES_RETIRADAS):
+            raise self._error(
+                f"GGEZ no tiene '{t.lexema}': la unica coleccion es squad. "
+                f"Use squad[T] en su lugar."
+            )
+
         if t.es(*CONSTRUCTORES_COLECCION):
             self._avanzar()
             self._consumir(TipoToken.CORCHETE_IZQ, f"'[' con el tipo interno de {t.lexema}")
@@ -428,7 +443,7 @@ class Sintactico:
         raise self._error(f"se esperaba un tipo y se encontro {self._describir(t)}")
 
     # ------------------------------------------------------------ expresiones
-    # La cascada reproduce la tabla de precedencia de GRAMATICA.md seccion 8.
+    # el orden de estas funciones es lo que decide que va primero
 
     def expresion(self) -> arbol.Nodo:
         return self.expr_or()
@@ -449,7 +464,7 @@ class Sintactico:
 
     def expr_rel(self) -> arbol.Nodo:
         izq = self.expr_adit()
-        # no asociativa a proposito: 'a under b under c' no significa nada
+        # no asociativa a proposito: "a under b under c" no significa nada
         if self.actual.es(*OP_RELACIONALES):
             t = self._avanzar()
             izq = arbol.Binaria(izq, t.lexema, self.expr_adit(), linea=t.linea, columna=t.columna)
@@ -487,15 +502,14 @@ class Sintactico:
                 nodo = arbol.Acceso(nodo, campo, linea=t.linea, columna=t.columna)
 
             elif t.tipo is TipoToken.MENOR:
-                # aca '<' es un indice: el literal de coleccion solo aparece
-                # donde se espera un operando, no despues de uno
+                # aca el < es un indice, porque viene DESPUES de algo
                 self._avanzar()
                 indice = self.expresion()
                 self._consumir(TipoToken.MAYOR, "'>' para cerrar el indice")
                 nodo = arbol.Indice(nodo, indice, linea=t.linea, columna=t.columna)
 
             elif t.tipo is TipoToken.LLAVE_IZQ:
-                # y aca '{' es una llamada, por la misma razon
+                # y el { es una llamada, por lo mismo
                 self._avanzar()
                 nodo = arbol.Llamada(
                     nodo, self.lista_argumentos(), linea=t.linea, columna=t.columna
@@ -545,19 +559,26 @@ class Sintactico:
             self._avanzar()
             return arbol.Me(linea=t.linea, columna=t.columna)
 
+        if t.es("spawn"):
+            self._avanzar()
+            tipo = self._consumir(TipoToken.IDENTIFICADOR, "el tipo a instanciar").lexema
+            self._consumir(TipoToken.LLAVE_IZQ, "'{' con los valores iniciales")
+            argumentos = self.lista_argumentos()
+            return arbol.Spawn(tipo, argumentos, linea=t.linea, columna=t.columna)
+
         if t.tipo is TipoToken.IDENTIFICADOR:
             self._avanzar()
             return arbol.Identificador(t.lexema, linea=t.linea, columna=t.columna)
 
         if t.tipo is TipoToken.LLAVE_IZQ:
-            # agrupacion: '{' donde se espera un operando
+            # aca el { agrupa, porque va DONDE TENDRIA QUE HABER un valor
             self._avanzar()
             interna = self.expresion()
             self._consumir(TipoToken.LLAVE_DER, "'}' para cerrar la agrupacion")
             return interna
 
         if t.tipo is TipoToken.MENOR:
-            # literal de coleccion: '<' donde se espera un operando
+            # y el < arma un vector, por lo mismo
             self._avanzar()
             elementos: list[arbol.Nodo] = []
             if self.actual.tipo is not TipoToken.MAYOR:

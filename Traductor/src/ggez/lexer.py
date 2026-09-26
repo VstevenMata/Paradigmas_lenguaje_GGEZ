@@ -1,12 +1,8 @@
-"""Analizador lexico de GGEZ.
+"""Paso 1: parte el texto en palabras (tokens).
 
-Primera fase de la traduccion (ver "Etapas de traduccion" en
-Problemas de traduccion de lenguajes.pdf): agrupa los caracteres del programa
-fuente en sus constituyentes elementales -- identificadores, palabras
-reservadas, literales, delimitadores -- y los entrega como una lista de tokens
-al analizador sintactico.
-
-Implementa la seccion 1 de GRAMATICA.md.
+El programa llega como una tira de letras sueltas. Aca las agrupo y le pongo
+etiqueta a cada una. Los comentarios y los espacios los tiro.
+Lo que se puede escribir esta en GRAMATICA.md, seccion 1.
 """
 
 from __future__ import annotations
@@ -23,9 +19,8 @@ class Lexer:
         self.linea = 1
         self.columna = 1
         self.tokens: list[Token] = []
-        # Profundidad de '{' y '<' sin cerrar. Mientras sea > 0 los saltos de
-        # linea se ignoran, y asi una llamada o un literal de coleccion puede
-        # partirse en varias lineas (decision D-3 de GRAMATICA.md).
+        # cuantas llaves quedan sin cerrar. Si hay alguna, los saltos de linea
+        # no cuentan, y asi una llamada larga se puede partir en varias -> D-3
         self.anidacion = 0
 
     # ---------------------------------------------------------------- helpers
@@ -67,8 +62,7 @@ class Lexer:
         while not self._fin():
             self._siguiente_token()
 
-        # Un archivo que no termina en salto de linea igual cierra su ultima
-        # sentencia: sin esto el parser se quedaria esperando el FIN_LINEA.
+        # si el archivo no termina en salto, igual cierro la ultima sentencia
         if self.tokens and self.tokens[-1].tipo is not TipoToken.FIN_LINEA:
             self._agregar(TipoToken.FIN_LINEA, "\\n", self.linea, self.columna)
 
@@ -78,7 +72,7 @@ class Lexer:
     def _siguiente_token(self) -> None:
         c = self._actual()
 
-        # espacios y tabulaciones: separan tokens, no significan nada mas
+        # espacios: solo separan, no significan nada
         if c in " \t\r":
             self._avanzar()
             return
@@ -111,8 +105,7 @@ class Lexer:
             self._simbolo()
             return
 
-        # Mensaje explicito para los dos simbolos que GGEZ elimino a proposito:
-        # es el error que mas van a cometer los que vienen de C o de Java.
+        # los dos errores mas comunes si venis de C o Java
         if c == ";":
             raise self._error(
                 "GGEZ no usa ';': el salto de linea cierra la sentencia"
@@ -128,12 +121,11 @@ class Lexer:
         linea, columna = self.linea, self.columna
         self._avanzar()
 
-        # dentro de { } o < > sin cerrar, el salto de linea no corta la sentencia
+        # dentro de {} o <> sin cerrar el salto no corta nada
         if self.anidacion > 0:
             return
 
-        # varios saltos seguidos (o lineas en blanco) valen por uno solo, y un
-        # salto al principio del archivo no cierra ninguna sentencia
+        # varios saltos seguidos = uno solo
         if not self.tokens or self.tokens[-1].tipo is TipoToken.FIN_LINEA:
             return
 
@@ -197,7 +189,7 @@ class Lexer:
         self._agregar(TipoToken.CARACTER, f"'{valor}'", linea, columna, valor)
 
     def _escape(self) -> str:
-        """Traduce la secuencia que sigue a una '\\' (decision D-5)."""
+        """Lo que viene despues de una barra invertida -> D-5."""
         if self._fin():
             raise self._error("secuencia de escape incompleta")
         linea, columna = self.linea, self.columna
@@ -214,8 +206,8 @@ class Lexer:
         while self._actual().isdigit():
             self._avanzar()
 
-        # El punto solo forma parte del numero si viene seguido de un digito.
-        # Asi '1.5' es un real pero 'marcador.size' se parte en tres tokens.
+        # el punto es decimal solo si le sigue un digito:
+        # 1.5 es un real, pero marcador.size son 3 tokens
         es_real = False
         if self._actual() == "." and self._espiar().isdigit():
             es_real = True
@@ -225,8 +217,7 @@ class Lexer:
 
         lexema = self.fuente[inicio:self.pos]
 
-        # 'aim' es real y 'score' entero: un numero pegado a una letra casi
-        # siempre es un identificador mal escrito, conviene avisarlo aca.
+        # 5abc: seguro se equivocaron escribiendo un nombre
         if self._actual().isalpha() or self._actual() == "_":
             raise self._error(
                 f"un identificador no puede empezar con un digito: {lexema}{self._actual()}",
@@ -247,9 +238,7 @@ class Lexer:
 
         lexema = self.fuente[inicio:self.pos]
 
-        # El lenguaje es sensible a mayusculas (D-7) y no admite tildes ni 'n'
-        # con virgulilla (D-6): .isalnum() de Python sí las acepta, así que hay
-        # que rechazarlas a mano.
+        # sin tildes ni ene -> D-6. Python las deja pasar, asi que las saco aca
         if not lexema.isascii():
             raise self._error(
                 f"los identificadores no admiten tildes ni 'ñ': {lexema}",
@@ -264,8 +253,7 @@ class Lexer:
         c = self._avanzar()
         tipo = SIMBOLOS[c]
 
-        # Solo '{' y '<' suspenden el corte por salto de linea. '[' no hace
-        # falta: un generico siempre cabe en una linea.
+        # solo cuento { y <. El [ no, porque un generico entra en una linea
         if c in "{<":
             self.anidacion += 1
         elif c in "}>":
@@ -275,5 +263,5 @@ class Lexer:
 
 
 def tokenizar(fuente: str, archivo: str = "<entrada>") -> list[Token]:
-    """Atajo: devuelve la lista de tokens de un programa GGEZ."""
+    """Atajo, para no tener que crear el Lexer a mano."""
     return Lexer(fuente, archivo).analizar()

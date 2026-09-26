@@ -1,16 +1,9 @@
-"""Traductor del lenguaje GGEZ.
+"""Traductor de GGEZ.
 
-Etapas (ver Problemas de traduccion de lenguajes.pdf):
+    fuente -> lexer.py -> sintactico.py -> semantico.py -> evaluador.py
 
-    programa fuente
-        -> analisis lexico     (lexer.py)
-        -> analisis sintactico (sintactico.py)
-        -> analisis semantico  (semantico.py)
-        -> evaluacion          (evaluador.py)
-
-Las cuatro corren de punta a punta sobre el subconjunto del lenguaje descrito en
-el bloque 1 de TODO.md. Los modulos se llaman 'arbol' y 'sintactico' y no 'ast' y
-'parser' porque esos dos nombres chocan con la biblioteca estandar de Python.
+OJO: se llaman arbol.py y sintactico.py, no ast.py ni parser.py, porque esos
+dos nombres chocan con modulos de Python y el import falla raro.
 """
 
 from . import arbol
