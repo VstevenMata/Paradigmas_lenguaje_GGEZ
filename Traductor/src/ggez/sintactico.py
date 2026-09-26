@@ -16,6 +16,7 @@ from . import arbol
 from .errores import ErrorSintactico
 from .tokens import (
     CONSTRUCTORES_COLECCION,
+    MODIFICADORES,
     OP_ADITIVOS,
     OP_ASIGNACION,
     OP_INCREMENTO,
@@ -71,8 +72,13 @@ class Sintactico:
         return self._avanzar()
 
     def _fin_linea(self) -> None:
-        """Consume el cierre de sentencia. En GGEZ no hay ';': es el salto de linea."""
-        if self.actual.tipo is TipoToken.FIN_ARCHIVO:
+        """Consume el cierre de sentencia. En GGEZ no hay ';': es el salto de linea.
+
+        Un 'gg' tambien cierra la sentencia, sin consumirlo: eso permite escribir
+        un bloque entero en una linea, como en el ejemplo de la Propuesta de
+        Lenguaje ('pick 10 | 9 glhf reward "Pro" gg').
+        """
+        if self.actual.tipo is TipoToken.FIN_ARCHIVO or self.actual.es("gg"):
             return
         if self.actual.tipo is not TipoToken.FIN_LINEA:
             raise self._error(
@@ -104,10 +110,49 @@ class Sintactico:
             return self.decl_travel()
         if self.actual.es("lobby"):
             return self.punto_entrada()
+        if self.actual.es("combo") or self.actual.es(*MODIFICADORES):
+            return self.decl_combo()
         raise self._error(
-            f"aqui se esperaba una declaracion de nivel superior (travel o "
+            f"aqui se esperaba una declaracion de nivel superior (travel, combo o "
             f"lobby.launch) y se encontro {self._describir(self.actual)}"
         )
+
+    def decl_combo(self) -> arbol.DeclCombo:
+        t = self.actual
+        modificador = self._avanzar().lexema if self.actual.es(*MODIFICADORES) else None
+
+        self._consumir_reservada("combo")
+        nombre = self._consumir(TipoToken.IDENTIFICADOR, "el nombre del combo").lexema
+        self._consumir(TipoToken.LLAVE_IZQ, "'{' con los parametros del combo")
+
+        parametros: list[arbol.Parametro] = []
+        if self.actual.tipo is not TipoToken.LLAVE_DER:
+            parametros.append(self.parametro())
+            while self.actual.tipo is TipoToken.BARRA:
+                self._avanzar()
+                parametros.append(self.parametro())
+        self._consumir(TipoToken.LLAVE_DER, "'}' para cerrar los parametros")
+
+        # 'drops' es obligatorio siempre; un combo que no devuelve escribe
+        # 'drops noloot' (D-12). Mas verboso, pero no hay que adivinar.
+        self._consumir_reservada("drops")
+        if self.actual.es("noloot"):
+            self._avanzar()
+            retorno = None
+        else:
+            retorno = self.tipo()
+
+        cuerpo = self.bloque()
+        return arbol.DeclCombo(
+            nombre, parametros, retorno, cuerpo, modificador,
+            linea=t.linea, columna=t.columna,
+        )
+
+    def parametro(self) -> arbol.Parametro:
+        t = self.actual
+        tipo = self.tipo()
+        nombre = self._consumir(TipoToken.IDENTIFICADOR, "el nombre del parametro").lexema
+        return arbol.Parametro(tipo, nombre, linea=t.linea, columna=t.columna)
 
     def decl_travel(self) -> arbol.Travel:
         t = self._consumir_reservada("travel")
@@ -129,8 +174,19 @@ class Sintactico:
         return arbol.PuntoEntrada(self.bloque(), linea=t.linea, columna=t.columna)
 
     def bloque(self) -> arbol.Bloque:
+        cuerpo = self._cuerpo_bloque()
+        self._consumir_reservada("gg")
+        return cuerpo
+
+    def _cuerpo_bloque(self) -> arbol.Bloque:
+        """Lee 'glhf' y las sentencias, y se detiene ANTES del 'gg' sin consumirlo.
+
+        Hace falta separarlo de bloque() porque hay construcciones donde el 'gg'
+        no cierra la sentencia: 'gg fallback glhf' (el else) y 'gg survive {...}'
+        (el do-while). Quien llame decide que hacer despues de verlo.
+        """
         t = self._consumir_reservada("glhf")
-        self._fin_linea()
+        self._saltar_lineas()   # opcional: el bloque puede seguir en la misma linea
         sentencias: list[arbol.Nodo] = []
 
         while not self.actual.es("gg"):
@@ -139,7 +195,6 @@ class Sintactico:
             sentencias.append(self.sentencia())
             self._saltar_lineas()
 
-        self._consumir_reservada("gg")
         return arbol.Bloque(sentencias, linea=t.linea, columna=t.columna)
 
     # ------------------------------------------------------------- sentencias
@@ -147,6 +202,26 @@ class Sintactico:
     def sentencia(self) -> arbol.Nodo:
         if self.actual.es("stash", "hardcoded"):
             return self.decl_variable()
+        if self.actual.es("scan"):
+            return self.sent_scan()
+        if self.actual.es("farm"):
+            return self.sent_farm()
+        if self.actual.es("survive"):
+            return self.sent_survive()
+        if self.actual.es("grind"):
+            return self.sent_grind()
+        if self.actual.es("loadout"):
+            return self.sent_loadout()
+        if self.actual.es("ragequit"):
+            t = self._avanzar()
+            self._fin_linea()
+            return arbol.Ragequit(linea=t.linea, columna=t.columna)
+        if self.actual.es("respawn"):
+            t = self._avanzar()
+            self._fin_linea()
+            return arbol.Respawn(linea=t.linea, columna=t.columna)
+        if self.actual.es("reward"):
+            return self.sent_reward()
 
         # Cualquier otra sentencia empieza por una expresion. Si despues de esa
         # expresion viene set/boost/sap o buff/nerf, era en realidad el
@@ -180,6 +255,145 @@ class Sintactico:
         """Solo un identificador, un campo o un indice pueden ir a la izquierda."""
         if not isinstance(nodo, (arbol.Identificador, arbol.Acceso, arbol.Indice, arbol.Me)):
             raise self._error("el lado izquierdo de una asignacion no es asignable", token)
+
+    def sent_reward(self) -> arbol.Reward:
+        t = self._consumir_reservada("reward")
+        # 'reward' a secas solo vale en un combo con 'drops noloot'; que el tipo
+        # calce lo revisa el analizador semantico, aca alcanza con ver si hay algo
+        vacio = (
+            self.actual.tipo in (TipoToken.FIN_LINEA, TipoToken.FIN_ARCHIVO)
+            or self.actual.es("gg")
+        )
+        valor = None if vacio else self.expresion()
+        self._fin_linea()
+        return arbol.Reward(valor, linea=t.linea, columna=t.columna)
+
+    # ------------------------------------------------------ control de flujo
+
+    def sent_scan(self) -> arbol.Scan:
+        t = self._consumir_reservada("scan")
+        condicion = self.expresion()
+        entonces = self._cuerpo_bloque()
+        self._consumir_reservada("gg")
+
+        # Aca esta el unico punto del lenguaje que necesita mirar un token mas
+        # adelante: el 'gg' que acabamos de consumir puede cerrar el scan, o
+        # venir seguido de 'fallback'. Con esa anticipacion la gramatica sigue
+        # siendo LL(1).
+        sino: arbol.Bloque | arbol.Scan | None = None
+        if self.actual.es("fallback"):
+            self._avanzar()
+            sino = self.sent_scan() if self.actual.es("scan") else self.bloque()
+
+        return arbol.Scan(condicion, entonces, sino, linea=t.linea, columna=t.columna)
+
+    def sent_farm(self) -> arbol.Farm:
+        t = self._consumir_reservada("farm")
+        inicio = self.asig_simple()
+        self._consumir(TipoToken.BARRA, "'|' despues de la inicializacion del farm")
+        condicion = self.expresion()
+        self._consumir(TipoToken.BARRA, "'|' despues de la condicion del farm")
+        paso = self.paso()
+        cuerpo = self.bloque()
+        return arbol.Farm(inicio, condicion, paso, cuerpo, linea=t.linea, columna=t.columna)
+
+    def asig_simple(self) -> arbol.Asignacion:
+        inicio = self.actual
+        destino = self.expresion()
+        self._consumir_reservada("set")
+        valor = self.expresion()
+        self._verificar_designador(destino, inicio)
+        return arbol.Asignacion(destino, "set", valor, linea=inicio.linea, columna=inicio.columna)
+
+    def paso(self) -> arbol.Nodo:
+        inicio = self.actual
+        destino = self.expresion()
+
+        if self.actual.es(*OP_INCREMENTO):
+            operador = self._avanzar().lexema
+            self._verificar_designador(destino, inicio)
+            return arbol.Incremento(destino, operador, linea=inicio.linea, columna=inicio.columna)
+
+        if self.actual.es(*OP_ASIGNACION):
+            operador = self._avanzar().lexema
+            valor = self.expresion()
+            self._verificar_designador(destino, inicio)
+            return arbol.Asignacion(destino, operador, valor, linea=inicio.linea, columna=inicio.columna)
+
+        raise self._error(
+            f"el paso del farm debe modificar la variable (buff, nerf, set, boost o sap) "
+            f"y se encontro {self._describir(self.actual)}"
+        )
+
+    def sent_survive(self) -> arbol.Survive:
+        t = self._consumir_reservada("survive")
+        condicion = self.expresion()
+        cuerpo = self.bloque()
+        return arbol.Survive(condicion, cuerpo, linea=t.linea, columna=t.columna)
+
+    def sent_grind(self) -> arbol.Grind:
+        # grind glhf ... gg survive {cond} -- la condicion va al final, que es lo
+        # que lo distingue del survive: el cuerpo corre al menos una vez (D-10)
+        t = self._consumir_reservada("grind")
+        cuerpo = self._cuerpo_bloque()
+        self._consumir_reservada("gg")
+        self._consumir_reservada("survive")
+        self._consumir(TipoToken.LLAVE_IZQ, "'{' con la condicion del grind")
+        condicion = self.expresion()
+        self._consumir(TipoToken.LLAVE_DER, "'}' para cerrar la condicion del grind")
+        self._fin_linea()
+        return arbol.Grind(cuerpo, condicion, linea=t.linea, columna=t.columna)
+
+    def sent_loadout(self) -> arbol.Loadout:
+        t = self._consumir_reservada("loadout")
+        expresion = self.expresion()
+        self._consumir_reservada("glhf")
+        self._fin_linea()
+
+        ramas: list[arbol.RamaPick] = []
+        defecto: arbol.Bloque | None = None
+
+        while not self.actual.es("gg"):
+            if self.actual.tipo is TipoToken.FIN_ARCHIVO:
+                raise self._error("loadout sin cerrar: falta 'gg'", t)
+
+            if self.actual.es("pick"):
+                if defecto is not None:
+                    raise self._error("el 'noob' debe ser la ultima rama del loadout")
+                tp = self._avanzar()
+                valores = self.lista_valores()
+                ramas.append(arbol.RamaPick(valores, self.bloque(), linea=tp.linea, columna=tp.columna))
+            elif self.actual.es("noob"):
+                if defecto is not None:
+                    raise self._error("el loadout ya tiene un 'noob'")
+                self._avanzar()
+                defecto = self.bloque()
+            else:
+                raise self._error(
+                    f"dentro de un loadout solo van ramas 'pick' o 'noob', y se "
+                    f"encontro {self._describir(self.actual)}"
+                )
+
+            self._saltar_lineas()
+
+        self._consumir_reservada("gg")
+        return arbol.Loadout(expresion, ramas, defecto, linea=t.linea, columna=t.columna)
+
+    def lista_valores(self) -> list[arbol.Nodo]:
+        valores = [self._valor_pick()]
+        while self.actual.tipo is TipoToken.BARRA:
+            self._avanzar()
+            valores.append(self._valor_pick())
+        return valores
+
+    def _valor_pick(self) -> arbol.Nodo:
+        # la gramatica pide literales: un pick se compara por valor, no evalua
+        # expresiones que dependan del estado
+        t = self.actual
+        nodo = self.primario()
+        if not isinstance(nodo, arbol.Literal):
+            raise self._error("un 'pick' solo admite valores literales", t)
+        return nodo
 
     def decl_variable(self) -> arbol.DeclVariable:
         t = self._avanzar()                       # stash o hardcoded

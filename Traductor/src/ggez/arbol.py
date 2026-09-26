@@ -89,6 +89,93 @@ class SentenciaExpresion(Nodo):
     expresion: Nodo
 
 
+# ---------------------------------------------------------- control de flujo
+
+@dataclass
+class Scan(Nodo):
+    """scan <cond> glhf ... gg [fallback glhf ... gg]
+
+    'sino' es un Bloque cuando es un fallback simple, y otro Scan cuando es un
+    'fallback scan' encadenado (el else-if de GGEZ).
+    """
+    condicion: Nodo
+    entonces: "Bloque"
+    sino: "Bloque | Scan | None" = None
+
+
+@dataclass
+class Farm(Nodo):
+    """farm <inicio> | <cond> | <paso> glhf ... gg"""
+    inicio: Nodo
+    condicion: Nodo
+    paso: Nodo
+    cuerpo: "Bloque"
+
+
+@dataclass
+class Survive(Nodo):
+    """survive <cond> glhf ... gg  -- evalua la condicion antes de cada vuelta"""
+    condicion: Nodo
+    cuerpo: "Bloque"
+
+
+@dataclass
+class Grind(Nodo):
+    """grind glhf ... gg survive {<cond>}  -- el cuerpo corre al menos una vez"""
+    cuerpo: "Bloque"
+    condicion: Nodo
+
+
+@dataclass
+class RamaPick(Nodo):
+    """pick <v1> | <v2> glhf ... gg"""
+    valores: list[Nodo]
+    cuerpo: "Bloque"
+
+
+@dataclass
+class Loadout(Nodo):
+    """loadout <expr> glhf <ramas> [noob glhf ... gg] gg -- sin caida entre ramas"""
+    expresion: Nodo
+    ramas: list[RamaPick]
+    defecto: "Bloque | None" = None
+
+
+@dataclass
+class Ragequit(Nodo):
+    """ragequit -- abandona el ciclo"""
+
+
+@dataclass
+class Respawn(Nodo):
+    """respawn -- salta a la siguiente iteracion"""
+
+
+# ------------------------------------------------------------------ funciones
+
+@dataclass
+class Parametro(Nodo):
+    """<tipo> <nombre> dentro de la lista de parametros de un combo"""
+    tipo: Tipo
+    nombre: str
+
+
+@dataclass
+class DeclCombo(Nodo):
+    """[open|party|solo] combo <nombre>{<params>} drops <tipo> glhf ... gg"""
+    nombre: str
+    parametros: list[Parametro]
+    retorno: Tipo | None          # None cuando el drops es 'noloot'
+    cuerpo: "Bloque"
+    modificador: str | None = None
+
+
+@dataclass
+class Reward(Nodo):
+    """reward [<expresion>] -- corta el combo y devuelve"""
+    valor: Nodo | None = None
+
+
 # -------------------------------------------------------------- expresiones
 
 @dataclass

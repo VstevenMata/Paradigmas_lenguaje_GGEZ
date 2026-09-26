@@ -82,8 +82,13 @@ emite un token `FIN_LINEA` por cada salto, con dos excepciones:
    permite partir una llamada o un literal de colección en varias líneas. `[D-3]`
 
 ```
-<fin-linea> ::= FIN_LINEA { FIN_LINEA }*
+<fin-linea> ::= FIN_LINEA { FIN_LINEA }* | &"gg" | &FIN_ARCHIVO
 ```
+
+Un `"gg"` también cierra la sentencia **sin consumirse** (eso es lo que marca el
+`&`), y lo mismo el final del archivo. Sin esa regla no se podría escribir un
+bloque entero en una línea, y el ejemplo de la Propuesta de Lenguaje lo hace:
+`pick 10 | 9 glhf reward "Pro" gg`. `[D-19]`
 
 ### 1.5 Palabras reservadas
 
@@ -153,11 +158,20 @@ archivo sin él es válido como biblioteca importable con `travel`. `[D-13]`
 ### 2.1 Bloques
 
 ```
-<bloque> ::= "glhf" <fin-linea> { <sentencia> }* "gg" <fin-linea>
+<bloque> ::= "glhf" [ <fin-linea> ] { <sentencia> }* "gg"
 ```
 
 Todo bloque abre con `glhf` y cierra con `gg`, siempre el par completo, aunque
 contenga una sola instrucción. La indentación es estética, no significativa.
+
+El salto de línea después de `glhf` es **opcional**: junto con la regla `[D-19]`
+de §1.4, eso permite las dos formas.
+
+```
+scan nota atleast 90 glhf              pick 10 | 9 glhf reward "Pro" gg
+    chat.send{"Pro"}
+gg
+```
 
 ---
 
@@ -435,6 +449,7 @@ mover cualquiera es tocar una tabla, no reescribir el traductor.
 | D-16 | `wipe` recibe un `lore` | 4.5 |
 | D-17 | El combo homónimo del guild es el constructor | 3.7 |
 | D-18 | `chat` en minúscula, con llaves: `chat.send{...}` | 2.1, 2.2 |
+| D-19 | Un `gg` cierra la sentencia sin consumirse, y el salto tras `glhf` es opcional: así un bloque cabe en una línea | surgió al implementar el `loadout`; el ejemplo del Word ya lo usaba |
 
 **Sigue pendiente de decisión del equipo** (no bloquea el analizador léxico, sí el
 analizador semántico): los nombres de los métodos de `squad`/`stack`/`queue`

@@ -1,0 +1,49 @@
+/w Bloque 3: funciones
+
+/w llama a un combo declarado MAS ABAJO: la firma se registra antes de los cuerpos
+combo clasificar{score puntos} drops lore glhf
+    scan puntos atleast 90 glhf
+        reward "Pro"
+    gg fallback scan puntos atleast 60 glhf
+        reward "Decente"
+    gg fallback glhf
+        reward etiquetaBaja{}
+    gg
+gg
+
+combo etiquetaBaja{} drops lore glhf
+    reward "Noob"
+gg
+
+/w recursion
+combo factorial{score n} drops score glhf
+    scan n atmost 1 glhf
+        reward 1
+    gg
+    reward n crit factorial{n drain 1}
+gg
+
+/w drops noloot: hace algo pero no devuelve
+combo saludar{lore nombre | score veces} drops noloot glhf
+    stash score i set 0
+    farm i set 1 | i atmost veces | i buff glhf
+        chat.send{"Hola " gain nombre gain " (" gain i gain ")"}
+    gg
+gg
+
+/w promocion score -> aim en un parametro
+combo mitad{aim x} drops aim glhf
+    reward x split 2
+gg
+
+lobby.launch{start THE GAME} glhf
+    chat.send{clasificar{95}}
+    chat.send{clasificar{70}}
+    chat.send{clasificar{30}}
+
+    chat.send{"factorial de 5 = " gain factorial{5}}
+
+    saludar{"Angel" | 2}
+
+    chat.send{"mitad de 7 = " gain mitad{7}}
+gg
