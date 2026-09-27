@@ -5,7 +5,7 @@ lobby.launch{start THE GAME} glhf
 
     hardcoded score MINIMO set 60
     stash score puntos set 85
-    stash aim promedio set puntos split 2
+    stash aim promedio set puntos split 2.0     /w con 2 a secas daria 42, como en C
 
     chat.send{"Puntos: " gain puntos}
     chat.send{"Promedio: " gain promedio}

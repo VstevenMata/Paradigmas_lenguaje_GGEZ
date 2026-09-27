@@ -304,6 +304,13 @@ Cada `pick` cierra con su propio `gg`, así que **no hay caída entre ramas**
 El objeto que atrapa `revive` tiene dos campos: `.reason` (de tipo `lore`) y
 `.line` (de tipo `score`). `wipe` recibe un `lore`. `[D-15]` `[D-16]`
 
+`revive` atrapa tanto lo que lanza un `wipe` como los errores en ejecución
+(división entre cero, índice fuera de rango, etc.). Un `wipe` que nadie atrapa
+termina el programa como error en ejecución, con su texto como mensaje. El
+bloque `checkpoint` corre siempre: haya error o no, y también si el bloque sale
+por un `reward`, `ragequit` o `respawn`. La variable de `revive` solo existe
+dentro de su bloque y sus campos son de solo lectura. `[D-22]`
+
 ---
 
 ## 6. Funciones
@@ -346,7 +353,40 @@ El objeto que atrapa `revive` tiene dos campos: `.reason` (de tipo `lore`) y
 
 El `combo` que se llama igual que su `guild` es el **constructor**, y debe
 declararse `drops noloot`. `[D-17]` `me` referencia la instancia actual.
-`spawn Clase{args}` crea una instancia.
+`spawn Clase{args}` crea una instancia: los argumentos van al constructor. Si el
+`guild` no tiene constructor, `spawn Clase{}` va sin argumentos.
+
+El modelo sigue a Java:
+
+- **Visibilidad.** `solo` = `private` (solo desde el mismo `guild`), `party` =
+  `protected` (el `guild` y sus hijos), `open` = `public` (desde cualquier lado).
+  Se revisa en el análisis semántico. Un `combo` miembro sin modificador es
+  `open`; un campo siempre lleva modificador. `[D-24]`
+- **`me` es opcional**, como `this` en Java. Dentro de un `combo` miembro, un
+  nombre a secas se busca primero entre los parámetros y variables locales,
+  después entre los campos y métodos del `guild`, y por último entre los `combo`
+  globales. Un parámetro o variable local **sí** puede llamarse igual que un
+  campo: el nombre a secas es el local y el campo se alcanza con `me.campo`. Es
+  la única excepción a la prohibición de tapar nombres. `[D-25]`
+- **Valores iniciales.** Un campo sin `set` arranca como en Java: `score` en
+  `0`, `aim` en `0.0`, `win` en `miss`, y `lore`, `pixel`, `squad` y los objetos
+  en `afk`. `[D-26]`
+- **Herencia.** Un solo padre con `evolves`. No existe un equivalente a `super`:
+  el constructor del padre no se ejecuta, y el hijo inicializa los campos
+  heredados, que para eso deben ser `party` u `open`. Un campo `solo` del padre
+  conserva su valor inicial. Un hijo puede reemplazar un método del padre si
+  respeta la misma firma, y un objeto hijo puede guardarse en una variable del
+  tipo padre. `[D-27]` Además, como en Java:
+  - el constructor no se hereda;
+  - un hijo no puede declarar un campo o método con el nombre de un campo
+    heredado, ni un campo con el nombre de un método heredado;
+  - al reemplazar un método no se puede cerrar su visibilidad (un método `open`
+    no puede pasar a `party` ni a `solo`);
+  - se ejecuta la versión del método que corresponde al objeto real, aunque la
+    llamada esté escrita en el padre o la variable sea del tipo padre.
+
+`questline` (interfaces) queda fuera de la versión 1: la regla se deja escrita
+para una versión futura.
 
 ---
 
@@ -399,6 +439,13 @@ Tabla de precedencia resultante, de mayor a menor: `[D-4]`
 > confunden por su posición: `{...}` **después** de un operando es una llamada
 > (`chat.send{"hola"}`), y `{...}` **donde se espera un operando** es una
 > agrupación (`{MINIMO drain 60}`).
+
+> **Nota sobre `split` y `scrap`.** Funcionan como en C y Java: si los dos
+> operandos son `score`, el resultado es `score` y se descarta la parte decimal
+> truncando hacia cero (`7 split 2` → `3`, `drain 7 split 2` → `-3`,
+> `drain 7 scrap 3` → `-1`). Si al menos uno es `aim`, el resultado es `aim`
+> (`7 split 2.0` → `3.5`). El tipo lo deciden los operandos, no la variable
+> donde se guarda: `stash aim m set 10 split 3` guarda `3.0`. `[D-23]`
 
 ### 8.1 Ejemplo de árbol de derivación
 
@@ -455,6 +502,12 @@ mover cualquiera es tocar una tabla, no reescribir el traductor.
 | D-19 | Un `gg` cierra la sentencia sin consumirse, y el salto tras `glhf` es opcional: así un bloque cabe en una línea | surgió al implementar el `loadout`; el ejemplo del Word ya lo usaba |
 | D-20 | Métodos de `squad` (ver abajo) | 3.6 |
 | D-21 | **`stack` y `queue` quedan fuera del lenguaje**: la única colección es `squad` | decisión del equipo, 2026-09-26 |
+| D-22 | `revive` atrapa `wipe` y errores en ejecución; `checkpoint` corre siempre | surgió al implementar el `clutch`; el ejemplo del Word atrapa una división entre cero |
+| D-23 | `score split score` da `score`, truncando como en C y Java | el ejemplo del Word (`loadout puntos split 10`) usa división entera; antes `split` siempre daba `aim` |
+| D-24 | Visibilidad como Java: `solo`/`party`/`open` = `private`/`protected`/`public`; método sin modificador es `open` | 3.3. El ejemplo del Word leía un campo `solo` desde afuera: se corrigió con un getter |
+| D-25 | `me` opcional; un local puede llamarse igual que un campo |
+| D-26 | Campos sin `set` arrancan con el valor por defecto | 
+| D-27 | Herencia simple, sin `super`: el hijo inicializa lo heredado |
 
 ### D-21 · Solo vectores
 

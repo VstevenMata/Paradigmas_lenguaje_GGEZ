@@ -111,9 +111,13 @@ class Sintactico:
             return self.decl_combo()
         if self.actual.es("inventory"):
             return self.decl_inventory()
+        if self.actual.es("guild"):
+            return self.decl_guild()
+        if self.actual.es("questline"):
+            raise self._error("questline (las interfaces) no entra en esta version de GGEZ")
         raise self._error(
-            f"aqui se esperaba una declaracion de nivel superior (travel, combo o "
-            f"lobby.launch) y se encontro {self._describir(self.actual)}"
+            f"aqui se esperaba una declaracion de nivel superior (travel, combo, "
+            f"guild, inventory o lobby.launch) y se encontro {self._describir(self.actual)}"
         )
 
     def decl_combo(self) -> arbol.DeclCombo:
@@ -162,6 +166,59 @@ class Sintactico:
 
         self._consumir_reservada("gg")
         return arbol.DeclInventory(nombre, campos, linea=t.linea, columna=t.columna)
+
+    def decl_guild(self) -> arbol.DeclGuild:
+        t = self._consumir_reservada("guild")
+        nombre = self._consumir(TipoToken.IDENTIFICADOR, "el nombre del guild").lexema
+
+        padre = None
+        if self.actual.es("evolves"):
+            self._avanzar()
+            padre = self._consumir(TipoToken.IDENTIFICADOR, "el guild del que hereda").lexema
+
+        self._consumir_reservada("glhf")
+        self._saltar_lineas()
+
+        campos: list[arbol.DeclCampo] = []
+        metodos: list[arbol.DeclCombo] = []
+        while not self.actual.es("gg"):
+            if self.actual.tipo is TipoToken.FIN_ARCHIVO:
+                raise self._error("guild sin cerrar: falta 'gg'", t)
+            if self._viene_combo():
+                metodos.append(self.decl_combo())
+            else:
+                campos.append(self.decl_campo())
+            self._saltar_lineas()
+
+        self._consumir_reservada("gg")
+        return arbol.DeclGuild(nombre, padre, campos, metodos, linea=t.linea, columna=t.columna)
+
+    def _viene_combo(self) -> bool:
+        # 'solo combo x' es un metodo y 'solo score x' un campo: el modificador
+        # es igual en los dos, asi que hay que mirar lo que sigue
+        if self.actual.es("combo"):
+            return True
+        siguiente = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else self.actual
+        return self.actual.es(*MODIFICADORES) and siguiente.es("combo")
+
+    def decl_campo(self) -> arbol.DeclCampo:
+        t = self.actual
+        if not t.es(*MODIFICADORES):
+            raise self._error(
+                f"dentro de un guild van campos (con open, party o solo delante) o "
+                f"combos, y se encontro {self._describir(t)}"
+            )
+        modificador = self._avanzar().lexema
+        tipo = self.tipo()
+        nombre = self._consumir(TipoToken.IDENTIFICADOR, "el nombre del campo").lexema
+
+        valor = None
+        if self.actual.es("set"):
+            self._avanzar()
+            valor = self.expresion()
+
+        self._fin_linea()
+        return arbol.DeclCampo(modificador, tipo, nombre, valor, linea=t.linea, columna=t.columna)
 
     def parametro(self) -> arbol.Parametro:
         t = self.actual
@@ -236,6 +293,10 @@ class Sintactico:
             return arbol.Respawn(linea=t.linea, columna=t.columna)
         if self.actual.es("reward"):
             return self.sent_reward()
+        if self.actual.es("clutch"):
+            return self.sent_clutch()
+        if self.actual.es("wipe"):
+            return self.sent_wipe()
 
         # el resto arranca con una expresion. Si despues aparece set/boost/sap
         # o buff/nerf, era el destino de una asignacion
@@ -402,6 +463,38 @@ class Sintactico:
         if not isinstance(nodo, arbol.Literal):
             raise self._error("un 'pick' solo admite valores literales", t)
         return nodo
+
+    # ------------------------------------------------------------- errores
+
+    def sent_clutch(self) -> arbol.Clutch:
+        # igual que el scan: los gg del medio no cierran nada, vienen pegados
+        # al revive y al checkpoint
+        t = self._consumir_reservada("clutch")
+        intento = self._cuerpo_bloque()
+        self._consumir_reservada("gg")
+
+        self._consumir_reservada("revive")
+        self._consumir(TipoToken.LLAVE_IZQ, "'{' con el nombre del error")
+        variable = self._consumir(TipoToken.IDENTIFICADOR, "el nombre del error").lexema
+        self._consumir(TipoToken.LLAVE_DER, "'}' despues del nombre del error")
+        atrapa = self._cuerpo_bloque()
+        self._consumir_reservada("gg")
+
+        final: arbol.Bloque | None = None
+        if self.actual.es("checkpoint"):
+            self._avanzar()
+            final = self.bloque()
+
+        self._fin_linea()
+        return arbol.Clutch(intento, variable, atrapa, final, linea=t.linea, columna=t.columna)
+
+    def sent_wipe(self) -> arbol.Wipe:
+        t = self._consumir_reservada("wipe")
+        self._consumir(TipoToken.LLAVE_IZQ, "'{' con el motivo del wipe")
+        motivo = self.expresion()
+        self._consumir(TipoToken.LLAVE_DER, "'}' para cerrar el wipe")
+        self._fin_linea()
+        return arbol.Wipe(motivo, linea=t.linea, columna=t.columna)
 
     def decl_variable(self) -> arbol.DeclVariable:
         t = self._avanzar()                       # stash o hardcoded

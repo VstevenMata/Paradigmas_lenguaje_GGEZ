@@ -7,7 +7,7 @@ inventory Arma glhf
 gg
 
 combo promedio{squad[score] datos} drops aim glhf
-    stash score suma set 0
+    stash aim suma set 0
     stash score i set 0
     farm i set 0 | i under datos.size | i buff glhf
         suma boost datos<i>
