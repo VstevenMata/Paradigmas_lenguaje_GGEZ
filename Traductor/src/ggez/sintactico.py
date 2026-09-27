@@ -115,6 +115,9 @@ class Sintactico:
             return self.decl_guild()
         if self.actual.es("questline"):
             raise self._error("questline (las interfaces) no entra en esta version de GGEZ")
+        if self.actual.es("server", "region"):
+            # nunca se definio para que sirven -> D-30
+            raise self._error(f"'{self.actual.lexema}' no entra en esta version de GGEZ")
         raise self._error(
             f"aqui se esperaba una declaracion de nivel superior (travel, combo, "
             f"guild, inventory o lobby.launch) y se encontro {self._describir(self.actual)}"
@@ -174,7 +177,7 @@ class Sintactico:
         padre = None
         if self.actual.es("evolves"):
             self._avanzar()
-            padre = self._consumir(TipoToken.IDENTIFICADOR, "el guild del que hereda").lexema
+            padre = self.nombre_tipo("el guild del que hereda")
 
         self._consumir_reservada("glhf")
         self._saltar_lineas()
@@ -529,11 +532,22 @@ class Sintactico:
             self._consumir(TipoToken.CORCHETE_DER, "']' para cerrar el tipo generico")
             return arbol.Tipo(t.lexema, interno, linea=t.linea, columna=t.columna)
 
-        if t.es(*TIPOS_SIMPLES) or t.tipo is TipoToken.IDENTIFICADOR:
+        if t.es(*TIPOS_SIMPLES):
             self._avanzar()
             return arbol.Tipo(t.lexema, linea=t.linea, columna=t.columna)
 
+        if t.tipo is TipoToken.IDENTIFICADOR:
+            return arbol.Tipo(self.nombre_tipo("un tipo"), linea=t.linea, columna=t.columna)
+
         raise self._error(f"se esperaba un tipo y se encontro {self._describir(t)}")
+
+    def nombre_tipo(self, que: str) -> str:
+        """Jugador, o utilidades.Jugador si viene de otro archivo -> D-28."""
+        nombre = self._consumir(TipoToken.IDENTIFICADOR, que).lexema
+        if self.actual.tipo is TipoToken.PUNTO:
+            self._avanzar()
+            nombre += "." + self._consumir(TipoToken.IDENTIFICADOR, f"el nombre despues de '{nombre}.'").lexema
+        return nombre
 
     # ------------------------------------------------------------ expresiones
     # el orden de estas funciones es lo que decide que va primero
@@ -654,7 +668,7 @@ class Sintactico:
 
         if t.es("spawn"):
             self._avanzar()
-            tipo = self._consumir(TipoToken.IDENTIFICADOR, "el tipo a instanciar").lexema
+            tipo = self.nombre_tipo("el tipo a instanciar")
             self._consumir(TipoToken.LLAVE_IZQ, "'{' con los valores iniciales")
             argumentos = self.lista_argumentos()
             return arbol.Spawn(tipo, argumentos, linea=t.linea, columna=t.columna)

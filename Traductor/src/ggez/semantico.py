@@ -119,18 +119,33 @@ class Semantico:
     # modulos que existen sin tener que importarlos
     MODULOS = {"chat"}
 
-    def __init__(self, archivo: str = "<entrada>") -> None:
+    def __init__(
+        self,
+        archivo: str = "<entrada>",
+        registros: dict[str, list[tuple[str, str]]] | None = None,
+        guilds: dict[str, "InfoGuild"] | None = None,
+        modulo: str | None = None,
+        importa: dict[str, "Semantico"] | None = None,
+    ) -> None:
         self.archivo = archivo
         self.global_ = Alcance()
         self.alcance = self.global_
+        # los de la libreria que este archivo puede usar. Copia, no la de la clase:
+        # cada archivo tiene sus propios travel
+        self.modulos = set(self.MODULOS)
+        # utilidades si este archivo es utilidades.ggez; None en el principal
+        self.modulo = modulo
+        # los archivos que trae con travel, ya revisados -> D-28
+        self.importa = importa or {}
         self.puntos_entrada = 0
         # para saber si estoy dentro de un ciclo. Lo usan ragequit y respawn -> D-14
         self.profundidad_ciclo = 0
         # los combo que existen. Se llena antes de mirar ningun cuerpo
         self.combos: dict[str, Firma] = {}
-        # los inventory: nombre -> [(tipo, campo)]
-        self.registros: dict[str, list[tuple[str, str]]] = {}
-        self.guilds: dict[str, InfoGuild] = {}
+        # los inventory: nombre -> [(tipo, campo)]. Estos dos son de TODO el
+        # programa, compartidos entre archivos: utilidades.Jugador es uno solo
+        self.registros = registros if registros is not None else {}
+        self.guilds = guilds if guilds is not None else {}
         # en que combo estoy parado, para revisar sus reward
         self.combo_actual: Firma | None = None
         # en que guild estoy parado, para saber que se puede ver -> D-24
@@ -141,9 +156,12 @@ class Semantico:
 
     # ---------------------------------------------------------------- recorrido
 
-    def analizar(self, programa: arbol.Programa) -> arbol.Programa:
+    def analizar(self, programa: arbol.Programa, principal: bool = True) -> arbol.Programa:
         # DOS VUELTAS. En la primera solo anoto que combos existen, sin mirar
         # que hacen. Asi uno puede llamar a otro que esta escrito mas abajo
+        for declaracion in programa.declaraciones:
+            if isinstance(declaracion, arbol.Travel):
+                self.registrar_travel(declaracion)
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.DeclInventory):
                 self.registrar_inventory(declaracion)
@@ -164,13 +182,20 @@ class Semantico:
         for declaracion in programa.declaraciones:
             self.declaracion(declaracion)
 
-        if self.puntos_entrada == 0:
+        if principal and self.puntos_entrada == 0:
             # sin punto de entrada sirve como biblioteca, pero no se ejecuta -> D-13
             raise ErrorSemantico(
                 "el programa no tiene punto de entrada: falta lobby.launch{start THE GAME}",
                 1, 1, self.archivo,
             )
         return programa
+
+    def registrar_travel(self, nodo: arbol.Travel) -> None:
+        if nodo.modulo in self.importa:
+            # un archivo: queda como un nombre mas, y utilidades.algo busca adentro
+            self.global_.declarar(Simbolo(nodo.modulo, f"archivo:{nodo.modulo}", True, nodo.linea))
+        else:
+            self.modulos.add(nodo.modulo)          # la libreria -> bloque 6
 
     def registrar_inventory(self, nodo: arbol.DeclInventory) -> None:
         if nodo.nombre in self.registros:
@@ -193,6 +218,8 @@ class Semantico:
             )
         if nodo.nombre in self.guilds:
             raise self._error(f"ya existe un guild llamado '{nodo.nombre}'", nodo)
+        if nodo.nombre in self.importa:
+            raise self._error(f"'{nodo.nombre}' ya es el nombre de un modulo importado", nodo)
 
         self.combos[nodo.nombre] = self._firma(nodo)
         self.global_.declarar(Simbolo(nodo.nombre, "combo", True, nodo.linea))
@@ -260,6 +287,7 @@ class Semantico:
             )
         if nodo.padre not in self.guilds:
             raise self._error(f"no existe un guild llamado '{nodo.padre}'", nodo)
+        self._verificar_tipo(nodo.padre, nodo)
 
         vistos = {nodo.nombre}
         actual: str | None = nodo.padre
@@ -349,6 +377,12 @@ class Semantico:
         self.alcance = Alcance(base)
         self.profundidad_ciclo = 0
         self.combo_actual = firma
+
+        # aca y no al registrar: recien ahora estan anotados todos los guild
+        if nodo.retorno is not None:
+            self._verificar_tipo(str(nodo.retorno), nodo.retorno)
+        for parametro in nodo.parametros:
+            self._verificar_tipo(str(parametro.tipo), parametro.tipo)
 
         try:
             if guild is not None:
@@ -440,8 +474,7 @@ class Semantico:
 
     def declaracion(self, nodo: arbol.Nodo) -> None:
         if isinstance(nodo, arbol.Travel):
-            self.MODULOS.add(nodo.modulo)
-            return
+            return                                  # ya se anoto en la primera vuelta
 
         if isinstance(nodo, arbol.DeclCombo):
             self.decl_combo(nodo)
@@ -482,10 +515,7 @@ class Semantico:
 
         # el valor inicial de un campo se calcula afuera de todo: ahi no hay me
         for campo in nodo.campos:
-            if not self._tipo_existe(str(campo.tipo)):
-                raise self._error(
-                    f"el campo '{campo.nombre}' usa un tipo desconocido: {campo.tipo}", campo
-                )
+            self._verificar_tipo(str(campo.tipo), campo.tipo)
             if campo.valor is not None:
                 obtenido = self.expresion(campo.valor)
                 self._verificar_asignable(str(campo.tipo), obtenido, campo, campo.valor)
@@ -659,6 +689,7 @@ class Semantico:
 
     def decl_variable(self, nodo: arbol.DeclVariable) -> None:
         nombre = nodo.nombre
+        self._verificar_tipo(str(nodo.tipo), nodo.tipo)
 
         if nombre in self.alcance.simbolos:
             raise self._error(f"'{nombre}' ya fue declarada en este bloque", nodo)
@@ -766,7 +797,7 @@ class Semantico:
         if isinstance(nodo, arbol.Identificador):
             simbolo = self.alcance.buscar(nodo.nombre)
             if simbolo is None:
-                if nodo.nombre in self.MODULOS:
+                if nodo.nombre in self.modulos:
                     return "modulo"
                 raise self._error(f"'{nodo.nombre}' no esta declarada", nodo)
             if simbolo.miembro:
@@ -841,16 +872,55 @@ class Semantico:
         raise self._error("expresion no reconocida", nodo)
 
     def _tipo_existe(self, tipo: str) -> bool:
+        if not self._modulo_visible(tipo):
+            return False
         if tipo in TIPOS_SIMPLES or tipo in self.registros or tipo in self.guilds:
             return True
         interno = tipo_interno(tipo)
         return interno is not None and self._tipo_existe(interno)
+
+    def _modulo_visible(self, tipo: str) -> bool:
+        """utilidades.Jugador solo se puede usar si este archivo trajo utilidades -> D-28."""
+        if "." not in tipo or tipo_interno(tipo) is not None:
+            return True
+        modulo = tipo.split(".", 1)[0]
+        return modulo == self.modulo or modulo in self.importa
+
+    def _verificar_tipo(self, tipo: str, nodo: arbol.Nodo) -> None:
+        if self._tipo_existe(tipo):
+            return
+        # squad[x.T]: el que falla es el de adentro
+        while tipo_interno(tipo) is not None:
+            tipo = tipo_interno(tipo)                       # type: ignore[assignment]
+        if not self._modulo_visible(tipo):
+            modulo = tipo.split(".", 1)[0]
+            raise self._error(
+                f"para usar {tipo} hay que traer el modulo a este archivo: travel {modulo} from ...",
+                nodo,
+            )
+        raise self._error(f"no existe el tipo {tipo}", nodo)
 
     def acceso(self, nodo: arbol.Acceso) -> str:
         objeto = self.expresion(nodo.objeto)
 
         if objeto in ("modulo", "desconocido"):
             return "desconocido"
+
+        # utilidades.promedio: un combo de otro archivo
+        if objeto.startswith("archivo:"):
+            modulo = objeto.split(":", 1)[1]
+            importado = self.importa[modulo]
+            if nodo.campo in importado.combos:
+                return f"externo:{modulo}:{nodo.campo}"      # la Llamada de afuera se encarga
+            if f"{modulo}.{nodo.campo}" in self.guilds or f"{modulo}.{nodo.campo}" in self.registros:
+                raise self._error(
+                    f"{modulo}.{nodo.campo} es un tipo: se crea con spawn {modulo}.{nodo.campo}{{...}}",
+                    nodo,
+                )
+            disponibles = ", ".join(sorted(importado.combos)) or "ningun combo"
+            raise self._error(
+                f"el modulo {modulo} no tiene '{nodo.campo}'. Tiene: {disponibles}", nodo
+            )
 
         # .size
         if nodo.campo == "size" and constructor_de(objeto) is not None:
@@ -954,6 +1024,8 @@ class Semantico:
         return False
 
     def spawn(self, nodo: arbol.Spawn) -> str:
+        if nodo.tipo in self.guilds or nodo.tipo in self.registros:
+            self._verificar_tipo(nodo.tipo, nodo)
         # de un guild: los valores van al constructor
         if nodo.tipo in self.guilds:
             info = self.guilds[nodo.tipo]
@@ -996,6 +1068,11 @@ class Semantico:
             if marca.startswith("metodo:"):
                 _, coleccion, metodo = marca.split(":", 2)
                 return self.metodo_coleccion(nodo, coleccion, metodo)
+            if marca.startswith("externo:"):
+                _, modulo, nombre = marca.split(":", 2)
+                firma = self.importa[modulo].combos[nombre]
+                self._verificar_argumentos(firma, nodo, f"el combo '{modulo}.{nombre}'")
+                return firma.retorno if firma.retorno is not None else "noloot"
 
         # un metodo del mismo guild llamado sin me. -> D-25
         if isinstance(nodo.destino, arbol.Identificador):
@@ -1048,6 +1125,10 @@ class Semantico:
             if obtenido == "desconocido" or obtenido == esperado:
                 continue
             if self._es_hijo(obtenido, esperado):
+                continue
+            if obtenido.startswith("coleccion["):
+                # f{<1 | 2>}: el literal toma el tipo del parametro, igual que en un set
+                self._verificar_asignable(esperado, obtenido, argumento, argumento)
                 continue
             if esperado == "aim" and obtenido == "score":
                 argumento.a_aim = True               # score -> aim, permitido
@@ -1122,3 +1203,17 @@ class Semantico:
 
 def analizar(programa: arbol.Programa, archivo: str = "<entrada>") -> arbol.Programa:
     return Semantico(archivo).analizar(programa)
+
+
+def analizar_archivos(archivos: list) -> None:
+    """Revisa cada archivo con su propia tabla de simbolos. Vienen en orden: cuando
+    llega uno, lo que importa ya esta revisado -> D-28.
+    """
+    registros: dict[str, list[tuple[str, str]]] = {}
+    guilds: dict[str, InfoGuild] = {}
+    revisados: dict[int, Semantico] = {}
+    for archivo in archivos:
+        importa = {modulo: revisados[id(otro)] for modulo, otro in archivo.importa.items()}
+        semantico = Semantico(archivo.nombre, registros, guilds, archivo.modulo, importa)
+        semantico.analizar(archivo.programa, principal=archivo.modulo is None)
+        revisados[id(archivo)] = semantico

@@ -49,11 +49,23 @@ class Entorno:
 
 
 class Modulo:
-    """Un modulo de la libreria, tipo chat."""
+    """Un modulo: de la libreria, tipo chat, o un archivo traido con travel."""
 
     def __init__(self, nombre: str, funciones: dict[str, object]) -> None:
         self.nombre = nombre
         self.funciones = funciones
+
+
+class Lugar:
+    """El archivo donde esta escrito algo: su nivel de afuera de todo y su nombre.
+
+    Un combo de utilidades.ggez ve los combo de utilidades.ggez, no los de quien
+    lo llamo, y si falla el error dice utilidades.ggez -> D-28.
+    """
+
+    def __init__(self, archivo: str, global_: Entorno) -> None:
+        self.archivo = archivo
+        self.global_ = global_
 
 
 class Coleccion:
@@ -155,17 +167,14 @@ class Combo:
 
 class Evaluador:
     def __init__(self, archivo: str = "<entrada>") -> None:
+        # el archivo que esta corriendo ahora. Cambia al entrar a un combo de otro
         self.archivo = archivo
-        self.global_ = Entorno()
-        self.entorno = self.global_
-        # los inventory: nombre -> campos, en orden
+        self.entorno = Entorno()
+        # los inventory: nombre -> campos, en orden. Estos dos son de todo el programa
         self.registros: dict[str, list[str]] = {}
         self.clases: dict[str, Clase] = {}
-        self.entorno.declarar("chat", Modulo("chat", {
-            "send": self._chat_send,
-            "rage": self._chat_rage,
-            "load": self._chat_load,
-        }))
+        # cada combo y cada campo de guild -> el archivo donde esta escrito
+        self.lugares: dict[int, Lugar] = {}
 
     def _error(self, mensaje: str, nodo: arbol.Nodo) -> ErrorEjecucion:
         return ErrorEjecucion(mensaje, nodo.linea, nodo.columna, self.archivo)
@@ -200,30 +209,74 @@ class Evaluador:
     # ---------------------------------------------------------------- programa
 
     def ejecutar(self, programa: arbol.Programa) -> None:
+        """Un solo archivo, sin travel."""
+        _, lugar = self._cargar(programa, self.archivo, None, {})
+        self._arrancar(programa, lugar)
+
+    def ejecutar_archivos(self, archivos: list) -> None:
+        """Vienen en orden, el principal al final: lo que un archivo trae ya esta cargado."""
+        exporta: dict[int, Modulo] = {}
+        lugar = None
+        for archivo in archivos:
+            importa = {modulo: exporta[id(otro)] for modulo, otro in archivo.importa.items()}
+            exporta[id(archivo)], lugar = self._cargar(
+                archivo.programa, archivo.nombre, archivo.modulo, importa
+            )
+        self._arrancar(archivos[-1].programa, lugar)   # type: ignore[arg-type]
+
+    def _cargar(
+        self, programa: arbol.Programa, archivo: str, modulo: str | None, importa: dict[str, Modulo]
+    ) -> tuple[Modulo, Lugar]:
+        lugar = Lugar(archivo, Entorno())
+        lugar.global_.declarar("chat", Modulo("chat", {
+            "send": self._chat_send,
+            "rage": self._chat_rage,
+            "load": self._chat_load,
+        }))
+        for nombre, importado in importa.items():
+            lugar.global_.declarar(nombre, importado)
+
         # igual que en el paso 3: primero anoto todos los combo, asi pueden
         # llamarse entre si sin importar el orden en que esten escritos
+        funciones: dict[str, object] = {}
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.DeclInventory):
                 self.registros[declaracion.nombre] = [c.nombre for c in declaracion.campos]
             elif isinstance(declaracion, arbol.DeclCombo):
-                self.global_.declarar(declaracion.nombre, Combo(declaracion, self))
+                combo = Combo(declaracion, self)
+                self.lugares[id(declaracion)] = lugar
+                lugar.global_.declarar(declaracion.nombre, combo)
+                funciones[declaracion.nombre] = combo
             elif isinstance(declaracion, arbol.DeclGuild):
                 self.clases[declaracion.nombre] = Clase(declaracion)
+                for miembro in [*declaracion.campos, *declaracion.metodos]:
+                    self.lugares[id(miembro)] = lugar
+
+        # los combo son lo que otro archivo ve como utilidades.algo
+        return Modulo(modulo or archivo, funciones), lugar
+
+    def _arrancar(self, programa: arbol.Programa, lugar: Lugar) -> None:
+        # recien con todo cargado: un guild puede heredar de uno de otro archivo
         for clase in self.clases.values():
             self._armar_herencia(clase)
 
+        self.archivo = lugar.archivo
+        self.entorno = lugar.global_
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.PuntoEntrada):
                 self.bloque(declaracion.cuerpo)
-            # los travel todavia no hacen nada -> bloque 6
 
     def invocar(self, combo: Combo, argumentos: list[object]) -> object:
         declaracion = combo.declaracion
+        lugar = self.lugares[id(declaracion)]
 
         # OJO: arranca desde el nivel de afuera de todo, no desde el de quien
-        # llamo. Adentro solo estan los parametros y los otros combo
-        anterior = self.entorno
-        self.entorno = Entorno(self._base_metodo(combo.objeto) if combo.objeto else self.global_)
+        # llamo. Adentro solo estan los parametros y los otros combo. Y es el
+        # de afuera de SU archivo, que puede no ser el de quien llamo
+        anterior, archivo_anterior = self.entorno, self.archivo
+        base = self._base_metodo(combo.objeto, lugar.global_) if combo.objeto else lugar.global_
+        self.entorno = Entorno(base)
+        self.archivo = lugar.archivo
         if combo.objeto is not None:
             self.entorno.declarar("me", combo.objeto)
         for parametro, valor in zip(declaracion.parametros, argumentos):
@@ -236,14 +289,14 @@ class Evaluador:
         except _SenalReward as senal:
             return senal.valor
         finally:
-            self.entorno = anterior
+            self.entorno, self.archivo = anterior, archivo_anterior
 
         if declaracion.retorno is not None:
             # el paso 3 ya revisa esto, pero un ciclo que no da ni una vuelta
             # se le puede escapar. Mejor avisar que devolver afk y que siga
-            raise self._error(
+            raise ErrorEjecucion(
                 f"el combo '{declaracion.nombre}' termino sin ejecutar 'reward'",
-                declaracion,
+                declaracion.linea, declaracion.columna, lugar.archivo,
             )
         return None
 
@@ -256,11 +309,11 @@ class Evaluador:
         self._armar_herencia(padre)
         clase.heredar(padre)
 
-    def _base_metodo(self, objeto: Objeto) -> Entorno:
+    def _base_metodo(self, objeto: Objeto, global_: Entorno) -> Entorno:
         """Lo que ve un metodo por encima de sus parametros, igual que en el paso 3:
-        campos del objeto -> metodos del guild -> combos globales.
+        campos del objeto -> metodos del guild -> combos globales del archivo del metodo.
         """
-        metodos = Entorno(self.global_)
+        metodos = Entorno(global_)
         for nombre, declaracion in objeto.clase.metodos.items():
             metodos.declarar(nombre, Combo(declaracion, self, objeto))
         campos = Entorno(metodos)
@@ -270,16 +323,20 @@ class Evaluador:
         return campos
 
     def _crear_objeto(self, clase: Clase, argumentos: list[object]) -> Objeto:
-        # el valor inicial se calcula afuera de todo, como lo reviso el paso 3
-        anterior = self.entorno
-        self.entorno = self.global_
+        # el valor inicial se calcula afuera de todo, como lo reviso el paso 3.
+        # Afuera de todo en el archivo del campo: puede ser heredado de otro
+        anterior, archivo_anterior = self.entorno, self.archivo
+        campos: dict[str, object] = {}
         try:
-            campos = {
-                c.nombre: self.expresion(c.valor) if c.valor is not None else self._por_defecto(c.tipo)
-                for c in clase.campos
-            }
+            for campo in clase.campos:
+                if campo.valor is None:
+                    campos[campo.nombre] = self._por_defecto(campo.tipo)
+                    continue
+                lugar = self.lugares[id(campo)]
+                self.entorno, self.archivo = lugar.global_, lugar.archivo
+                campos[campo.nombre] = self.expresion(campo.valor)
         finally:
-            self.entorno = anterior
+            self.entorno, self.archivo = anterior, archivo_anterior
 
         objeto = Objeto(clase, campos)
         if clase.constructor is not None:
@@ -705,3 +762,7 @@ class Evaluador:
 
 def ejecutar(programa: arbol.Programa, archivo: str = "<entrada>") -> None:
     Evaluador(archivo).ejecutar(programa)
+
+
+def ejecutar_archivos(archivos: list) -> None:
+    Evaluador().ejecutar_archivos(archivos)

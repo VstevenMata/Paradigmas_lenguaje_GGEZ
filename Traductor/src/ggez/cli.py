@@ -14,10 +14,10 @@ import sys
 from pathlib import Path
 
 from . import semantico
+from .cargador import cargar
 from .errores import ErrorGgez
-from .evaluador import ejecutar
+from .evaluador import ejecutar_archivos
 from .lexer import tokenizar
-from .sintactico import parsear
 from .tokens import TipoToken
 
 EXITO = 0
@@ -40,11 +40,13 @@ def _comando_tokens(ruta: Path) -> int:
 
 
 def _comando_run(ruta: Path) -> int:
-    """Las cuatro etapas: lexico -> sintactico -> semantico -> ejecucion."""
-    tokens = tokenizar(_leer(ruta), ruta.name)
-    arbol = parsear(tokens, ruta.name)
-    semantico.analizar(arbol, ruta.name)
-    ejecutar(arbol, ruta.name)
+    """Las cuatro etapas: lexico -> sintactico -> semantico -> ejecucion.
+
+    Los pasos 1 y 2 los hace el cargador, una vez por archivo, siguiendo los travel.
+    """
+    archivos = cargar(ruta)
+    semantico.analizar_archivos(archivos)
+    ejecutar_archivos(archivos)
     return EXITO
 
 
@@ -73,8 +75,9 @@ def main(argv: list[str] | None = None) -> int:
             return _comando_tokens(ruta)
         return _comando_run(ruta)
     except ErrorGgez as err:
-        # este formato lo parsea el panel Problemas del IDE
-        print(err.formatear(ruta.name), file=sys.stderr)
+        # este formato lo parsea el panel Problemas del IDE. El archivo es el del
+        # error, que puede ser uno importado: lib/utilidades.ggez
+        print(err.formatear(err.archivo or ruta.name), file=sys.stderr)
         return FALLO_TRADUCCION
     except OSError as err:
         print(f"ggezc: no se pudo leer {ruta}: {err}", file=sys.stderr)

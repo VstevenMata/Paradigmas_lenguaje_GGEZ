@@ -135,18 +135,14 @@ Respetando la tabla de remapeo del documento:
 ```
 <programa> ::= { <fin-linea> } { <decl-superior> }*
 
-<decl-superior> ::= <decl-server>
-                  | <decl-travel>
-                  | <decl-region>
+<decl-superior> ::= <decl-travel>
                   | <decl-guild>
                   | <decl-questline>
                   | <decl-inventory>
                   | <decl-combo>
                   | <punto-entrada>
 
-<decl-server>   ::= "server" <identificador> <fin-linea>
 <decl-travel>   ::= "travel" <identificador> "from" <identificador> <fin-linea>
-<decl-region>   ::= "region" <identificador> <bloque>
 
 <punto-entrada> ::= "lobby" "." "launch" "{" "start" "THE" "GAME" "}" <bloque>
 ```
@@ -155,7 +151,45 @@ Respetando la tabla de remapeo del documento:
 Debe existir exactamente un `<punto-entrada>` en el programa que se ejecuta; un
 archivo sin él es válido como biblioteca importable con `travel`. `[D-13]`
 
-### 2.1 Bloques
+### 2.1 Importar otros archivos
+
+`travel X from Y` trae el archivo `X.ggez`. `Y` dice dónde buscarlo, siempre
+**relativo a la carpeta del archivo que importa**: `[D-28]`
+
+| Se escribe | Busca |
+|---|---|
+| `travel utilidades from base` | `utilidades.ggez`, en la misma carpeta |
+| `travel utilidades from lib` | `lib/utilidades.ggez` |
+| `travel physics from arsenal` | la librería estándar, no un archivo |
+
+Lo importado se usa con el nombre del módulo delante, igual que `chat.send`:
+
+```
+travel utilidades from lib
+
+lobby.launch{start THE GAME} glhf
+    chat.send{utilidades.promedio{<1 | 2 | 3>}}
+    stash utilidades.Jugador j set spawn utilidades.Jugador{"Angel"}
+gg
+```
+
+Por eso `<tipo>`, `spawn` y `evolves` aceptan un nombre con módulo
+(`<nombre-tipo>`, sección 3). Un archivo exporta todos sus `combo`, `guild` e
+`inventory`. Para usar un tipo de un módulo hay que importar ese módulo en el
+mismo archivo: no alcanza con que lo haya importado otro. `[D-28]`
+
+Reglas:
+
+- Cada archivo se carga **una sola vez**, aunque varios lo importen.
+- Un archivo importado **no puede tener** `lobby.launch`: es una biblioteca. `[D-29]`
+- Importar en círculo (`a` trae `b` y `b` trae `a`) es error.
+- Dos módulos distintos no pueden llamarse igual, ni un módulo llamarse como uno
+  de la librería (`chat`, `physics`, ...).
+- `server` y `region` estaban en la Propuesta de Lenguaje pero nunca se definió
+  para qué sirven: quedan fuera de la versión 1 y dan un error claro, como
+  `questline`. `[D-30]`
+
+### 2.2 Bloques
 
 ```
 <bloque> ::= "glhf" [ <fin-linea> ] { <sentencia> }* "gg"
@@ -178,7 +212,8 @@ gg
 ## 3. Tipos
 
 ```
-<tipo>            ::= <tipo-simple> | <tipo-coleccion> | <identificador>
+<tipo>            ::= <tipo-simple> | <tipo-coleccion> | <nombre-tipo>
+<nombre-tipo>     ::= <identificador> [ "." <identificador> ]
 
 <tipo-simple>     ::= "score" | "aim" | "lore" | "win" | "pixel"
 <tipo-coleccion>  ::= <constructor-col> "[" <tipo> "]"
@@ -188,7 +223,8 @@ gg
 Esto da exactamente lo que pide la práctica de la Semana 2: **cinco tipos simples**
 (`score`, `aim`, `lore`, `win`, `pixel`) y **dos compuestos** (`squad`, el vector
 genérico, e `inventory`, el registro). Las clases (`guild`) también se nombran con
-`<identificador>`.
+`<identificador>`. Con un punto, el tipo viene de otro archivo: `utilidades.Jugador`
+es el `guild Jugador` de `utilidades.ggez` (sección 2.1).
 
 `squad` es la única colección: ver la decisión `[D-21]`.
 
@@ -336,7 +372,7 @@ dentro de su bloque y sus campos son de solo lectura. `[D-22]`
 ## 7. Programación orientada a objetos
 
 ```
-<decl-guild>     ::= "guild" <identificador> [ "evolves" <identificador> ]
+<decl-guild>     ::= "guild" <identificador> [ "evolves" <nombre-tipo> ]
                      "glhf" <fin-linea> { <miembro> }* "gg" <fin-linea>
 
 <miembro>        ::= <decl-campo> | <decl-combo>
@@ -412,7 +448,7 @@ que más fuerte liga**.
 <primario>      ::= <literal>
                   | <identificador>
                   | "me"
-                  | "spawn" <identificador> "{" [ <lista-argumentos> ] "}"
+                  | "spawn" <nombre-tipo> "{" [ <lista-argumentos> ] "}"
                   | "{" <expresion> "}"
                   | <literal-coleccion>
 
@@ -508,6 +544,9 @@ mover cualquiera es tocar una tabla, no reescribir el traductor.
 | D-25 | `me` opcional; un local puede llamarse igual que un campo |
 | D-26 | Campos sin `set` arrancan con el valor por defecto | 
 | D-27 | Herencia simple, sin `super`: el hijo inicializa lo heredado |
+| D-28 | `travel X from Y`: `Y` es una carpeta relativa al archivo (`base` = la misma); lo importado se usa como `X.algo` | bloque 6, decisión del equipo 2026-09-26 |
+| D-29 | Un archivo importado no puede tener `lobby.launch` | decisión del equipo, 2026-09-26 |
+| D-30 | `server` y `region` quedan fuera de la versión 1 | nunca se definió para qué sirven |
 
 ### D-21 · Solo vectores
 
