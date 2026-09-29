@@ -29,6 +29,12 @@ public partial class ExtensionsViewModel : ViewModelBase
         new ExtensionInfo("bracket-colorizer", "Bracket Pair Colorizer", "GGEZ Labs", "BR", "#10B981",
             "Colorea cada par de parentesis/llaves/corchetes segun su nivel de anidamiento.",
             new[] { "Emparejamiento visual de brackets", "Un color distinto por nivel de anidado" }),
+        new ExtensionInfo("modo-oscuro", "Modo Oscuro", "GGEZ Labs", "DK", "#0F1117",
+            "Pasa el fondo del editor a oscuro (Ranked Night) y aclara el texto para que se siga leyendo.",
+            new[] { "Fondo oscuro en el editor y los numeros de linea", "El texto sin resaltado pasa de negro a gris claro" }),
+        new ExtensionInfo("pacman-bloques", "Pac-Man Blocks", "GGEZ Labs", "PM", "#FFE000",
+            "Muestra los delimitadores de bloque como Pac-Mans: glhf mira a la izquierda y gg a la derecha.",
+            new[] { "Solo cambia como se ve, el archivo sigue guardando glhf/gg", "En la linea del cursor se ve el texto real para poder editarlo" }),
         new ExtensionInfo("ggez-formatter", "GGEZ Formatter", "GGEZ Labs", "FM", "#6B7280",
             "Reformatea codigo GGEZ (indentacion, espacios) reutilizando el lexer del traductor.",
             new[] { "Formatear el archivo completo", "Formatear al guardar (opcional)" }),
@@ -62,13 +68,16 @@ public partial class ExtensionsViewModel : ViewModelBase
                          .Select(t => new OpcionTema(t.Nombre, t.Tema));
 
     // referencias directas por indice, mismo motivo que Claude: EditorTextArea (rainbow-indent,
-    // trailing-whitespace, todo-highlight, bracket-colorizer) y MainWindow.axaml
-    // (trailing-whitespace) necesitan consultar Instalada sin buscar por Id en cada frame
+    // trailing-whitespace, todo-highlight, bracket-colorizer, modo-oscuro, pacman-bloques), MainWindow.axaml
+    // (trailing-whitespace) y EditorView.axaml (modo-oscuro) necesitan consultar Instalada sin
+    // buscar por Id en cada frame
     public ExtensionInfo Claude => Extensiones[0];
     public ExtensionInfo RainbowIndent => Extensiones[1];
     public ExtensionInfo TrailingWhitespace => Extensiones[2];
     public ExtensionInfo TodoHighlight => Extensiones[3];
     public ExtensionInfo BracketColorizer => Extensiones[4];
+    public ExtensionInfo ModoOscuro => Extensiones[5];
+    public ExtensionInfo PacManBloques => Extensiones[6];
 
     [ObservableProperty]
     private ExtensionInfo? _seleccionada;

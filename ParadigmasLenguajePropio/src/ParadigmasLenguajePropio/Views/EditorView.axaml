@@ -108,7 +108,19 @@
             <controls:Win95Divider Orientation="Horizontal" />
         </StackPanel>
 
-        <controls:Win95Bevel Grid.Row="2" Sunken="True" BevelThickness="3" Background="White" Padding="0">
+        <!-- el fondo va por estilo y no como atributo (un valor local le ganaria al estilo): la
+             extension Modo Oscuro le pone la clase "oscuro". Hace falta ademas del fondo que pinta
+             EditorTextArea porque este tambien se ve debajo de la ultima linea del archivo -->
+        <controls:Win95Bevel Grid.Row="2" Sunken="True" BevelThickness="3" Padding="0"
+                             Classes.oscuro="{Binding Extensiones.ModoOscuro.Instalada}">
+            <controls:Win95Bevel.Styles>
+                <Style Selector="controls|Win95Bevel">
+                    <Setter Property="Background" Value="White" />
+                </Style>
+                <Style Selector="controls|Win95Bevel.oscuro">
+                    <Setter Property="Background" Value="#0F1117" />
+                </Style>
+            </controls:Win95Bevel.Styles>
             <Grid Name="PART_GridContenido">
                 <!-- sin archivos abiertos: fantasma centrado -->
                 <StackPanel IsVisible="{Binding !HayArchivosAbiertos}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
@@ -130,7 +142,8 @@
                 <Grid IsVisible="{Binding HayArchivosAbiertos}" ColumnDefinitions="*,Auto,Auto">
                     <ScrollViewer Name="PART_ScrollVertical" Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
                         <Grid ColumnDefinitions="Auto,*">
-                            <controls:EditorGutter Name="PART_Gutter" Grid.Column="0" Tab="{Binding TabActiva}" TamanoFuente="{Binding TamanoFuente}" />
+                            <controls:EditorGutter Name="PART_Gutter" Grid.Column="0" Tab="{Binding TabActiva}" TamanoFuente="{Binding TamanoFuente}"
+                                                   ModoOscuro="{Binding Extensiones.ModoOscuro.Instalada}" />
                             <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
                                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                                 <!-- MinWidth=ancho del viewport: sin esto, un archivo con lineas cortas/vacias
