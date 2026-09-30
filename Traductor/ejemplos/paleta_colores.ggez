@@ -1,0 +1,110 @@
+/w Muestra del resaltado de sintaxis: cada palabra reservada de la paleta aparece al menos una
+/w vez fuera de comentarios y strings (ahi no se colorea). Es una vitrina de colores, no un
+/w programa para correr: usa palabras que el traductor todavia no soporta (stack, questline...).
+
+server partida
+region ranked
+
+travel physics from arsenal
+travel rng from arsenal
+travel clock from arsenal
+travel save from arsenal
+
+inventory Arma glhf
+    lore nombre
+    score dano
+    pixel rareza
+gg
+
+questline Atacante glhf
+    open combo atacar{} drops score
+gg
+
+guild Personaje glhf
+    open lore nombre
+    party score vida set 100
+    solo aim precision set 0.5
+
+    combo Personaje{lore nombre} drops noloot glhf
+        me.nombre set nombre
+    gg
+
+    open combo atacar{} drops score glhf
+        reward 5
+    gg
+gg
+
+guild Guerrero evolves Personaje glhf
+    open combo atacar{} drops score glhf
+        reward vida crit 2
+    gg
+gg
+
+combo clasificar{score puntos} drops lore glhf
+    loadout puntos split 10 glhf
+        pick 10 | 9 glhf reward "Pro" gg
+        pick 8 | 7  glhf reward "Decente" gg
+        noob        glhf reward "Noob" gg
+    gg
+gg
+
+lobby.launch{start THE GAME} glhf
+    hardcoded score MINIMO set 60
+    stash score puntos set 85
+    stash win conectado set hit
+    stash win caido set miss
+    stash Personaje nadie set afk
+    stash squad[score] marcador set <95 | 72 | 40>
+    stash stack[score] deshacer
+    stash matchmaking[lore] cola
+    stash Guerrero conan set spawn Guerrero{"Conan"}
+
+    /w aritmetica, incremento y asignacion compuesta
+    puntos set puntos gain 5 drain 2 crit 3 split 2 scrap 7
+    puntos buff
+    puntos nerf
+    puntos boost 10
+    puntos sap 4
+
+    /w relacionales y scan / fallback
+    scan puntos matches 100 glhf
+        chat.send{"Exacto"}
+    gg fallback scan puntos mismatch 0 glhf
+        chat.send{"Distinto de cero"}
+    gg fallback glhf
+        chat.send{"Cero"}
+    gg
+
+    /w ciclos con ragequit y respawn
+    stash score i set 0
+    farm i set 0 | i under marcador.size | i buff glhf
+        scan marcador<i> atleast MINIMO glhf
+            respawn
+        gg
+        scan marcador<i> atmost 10 glhf
+            ragequit
+        gg
+    gg
+
+    survive puntos over 0 glhf
+        puntos nerf
+    gg
+
+    grind glhf
+        puntos buff
+    gg survive {puntos under 5}
+
+    /w errores y entrada/salida
+    clutch glhf
+        scan puntos under 0 glhf
+            wipe{"puntos negativos"}
+        gg
+        stash lore apodo set chat.load{}
+    gg revive {e} glhf
+        chat.rage{"GAME OVER: " gain e.reason}
+    gg checkpoint glhf
+        chat.send{clasificar{puntos}}
+    gg
+
+    quit{}
+gg

@@ -1,0 +1,23 @@
+/w Bloque 6: traer combos y tipos de otro archivo
+/w travel X from Y busca Y/X.ggez al lado de este archivo
+
+travel estadisticas from lib
+
+lobby.launch{start THE GAME} glhf
+    stash squad[score] marcador set <95 | 72 | 40 | 88>
+
+    /w un combo de otro archivo: con el nombre del modulo delante
+    chat.send{"Promedio: " gain estadisticas.promedio{marcador}}
+
+    /w un tipo de otro archivo: tambien con el modulo delante
+    stash estadisticas.Resumen r set estadisticas.resumir{marcador}
+    chat.send{"Mayor: " gain r.mayor gain ", menor: " gain r.menor}
+
+    /w el wipe sale del otro archivo y lo atrapa este
+    stash squad[score] vacio
+    clutch glhf
+        stash estadisticas.Resumen nada set estadisticas.resumir{vacio}
+    gg revive {e} glhf
+        chat.rage{"No se pudo: " gain e.reason}
+    gg
+gg

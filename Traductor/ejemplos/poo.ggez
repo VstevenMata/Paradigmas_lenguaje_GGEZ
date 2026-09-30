@@ -14,6 +14,11 @@ guild Jugador glhf
     open combo esPro{} drops win glhf
         reward me.puntos atleast 90
     gg
+
+    /w nombre es solo: desde afuera se lee con el getter, como en Java
+    open combo getNombre{} drops lore glhf
+        reward me.nombre
+    gg
 gg
 
 lobby.launch{start THE GAME} glhf
@@ -21,7 +26,7 @@ lobby.launch{start THE GAME} glhf
     p1.subirNivel{10}
 
     stash squad[lore] turnos
-    turnos.recruit{p1.nombre}
+    turnos.recruit{p1.getNombre{}}
 
     scan p1.esPro{} matches hit glhf
         chat.send{"Rango Pro"}

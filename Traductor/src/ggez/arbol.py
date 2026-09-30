@@ -15,6 +15,9 @@ from dataclasses import dataclass, field
 class Nodo:
     linea: int = field(default=0, kw_only=True)
     columna: int = field(default=0, kw_only=True)
+    # lo prende el paso 3 cuando un score va a parar a un aim. El paso 4 lo
+    # ve y lo pasa a decimal, si no 3 split 2 daria 1 aunque sea un aim
+    a_aim: bool = field(default=False, kw_only=True)
 
 
 # --------------------------------------------------------------------- tipos
@@ -148,6 +151,23 @@ class Respawn(Nodo):
     """respawn: salta a la siguiente vuelta."""
 
 
+# ------------------------------------------------------------------ errores
+
+@dataclass
+class Clutch(Nodo):
+    """clutch glhf ... gg revive {e} glhf ... gg [checkpoint glhf ... gg]"""
+    intento: "Bloque"
+    variable: str                        # la e de revive {e}
+    atrapa: "Bloque"
+    final: "Bloque | None" = None        # el checkpoint, corre siempre
+
+
+@dataclass
+class Wipe(Nodo):
+    """wipe {motivo}: lanza un error que agarra el revive."""
+    motivo: Nodo
+
+
 # ------------------------------------------------------------------ funciones
 
 @dataclass
@@ -184,9 +204,29 @@ class DeclInventory(Nodo):
 
 @dataclass
 class Spawn(Nodo):
-    """spawn Tipo{args}: crea un registro."""
+    """spawn Tipo{args}: crea un registro o un objeto de un guild."""
     tipo: str
     argumentos: list[Nodo]
+
+
+# -------------------------------------------------------------------- guild
+
+@dataclass
+class DeclCampo(Nodo):
+    """open|party|solo tipo nombre [set valor], dentro de un guild"""
+    modificador: str
+    tipo: Tipo
+    nombre: str
+    valor: Nodo | None = None
+
+
+@dataclass
+class DeclGuild(Nodo):
+    """guild Nombre [evolves Padre] glhf  campos y combos  gg"""
+    nombre: str
+    padre: str | None
+    campos: list[DeclCampo]
+    metodos: list[DeclCombo]             # el que se llama igual es el constructor
 
 
 # -------------------------------------------------------------- expresiones

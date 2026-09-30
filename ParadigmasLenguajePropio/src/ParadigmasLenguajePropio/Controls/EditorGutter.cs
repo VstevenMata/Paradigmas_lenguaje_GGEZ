@@ -17,6 +17,10 @@ public class EditorGutter : Control
     // texto chico encima (los numeros) y conviene mas contraste que en el minimapa
     static readonly IBrush FondoGutter = new SolidColorBrush(Color.FromRgb(238, 238, 238));
 
+    // extension Modo Oscuro: un pelin mas claro que el fondo del texto (#0F1117), igual que arriba
+    static readonly IBrush FondoGutterOscuro = new SolidColorBrush(Color.Parse("#161A24"));
+    static readonly IBrush NumerosOscuro = new SolidColorBrush(Color.Parse("#5C6370"));
+
     public EditorGutter()
     {
         // defensivo: si por lo que sea un numero midiera mas de lo que AnchoNumeros calculo (fuente
@@ -63,6 +67,16 @@ public class EditorGutter : Control
 
     public double AltoLinea => EditorFont.AltoLinea(TamanoFuente);
 
+    // bindeado a Extensiones.ModoOscuro.Instalada en EditorView.axaml
+    public static readonly StyledProperty<bool> ModoOscuroProperty =
+        AvaloniaProperty.Register<EditorGutter, bool>(nameof(ModoOscuro));
+
+    public bool ModoOscuro
+    {
+        get => GetValue(ModoOscuroProperty);
+        set => SetValue(ModoOscuroProperty, value);
+    }
+
     // mismo par que EditorTextArea.DesplazamientoY/AltoVisible, sincronizado desde el mismo lugar
     // (EditorView.axaml.cs, en cada ScrollChanged) - sin esto Render() dibujaba los numeros de
     // TODAS las lineas del archivo en cada frame, aunque el gutter solo muestre unas pocas decenas
@@ -94,6 +108,7 @@ public class EditorGutter : Control
         });
 
         TamanoFuenteProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.Refrescar());
+        ModoOscuroProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.InvalidateVisual());
 
         // scroll: no cambia el tamaño total del gutter, solo que rango dibuja - alcanza con
         // InvalidateVisual()
@@ -114,7 +129,8 @@ public class EditorGutter : Control
     {
         if (Tab == null) return;
 
-        context.FillRectangle(FondoGutter, new Rect(Bounds.Size));
+        context.FillRectangle(ModoOscuro ? FondoGutterOscuro : FondoGutter, new Rect(Bounds.Size));
+        var colorNumeros = ModoOscuro ? NumerosOscuro : Brushes.DarkGray;
 
         // cacheado: AnchoNumeros vuelve a medir un string cada vez que se lee, no hace falta
         // repetirlo una vez por linea (ya no cambia dentro de este frame)
@@ -135,7 +151,7 @@ public class EditorGutter : Control
         for (int i = primeraLinea; i <= ultimaLinea; i++)
         {
             string numero = (i + 1).ToString("D3");
-            var formatted = EditorFont.Formatear(numero, TamanoFuente, Brushes.DarkGray);
+            var formatted = EditorFont.Formatear(numero, TamanoFuente, colorNumeros);
             double y = i * altoLinea;
             context.DrawText(formatted, new Point(anchoNumeros - formatted.Width - margenDerecho, y));
         }

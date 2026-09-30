@@ -30,6 +30,12 @@ METODOS_COLECCION: dict[str, dict[str, tuple[int, str | None, str | None]]] = {
 }
 
 
+# el tipo de la e de revive {e}. Con espacios a proposito: nadie puede
+# escribirlo en un programa, asi que no choca con un inventory del usuario
+FALLA = "error de revive"
+CAMPOS_FALLA = {"reason": "lore", "line": "score"}     # -> D-15
+
+
 def tipo_interno(tipo: str) -> str | None:
     """squad[score] -> score. Si no es coleccion, None."""
     for constructor in METODOS_COLECCION:
@@ -46,12 +52,20 @@ def constructor_de(tipo: str) -> str | None:
     return None
 
 
+# de mas cerrado a mas abierto. Un hijo no puede cerrar lo que el padre abrio
+APERTURA = {"solo": 0, "party": 1, "open": 2}
+
+
 @dataclass
 class Simbolo:
     nombre: str
     tipo: str
     constante: bool
     linea: int
+    # campo o metodo de un guild. Un local SI puede taparlo -> D-25
+    miembro: bool = False
+    dueno: str | None = None              # el guild donde esta escrito
+    modificador: str | None = None
 
 
 @dataclass
@@ -61,7 +75,25 @@ class Firma:
     parametros: list[tuple[str, str]]     # (tipo, nombre), en orden
     retorno: str | None                   # None = drops noloot
     linea: int
+    modificador: str | None = None        # open, party o solo; solo en los guild
 
+
+@dataclass
+class Campo:
+    tipo: str
+    modificador: str
+    linea: int
+
+
+@dataclass
+class InfoGuild:
+    """Lo que hay que saber de un guild: sus campos, sus metodos y su constructor."""
+    nombre: str
+    campos: dict[str, Campo]
+    metodos: dict[str, Firma]
+    constructor: Firma | None
+    linea: int
+    padre: str | None = None              # el de evolves
 
 class Alcance:
     """Un nivel de la tabla de simbolos. Cada glhf...gg abre uno nuevo."""
@@ -87,31 +119,62 @@ class Semantico:
     # modulos que existen sin tener que importarlos
     MODULOS = {"chat"}
 
-    def __init__(self, archivo: str = "<entrada>") -> None:
+    def __init__(
+        self,
+        archivo: str = "<entrada>",
+        registros: dict[str, list[tuple[str, str]]] | None = None,
+        guilds: dict[str, "InfoGuild"] | None = None,
+        modulo: str | None = None,
+        importa: dict[str, "Semantico"] | None = None,
+    ) -> None:
         self.archivo = archivo
         self.global_ = Alcance()
         self.alcance = self.global_
+        # los de la libreria que este archivo puede usar. Copia, no la de la clase:
+        # cada archivo tiene sus propios travel
+        self.modulos = set(self.MODULOS)
+        # utilidades si este archivo es utilidades.ggez; None en el principal
+        self.modulo = modulo
+        # los archivos que trae con travel, ya revisados -> D-28
+        self.importa = importa or {}
         self.puntos_entrada = 0
         # para saber si estoy dentro de un ciclo. Lo usan ragequit y respawn -> D-14
         self.profundidad_ciclo = 0
         # los combo que existen. Se llena antes de mirar ningun cuerpo
         self.combos: dict[str, Firma] = {}
-        # los inventory: nombre -> [(tipo, campo)]
-        self.registros: dict[str, list[tuple[str, str]]] = {}
+        # los inventory: nombre -> [(tipo, campo)]. Estos dos son de TODO el
+        # programa, compartidos entre archivos: utilidades.Jugador es uno solo
+        self.registros = registros if registros is not None else {}
+        self.guilds = guilds if guilds is not None else {}
         # en que combo estoy parado, para revisar sus reward
         self.combo_actual: Firma | None = None
+        # en que guild estoy parado, para saber que se puede ver -> D-24
+        self.guild_actual: str | None = None
 
     def _error(self, mensaje: str, nodo: arbol.Nodo) -> ErrorSemantico:
         return ErrorSemantico(mensaje, nodo.linea, nodo.columna, self.archivo)
 
     # ---------------------------------------------------------------- recorrido
 
-    def analizar(self, programa: arbol.Programa) -> arbol.Programa:
+    def analizar(self, programa: arbol.Programa, principal: bool = True) -> arbol.Programa:
         # DOS VUELTAS. En la primera solo anoto que combos existen, sin mirar
         # que hacen. Asi uno puede llamar a otro que esta escrito mas abajo
         for declaracion in programa.declaraciones:
+            if isinstance(declaracion, arbol.Travel):
+                self.registrar_travel(declaracion)
+        for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.DeclInventory):
                 self.registrar_inventory(declaracion)
+        for declaracion in programa.declaraciones:
+            if isinstance(declaracion, arbol.DeclGuild):
+                self.registrar_guild(declaracion)
+        # recien ahora se puede mirar la herencia: el padre puede estar mas abajo.
+        # Primero los circulos, porque lo demas sube por los padres
+        guilds = [d for d in programa.declaraciones if isinstance(d, arbol.DeclGuild)]
+        for declaracion in guilds:
+            self.validar_padre(declaracion)
+        for declaracion in guilds:
+            self.validar_herencia(declaracion)
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.DeclCombo):
                 self.registrar_combo(declaracion)
@@ -119,13 +182,20 @@ class Semantico:
         for declaracion in programa.declaraciones:
             self.declaracion(declaracion)
 
-        if self.puntos_entrada == 0:
+        if principal and self.puntos_entrada == 0:
             # sin punto de entrada sirve como biblioteca, pero no se ejecuta -> D-13
             raise ErrorSemantico(
                 "el programa no tiene punto de entrada: falta lobby.launch{start THE GAME}",
                 1, 1, self.archivo,
             )
         return programa
+
+    def registrar_travel(self, nodo: arbol.Travel) -> None:
+        if nodo.modulo in self.importa:
+            # un archivo: queda como un nombre mas, y utilidades.algo busca adentro
+            self.global_.declarar(Simbolo(nodo.modulo, f"archivo:{nodo.modulo}", True, nodo.linea))
+        else:
+            self.modulos.add(nodo.modulo)          # la libreria -> bloque 6
 
     def registrar_inventory(self, nodo: arbol.DeclInventory) -> None:
         if nodo.nombre in self.registros:
@@ -146,7 +216,15 @@ class Semantico:
                 f"(linea {self.combos[nodo.nombre].linea})",
                 nodo,
             )
+        if nodo.nombre in self.guilds:
+            raise self._error(f"ya existe un guild llamado '{nodo.nombre}'", nodo)
+        if nodo.nombre in self.importa:
+            raise self._error(f"'{nodo.nombre}' ya es el nombre de un modulo importado", nodo)
 
+        self.combos[nodo.nombre] = self._firma(nodo)
+        self.global_.declarar(Simbolo(nodo.nombre, "combo", True, nodo.linea))
+
+    def _firma(self, nodo: arbol.DeclCombo) -> Firma:
         vistos: set[str] = set()
         for parametro in nodo.parametros:
             if parametro.nombre in vistos:
@@ -155,25 +233,160 @@ class Semantico:
                 )
             vistos.add(parametro.nombre)
 
-        self.combos[nodo.nombre] = Firma(
+        return Firma(
             nodo.nombre,
             [(str(p.tipo), p.nombre) for p in nodo.parametros],
             str(nodo.retorno) if nodo.retorno is not None else None,
             nodo.linea,
+            nodo.modificador or "open",          # sin modificador es open -> D-24
         )
-        self.global_.declarar(Simbolo(nodo.nombre, "combo", True, nodo.linea))
+
+    def registrar_guild(self, nodo: arbol.DeclGuild) -> None:
+        if nodo.nombre in self.guilds or nodo.nombre in self.registros:
+            raise self._error(f"ya existe un tipo llamado '{nodo.nombre}'", nodo)
+
+        campos: dict[str, Campo] = {}
+        for campo in nodo.campos:
+            if campo.nombre in campos:
+                raise self._error(f"el campo '{campo.nombre}' esta repetido", campo)
+            campos[campo.nombre] = Campo(str(campo.tipo), campo.modificador, campo.linea)
+
+        metodos: dict[str, Firma] = {}
+        constructor: Firma | None = None
+        for metodo in nodo.metodos:
+            if metodo.nombre == nodo.nombre:
+                # el combo que se llama igual que el guild es el constructor -> D-17
+                if constructor is not None:
+                    raise self._error(f"el guild '{nodo.nombre}' ya tiene constructor", metodo)
+                if metodo.retorno is not None:
+                    raise self._error(
+                        f"el constructor de '{nodo.nombre}' debe ser 'drops noloot'", metodo
+                    )
+                constructor = self._firma(metodo)
+                continue
+            if metodo.nombre in metodos:
+                raise self._error(f"el metodo '{metodo.nombre}' esta repetido", metodo)
+            # p1.x tiene que ser una cosa o la otra
+            if metodo.nombre in campos:
+                raise self._error(
+                    f"'{metodo.nombre}' ya es un campo de '{nodo.nombre}'", metodo
+                )
+            metodos[metodo.nombre] = self._firma(metodo)
+
+        self.guilds[nodo.nombre] = InfoGuild(
+            nodo.nombre, campos, metodos, constructor, nodo.linea, nodo.padre
+        )
+
+    def validar_padre(self, nodo: arbol.DeclGuild) -> None:
+        """Que el padre exista y que no se de la vuelta: A evolves B, B evolves A."""
+        if nodo.padre is None:
+            return
+        if nodo.padre in self.registros:
+            raise self._error(
+                f"'{nodo.padre}' es un inventory: solo se puede evolucionar de un guild", nodo
+            )
+        if nodo.padre not in self.guilds:
+            raise self._error(f"no existe un guild llamado '{nodo.padre}'", nodo)
+        self._verificar_tipo(nodo.padre, nodo)
+
+        vistos = {nodo.nombre}
+        actual: str | None = nodo.padre
+        while actual is not None:
+            if actual in vistos:
+                raise self._error(
+                    f"herencia en circulo: '{nodo.nombre}' termina evolucionando de si mismo",
+                    nodo,
+                )
+            vistos.add(actual)
+            actual = self.guilds[actual].padre
+
+    def validar_herencia(self, nodo: arbol.DeclGuild) -> None:
+        """Lo que el hijo agrega no puede chocar con lo que ya trae del padre -> D-27."""
+        info = self.guilds[nodo.nombre]
+        if info.padre is None:
+            return
+
+        for campo in nodo.campos:
+            heredado = self._buscar_miembro(info.padre, campo.nombre)
+            if heredado is not None:
+                raise self._error(
+                    f"'{campo.nombre}' ya existe en {heredado[0]}: un guild hijo no puede "
+                    f"repetir lo que hereda",
+                    campo,
+                )
+
+        for metodo in nodo.metodos:
+            if metodo.nombre == nodo.nombre:
+                continue                           # el constructor no se hereda
+            heredado = self._buscar_miembro(info.padre, metodo.nombre)
+            if heredado is None:
+                continue
+            dueno, original = heredado
+            if isinstance(original, Campo):
+                raise self._error(f"'{metodo.nombre}' ya es un campo de {dueno}", metodo)
+
+            # reemplazar un metodo: misma firma y no mas cerrado, como en Java
+            nuevo = info.metodos[metodo.nombre]
+            if nuevo.parametros != original.parametros or nuevo.retorno != original.retorno:
+                raise self._error(
+                    f"'{metodo.nombre}' reemplaza al de {dueno} y tiene que respetar su "
+                    f"firma: {self._describir_firma(original)}",
+                    metodo,
+                )
+            if APERTURA[nuevo.modificador] < APERTURA[original.modificador]:   # type: ignore[index]
+                raise self._error(
+                    f"'{metodo.nombre}' es {original.modificador} en {dueno}: al reemplazarlo "
+                    f"no se puede cerrar mas",
+                    metodo,
+                )
+
+    def _describir_firma(self, firma: Firma) -> str:
+        parametros = " | ".join(f"{t} {n}" for t, n in firma.parametros)
+        return f"{{{parametros}}} drops {firma.retorno or 'noloot'}"
+
+    def _buscar_miembro(self, guild: str | None, nombre: str) -> tuple[str, Campo | Firma] | None:
+        """Busca en el guild y si no esta sube por los padres. Devuelve donde lo encontro."""
+        while guild is not None:
+            info = self.guilds[guild]
+            if nombre in info.campos:
+                return guild, info.campos[nombre]
+            if nombre in info.metodos:
+                return guild, info.metodos[nombre]
+            guild = info.padre
+        return None
+
+    def _linaje(self, guild: str) -> list[str]:
+        """Del abuelo al hijo: [Personaje, Jugador, Mago]."""
+        cadena: list[str] = []
+        actual: str | None = guild
+        while actual is not None:
+            cadena.append(actual)
+            actual = self.guilds[actual].padre
+        return cadena[::-1]
 
     def decl_combo(self, nodo: arbol.DeclCombo) -> None:
-        firma = self.combos[nodo.nombre]
+        self._cuerpo_combo(nodo, self.combos[nodo.nombre], self.global_)
 
+    def _cuerpo_combo(
+        self, nodo: arbol.DeclCombo, firma: Firma, base: Alcance, guild: str | None = None
+    ) -> None:
         # OJO: arranca desde el nivel de afuera de todo, no desde donde estoy.
-        # Adentro del combo no se ven las variables del que lo llamo
+        # Adentro del combo no se ven las variables del que lo llamo. En un
+        # guild, 'base' trae ademas los campos y metodos
         anterior, ciclos, combo_previo = self.alcance, self.profundidad_ciclo, self.combo_actual
-        self.alcance = Alcance(self.global_)
+        self.alcance = Alcance(base)
         self.profundidad_ciclo = 0
         self.combo_actual = firma
 
+        # aca y no al registrar: recien ahora estan anotados todos los guild
+        if nodo.retorno is not None:
+            self._verificar_tipo(str(nodo.retorno), nodo.retorno)
+        for parametro in nodo.parametros:
+            self._verificar_tipo(str(parametro.tipo), parametro.tipo)
+
         try:
+            if guild is not None:
+                self.alcance.declarar(Simbolo("me", guild, True, nodo.linea))
             for parametro in nodo.parametros:
                 self.alcance.declarar(
                     Simbolo(parametro.nombre, str(parametro.tipo), False, parametro.linea)
@@ -215,6 +428,14 @@ class Semantico:
                         and self._siempre_devuelve(sentencia.defecto):
                     return True
 
+            # o devuelven el clutch y el revive, o devuelve el checkpoint
+            if isinstance(sentencia, arbol.Clutch):
+                if self._siempre_devuelve(sentencia.intento) \
+                        and self._siempre_devuelve(sentencia.atrapa):
+                    return True
+                if sentencia.final is not None and self._siempre_devuelve(sentencia.final):
+                    return True
+
         return False
 
     def _siempre_devuelve_scan(self, nodo: arbol.Scan) -> bool:
@@ -249,15 +470,18 @@ class Semantico:
                 nodo,
             )
 
-        self._verificar_asignable(esperado, self.expresion(nodo.valor), nodo)
+        self._verificar_asignable(esperado, self.expresion(nodo.valor), nodo, nodo.valor)
 
     def declaracion(self, nodo: arbol.Nodo) -> None:
         if isinstance(nodo, arbol.Travel):
-            self.MODULOS.add(nodo.modulo)
-            return
+            return                                  # ya se anoto en la primera vuelta
 
         if isinstance(nodo, arbol.DeclCombo):
             self.decl_combo(nodo)
+            return
+
+        if isinstance(nodo, arbol.DeclGuild):
+            self.decl_guild(nodo)
             return
 
         if isinstance(nodo, arbol.DeclInventory):
@@ -277,6 +501,49 @@ class Semantico:
             return
 
         raise self._error("declaracion de nivel superior no reconocida", nodo)
+
+    def decl_guild(self, nodo: arbol.DeclGuild) -> None:
+        anterior = self.guild_actual
+        self.guild_actual = nodo.nombre
+        try:
+            self._miembros_guild(nodo)
+        finally:
+            self.guild_actual = anterior
+
+    def _miembros_guild(self, nodo: arbol.DeclGuild) -> None:
+        info = self.guilds[nodo.nombre]
+
+        # el valor inicial de un campo se calcula afuera de todo: ahi no hay me
+        for campo in nodo.campos:
+            self._verificar_tipo(str(campo.tipo), campo.tipo)
+            if campo.valor is not None:
+                obtenido = self.expresion(campo.valor)
+                self._verificar_asignable(str(campo.tipo), obtenido, campo, campo.valor)
+
+        # adentro de un metodo, un nombre a secas se busca en este orden:
+        # locales y parametros -> campos y metodos del guild -> combos globales
+        # Lo heredado entra tambien, del abuelo al hijo: si el hijo reemplaza un
+        # metodo, el suyo tapa al del padre
+        miembros = Alcance(self.global_)
+        for guild in self._linaje(info.nombre):
+            actual = self.guilds[guild]
+            for nombre, campo in actual.campos.items():
+                miembros.declarar(Simbolo(
+                    nombre, campo.tipo, False, campo.linea,
+                    miembro=True, dueno=guild, modificador=campo.modificador,
+                ))
+            for nombre, firma in actual.metodos.items():
+                miembros.declarar(Simbolo(
+                    nombre, f"miembro:{guild}:{nombre}", True, firma.linea,
+                    miembro=True, dueno=guild, modificador=firma.modificador,
+                ))
+
+        for metodo in nodo.metodos:
+            if metodo.nombre == nodo.nombre:
+                firma = info.constructor
+            else:
+                firma = info.metodos[metodo.nombre]
+            self._cuerpo_combo(metodo, firma, miembros, info.nombre)   # type: ignore[arg-type]
 
     def bloque(self, nodo: arbol.Bloque) -> None:
         self.alcance = Alcance(self.alcance)
@@ -307,6 +574,10 @@ class Semantico:
             self.sent_loadout(nodo)
         elif isinstance(nodo, arbol.Reward):
             self.sent_reward(nodo)
+        elif isinstance(nodo, arbol.Clutch):
+            self.sent_clutch(nodo)
+        elif isinstance(nodo, arbol.Wipe):
+            self.sent_wipe(nodo)
         elif isinstance(nodo, (arbol.Ragequit, arbol.Respawn)):
             if self.profundidad_ciclo == 0:
                 palabra = "ragequit" if isinstance(nodo, arbol.Ragequit) else "respawn"
@@ -378,15 +649,55 @@ class Semantico:
         if nodo.defecto is not None:
             self.bloque(nodo.defecto)
 
+    def sent_clutch(self, nodo: arbol.Clutch) -> None:
+        self.bloque(nodo.intento)
+
+        # la e tampoco puede tapar un nombre de afuera
+        previo = self.alcance.buscar(nodo.variable)
+        if previo is not None:
+            raise self._error(
+                f"'{nodo.variable}' ya existe (linea {previo.linea}); el revive "
+                f"necesita un nombre nuevo para el error",
+                nodo,
+            )
+
+        # la e vive en un nivel propio que envuelve al bloque del revive, asi
+        # no se ve ni antes ni despues
+        self.alcance = Alcance(self.alcance)
+        self.alcance.declarar(Simbolo(nodo.variable, FALLA, True, nodo.linea))
+        try:
+            self.bloque(nodo.atrapa)
+        finally:
+            self.alcance = self.alcance.padre          # type: ignore[assignment]
+
+        if nodo.final is not None:
+            self.bloque(nodo.final)
+
+    def sent_wipe(self, nodo: arbol.Wipe) -> None:
+        tipo = self.expresion(nodo.motivo)
+        if tipo not in ("lore", "desconocido"):
+            raise self._error(f"'wipe' recibe un lore y se obtuvo {tipo}", nodo)   # -> D-16
+
+    def _verificar_no_falla(self, destino: arbol.Nodo, nodo: arbol.Nodo) -> None:
+        """El error del revive se lee y ya: ni se reasigna ni se le cambian los campos."""
+        if isinstance(destino, arbol.Identificador) and self.expresion(destino) == FALLA:
+            raise self._error(f"'{destino.nombre}' es el error del revive y no se puede reasignar", nodo)
+        if isinstance(destino, arbol.Acceso) and self.expresion(destino.objeto) == FALLA:
+            raise self._error(
+                f"'.{destino.campo}' del error es de solo lectura", nodo
+            )
+
     def decl_variable(self, nodo: arbol.DeclVariable) -> None:
         nombre = nodo.nombre
+        self._verificar_tipo(str(nodo.tipo), nodo.tipo)
 
         if nombre in self.alcance.simbolos:
             raise self._error(f"'{nombre}' ya fue declarada en este bloque", nodo)
 
         previo = self.alcance.buscar(nombre)
-        if previo is not None:
-            # prohibido tapar un nombre de afuera -> D-8
+        if previo is not None and not previo.miembro:
+            # prohibido tapar un nombre de afuera -> D-8. Los campos si se
+            # pueden tapar, como en Java: al campo se llega con me. -> D-25
             raise self._error(
                 f"'{nombre}' ya existe en un bloque exterior (linea {previo.linea}); "
                 f"GGEZ no permite taparla",
@@ -402,13 +713,16 @@ class Semantico:
                 )
         else:
             obtenido = self.expresion(nodo.valor)
-            self._verificar_asignable(declarado, obtenido, nodo)
+            self._verificar_asignable(declarado, obtenido, nodo, nodo.valor)
 
         self.alcance.declarar(Simbolo(nombre, declarado, nodo.constante, nodo.linea))
 
     def asignacion(self, nodo: arbol.Asignacion) -> None:
         destino = self.expresion(nodo.destino)
         valor = self.expresion(nodo.valor)
+        self._verificar_no_falla(nodo.destino, nodo)
+        if isinstance(nodo.destino, arbol.Me):
+            raise self._error("'me' no se puede reasignar", nodo)
 
         if isinstance(nodo.destino, arbol.Identificador):
             simbolo = self.alcance.buscar(nodo.destino.nombre)
@@ -422,10 +736,11 @@ class Semantico:
                 f"'{nodo.operador}' solo aplica a score o aim, no a {destino}", nodo
             )
 
-        self._verificar_asignable(destino, valor, nodo)
+        self._verificar_asignable(destino, valor, nodo, nodo.valor)
 
     def incremento(self, nodo: arbol.Incremento) -> None:
         tipo = self.expresion(nodo.destino)
+        self._verificar_no_falla(nodo.destino, nodo)
         if tipo not in NUMERICOS:
             raise self._error(
                 f"'{nodo.operador}' solo aplica a score o aim, no a {tipo}", nodo
@@ -437,10 +752,16 @@ class Semantico:
                     f"'{simbolo.nombre}' es hardcoded y no se puede modificar", nodo
                 )
 
-    def _verificar_asignable(self, destino: str, origen: str, nodo: arbol.Nodo) -> None:
+    def _verificar_asignable(
+        self, destino: str, origen: str, nodo: arbol.Nodo, valor: arbol.Nodo | None = None
+    ) -> None:
         if destino == origen or origen == "desconocido":
             return
+        if self._es_hijo(origen, destino):
+            return                                  # un Mago cabe donde va un Jugador
         if destino == "aim" and origen == "score":
+            if valor is not None:
+                valor.a_aim = True                  # que el paso 4 lo pase a decimal
             return                                  # score -> aim, permitido
 
         # el <a | b | c> no sabe de que tipo es: se lo pone el que lo recibe
@@ -453,7 +774,7 @@ class Semantico:
             if origen == "coleccion[]":
                 return                              # literal vacio: sirve para cualquiera
             interno_origen = origen[len("coleccion["):-1]
-            if interno_origen != interno_destino:
+            if interno_origen != interno_destino and not self._es_hijo(interno_origen, interno_destino):
                 raise self._error(
                     f"la coleccion es de {interno_destino} y el literal trae "
                     f"{interno_origen}",
@@ -476,9 +797,13 @@ class Semantico:
         if isinstance(nodo, arbol.Identificador):
             simbolo = self.alcance.buscar(nodo.nombre)
             if simbolo is None:
-                if nodo.nombre in self.MODULOS:
+                if nodo.nombre in self.modulos:
                     return "modulo"
                 raise self._error(f"'{nodo.nombre}' no esta declarada", nodo)
+            if simbolo.miembro:
+                self._verificar_visible(
+                    simbolo.dueno, f"'{nodo.nombre}'", simbolo.modificador, nodo   # type: ignore[arg-type]
+                )
             return simbolo.tipo
 
         if isinstance(nodo, arbol.Unaria):
@@ -525,30 +850,77 @@ class Semantico:
             tipos = [self.expresion(e) for e in nodo.elementos]
             primero = tipos[0]
             for tipo, elemento in zip(tipos[1:], nodo.elementos[1:]):
-                if tipo != primero:
+                if tipo == primero:
+                    continue
+                # <conan | merlin>: un Guerrero y un Mago son los dos Personaje
+                comun = self._ancestro_comun(primero, tipo)
+                if comun is None:
                     raise self._error(
                         f"los elementos de la coleccion deben ser del mismo tipo: "
                         f"empezo con {primero} y aparecio un {tipo}",
                         elemento,
                     )
+                primero = comun
             return f"coleccion[{primero}]"
 
         if isinstance(nodo, arbol.Me):
-            return "desconocido"                    # falta: bloque 5
+            simbolo = self.alcance.buscar("me")
+            if simbolo is None:
+                raise self._error("'me' solo vale dentro de un combo de un guild", nodo)
+            return simbolo.tipo
 
         raise self._error("expresion no reconocida", nodo)
 
     def _tipo_existe(self, tipo: str) -> bool:
-        if tipo in TIPOS_SIMPLES or tipo in self.registros:
+        if not self._modulo_visible(tipo):
+            return False
+        if tipo in TIPOS_SIMPLES or tipo in self.registros or tipo in self.guilds:
             return True
         interno = tipo_interno(tipo)
         return interno is not None and self._tipo_existe(interno)
+
+    def _modulo_visible(self, tipo: str) -> bool:
+        """utilidades.Jugador solo se puede usar si este archivo trajo utilidades -> D-28."""
+        if "." not in tipo or tipo_interno(tipo) is not None:
+            return True
+        modulo = tipo.split(".", 1)[0]
+        return modulo == self.modulo or modulo in self.importa
+
+    def _verificar_tipo(self, tipo: str, nodo: arbol.Nodo) -> None:
+        if self._tipo_existe(tipo):
+            return
+        # squad[x.T]: el que falla es el de adentro
+        while tipo_interno(tipo) is not None:
+            tipo = tipo_interno(tipo)                       # type: ignore[assignment]
+        if not self._modulo_visible(tipo):
+            modulo = tipo.split(".", 1)[0]
+            raise self._error(
+                f"para usar {tipo} hay que traer el modulo a este archivo: travel {modulo} from ...",
+                nodo,
+            )
+        raise self._error(f"no existe el tipo {tipo}", nodo)
 
     def acceso(self, nodo: arbol.Acceso) -> str:
         objeto = self.expresion(nodo.objeto)
 
         if objeto in ("modulo", "desconocido"):
             return "desconocido"
+
+        # utilidades.promedio: un combo de otro archivo
+        if objeto.startswith("archivo:"):
+            modulo = objeto.split(":", 1)[1]
+            importado = self.importa[modulo]
+            if nodo.campo in importado.combos:
+                return f"externo:{modulo}:{nodo.campo}"      # la Llamada de afuera se encarga
+            if f"{modulo}.{nodo.campo}" in self.guilds or f"{modulo}.{nodo.campo}" in self.registros:
+                raise self._error(
+                    f"{modulo}.{nodo.campo} es un tipo: se crea con spawn {modulo}.{nodo.campo}{{...}}",
+                    nodo,
+                )
+            disponibles = ", ".join(sorted(importado.combos)) or "ningun combo"
+            raise self._error(
+                f"el modulo {modulo} no tiene '{nodo.campo}'. Tiene: {disponibles}", nodo
+            )
 
         # .size
         if nodo.campo == "size" and constructor_de(objeto) is not None:
@@ -566,6 +938,32 @@ class Semantico:
                 f"{constructor} no tiene '{nodo.campo}'. Tiene: {disponibles}", nodo
             )
 
+        # e.reason y e.line, dentro de un revive
+        if objeto == FALLA:
+            if nodo.campo in CAMPOS_FALLA:
+                return CAMPOS_FALLA[nodo.campo]
+            raise self._error(
+                f"el error del revive no tiene '{nodo.campo}'. Tiene: reason, line", nodo
+            )
+
+        # campo o metodo de un guild, propio o heredado
+        if objeto in self.guilds:
+            encontrado = self._buscar_miembro(objeto, nodo.campo)
+            if encontrado is None:
+                todos: set[str] = set()
+                for guild in self._linaje(objeto):
+                    todos.update(self.guilds[guild].campos, self.guilds[guild].metodos)
+                disponibles = ", ".join(sorted(todos)) or "nada"
+                raise self._error(
+                    f"el guild {objeto} no tiene '{nodo.campo}'. Tiene: {disponibles}", nodo
+                )
+            dueno, miembro = encontrado
+            if isinstance(miembro, Campo):
+                self._verificar_visible(dueno, f"el campo '{nodo.campo}'", miembro.modificador, nodo)
+                return miembro.tipo
+            self._verificar_visible(dueno, f"el combo '{nodo.campo}'", miembro.modificador, nodo)
+            return f"miembro:{dueno}:{nodo.campo}"      # la Llamada de afuera se encarga
+
         # campo de un inventory
         if objeto in self.registros:
             for tipo, campo in self.registros[objeto]:
@@ -579,10 +977,75 @@ class Semantico:
 
         raise self._error(f"{objeto} no tiene campos a los que acceder", nodo)
 
+    def _verificar_visible(
+        self, dueno: str, que: str, modificador: str | None, nodo: arbol.Nodo
+    ) -> None:
+        """Como private / protected / public de Java -> D-24.
+
+        Se mira desde que guild se esta usando, no de que objeto: un Jugador
+        puede leer lo solo de otro Jugador, igual que en Java.
+        """
+        if modificador in (None, "open"):
+            return
+        if self.guild_actual == dueno:
+            return
+        if modificador == "party" and self._evoluciona_de(self.guild_actual, dueno):
+            return
+
+        if modificador == "solo":
+            raise self._error(
+                f"{que} es solo (privado) en {dueno}: solo se puede usar dentro de {dueno}",
+                nodo,
+            )
+        raise self._error(
+            f"{que} es party (protegido) en {dueno}: solo se puede usar dentro de "
+            f"{dueno} o de los guild que evolucionan de el",
+            nodo,
+        )
+
+    def _ancestro_comun(self, a: str, b: str) -> str | None:
+        """El guild mas cercano del que vienen los dos, o None si no hay."""
+        if a not in self.guilds or b not in self.guilds:
+            return None
+        for guild in reversed(self._linaje(a)):          # del hijo al abuelo
+            if self._evoluciona_de(b, guild):
+                return guild
+        return None
+
+    def _es_hijo(self, origen: str, destino: str) -> bool:
+        return origen in self.guilds and destino in self.guilds and self._evoluciona_de(origen, destino)
+
+    def _evoluciona_de(self, hijo: str | None, padre: str) -> bool:
+        """True si hijo viene de padre, aunque sea de varias generaciones atras."""
+        while hijo is not None:
+            if hijo == padre:
+                return True
+            hijo = self.guilds[hijo].padre
+        return False
+
     def spawn(self, nodo: arbol.Spawn) -> str:
+        if nodo.tipo in self.guilds or nodo.tipo in self.registros:
+            self._verificar_tipo(nodo.tipo, nodo)
+        # de un guild: los valores van al constructor
+        if nodo.tipo in self.guilds:
+            info = self.guilds[nodo.tipo]
+            if info.constructor is None:
+                if nodo.argumentos:
+                    raise self._error(
+                        f"el guild {nodo.tipo} no tiene constructor, asi que el spawn "
+                        f"va sin valores: spawn {nodo.tipo}{{}}",
+                        nodo,
+                    )
+                return nodo.tipo
+            self._verificar_visible(
+                nodo.tipo, f"el constructor de '{nodo.tipo}'", info.constructor.modificador, nodo
+            )
+            self._verificar_argumentos(info.constructor, nodo, f"el constructor de '{nodo.tipo}'")
+            return nodo.tipo
+
         campos = self.registros.get(nodo.tipo)
         if campos is None:
-            raise self._error(f"no existe un inventory llamado '{nodo.tipo}'", nodo)
+            raise self._error(f"no existe un guild ni un inventory llamado '{nodo.tipo}'", nodo)
 
         if len(nodo.argumentos) != len(campos):
             raise self._error(
@@ -593,17 +1056,38 @@ class Semantico:
 
         for (esperado, campo), argumento in zip(campos, nodo.argumentos):
             obtenido = self.expresion(argumento)
-            self._verificar_asignable(esperado, obtenido, argumento)
+            self._verificar_asignable(esperado, obtenido, argumento, argumento)
 
         return nodo.tipo
 
     def llamada(self, nodo: arbol.Llamada) -> str:
-        # si es un metodo del vector, el Acceso ya dejo la marca
+        # si es un metodo del vector o de un guild, el Acceso ya dejo la marca
+        marca = None
         if isinstance(nodo.destino, arbol.Acceso):
             marca = self.expresion(nodo.destino)
-            if isinstance(marca, str) and marca.startswith("metodo:"):
+            if marca.startswith("metodo:"):
                 _, coleccion, metodo = marca.split(":", 2)
                 return self.metodo_coleccion(nodo, coleccion, metodo)
+            if marca.startswith("externo:"):
+                _, modulo, nombre = marca.split(":", 2)
+                firma = self.importa[modulo].combos[nombre]
+                self._verificar_argumentos(firma, nodo, f"el combo '{modulo}.{nombre}'")
+                return firma.retorno if firma.retorno is not None else "noloot"
+
+        # un metodo del mismo guild llamado sin me. -> D-25
+        if isinstance(nodo.destino, arbol.Identificador):
+            simbolo = self.alcance.buscar(nodo.destino.nombre)
+            if simbolo is not None and simbolo.tipo.startswith("miembro:"):
+                self._verificar_visible(
+                    simbolo.dueno, f"el combo '{simbolo.nombre}'", simbolo.modificador, nodo   # type: ignore[arg-type]
+                )
+                marca = simbolo.tipo
+
+        if marca is not None and marca.startswith("miembro:"):
+            _, guild, metodo = marca.split(":", 2)
+            firma = self.guilds[guild].metodos[metodo]
+            self._verificar_argumentos(firma, nodo, f"el combo '{metodo}'")
+            return firma.retorno if firma.retorno is not None else "noloot"
 
         tipos = [self.expresion(a) for a in nodo.argumentos]
 
@@ -618,27 +1102,41 @@ class Semantico:
             self.expresion(nodo.destino)
             return "desconocido"
 
+        self._verificar_argumentos(firma, nodo, f"el combo '{firma.nombre}'", tipos)
+        if firma.retorno is None:
+            return "noloot"
+        return firma.retorno
+
+    def _verificar_argumentos(
+        self, firma: Firma, nodo: arbol.Llamada | arbol.Spawn, quien: str,
+        tipos: list[str] | None = None,
+    ) -> None:
+        """Cantidad y tipo de los argumentos contra la firma."""
+        if tipos is None:
+            tipos = [self.expresion(a) for a in nodo.argumentos]
+
         if len(tipos) != len(firma.parametros):
             raise self._error(
-                f"el combo '{firma.nombre}' espera {len(firma.parametros)} "
-                f"argumento(s) y recibio {len(tipos)}",
+                f"{quien} espera {len(firma.parametros)} argumento(s) y recibio {len(tipos)}",
                 nodo,
             )
 
         for (esperado, nombre), obtenido, argumento in zip(firma.parametros, tipos, nodo.argumentos):
             if obtenido == "desconocido" or obtenido == esperado:
                 continue
+            if self._es_hijo(obtenido, esperado):
+                continue
+            if obtenido.startswith("coleccion["):
+                # f{<1 | 2>}: el literal toma el tipo del parametro, igual que en un set
+                self._verificar_asignable(esperado, obtenido, argumento, argumento)
+                continue
             if esperado == "aim" and obtenido == "score":
-                continue                             # score -> aim, permitido
+                argumento.a_aim = True               # score -> aim, permitido
+                continue
             raise self._error(
-                f"el parametro '{nombre}' de '{firma.nombre}' es {esperado} y se "
-                f"paso un {obtenido}",
+                f"el parametro '{nombre}' de '{firma.nombre}' es {esperado} y se paso un {obtenido}",
                 argumento,
             )
-
-        if firma.retorno is None:
-            return "noloot"
-        return firma.retorno
 
     def metodo_coleccion(self, nodo: arbol.Llamada, coleccion: str, metodo: str) -> str:
         constructor = constructor_de(coleccion)
@@ -655,7 +1153,7 @@ class Semantico:
         if cantidad:
             esperado = interno if tipo_arg == "T" else tipo_arg
             obtenido = self.expresion(nodo.argumentos[0])
-            self._verificar_asignable(esperado, obtenido, nodo.argumentos[0])   # type: ignore[arg-type]
+            self._verificar_asignable(esperado, obtenido, nodo.argumentos[0], nodo.argumentos[0])   # type: ignore[arg-type]
 
         if retorno is None:
             return "noloot"
@@ -690,12 +1188,9 @@ class Semantico:
                 return "lore"
             return self._numerica(izq, der, op, nodo)
 
-        if op == "split":
-            # split siempre da decimal, aunque dividas dos enteros
-            self._numerica(izq, der, op, nodo)
-            return "aim"
-
-        if op in ("drain", "crit", "scrap"):
+        # split igual que en C y Java: dos score dan score (7 split 2 -> 3).
+        # Para tener el decimal, uno de los dos tiene que ser aim -> D-23
+        if op in ("drain", "crit", "split", "scrap"):
             return self._numerica(izq, der, op, nodo)
 
         raise self._error(f"operador desconocido: {op}", nodo)
@@ -708,3 +1203,17 @@ class Semantico:
 
 def analizar(programa: arbol.Programa, archivo: str = "<entrada>") -> arbol.Programa:
     return Semantico(archivo).analizar(programa)
+
+
+def analizar_archivos(archivos: list) -> None:
+    """Revisa cada archivo con su propia tabla de simbolos. Vienen en orden: cuando
+    llega uno, lo que importa ya esta revisado -> D-28.
+    """
+    registros: dict[str, list[tuple[str, str]]] = {}
+    guilds: dict[str, InfoGuild] = {}
+    revisados: dict[int, Semantico] = {}
+    for archivo in archivos:
+        importa = {modulo: revisados[id(otro)] for modulo, otro in archivo.importa.items()}
+        semantico = Semantico(archivo.nombre, registros, guilds, archivo.modulo, importa)
+        semantico.analizar(archivo.programa, principal=archivo.modulo is None)
+        revisados[id(archivo)] = semantico

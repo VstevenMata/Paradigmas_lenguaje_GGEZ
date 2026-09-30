@@ -1,0 +1,106 @@
+/w Bloque 5: herencia, metodos reemplazados y manejo de errores
+/w Un grupo de personajes donde cada clase ataca a su manera
+
+guild Personaje glhf
+    party lore nombre
+    party score vida set 100
+    solo score golpes                 /w arranca en 0, y solo Personaje lo toca
+
+    /w cada clase lo reemplaza con su propio ataque
+    open combo atacar{} drops score glhf
+        reward 5
+    gg
+
+    /w esta escrito aca, pero llama al atacar de la clase real
+    open combo turno{} drops score glhf
+        golpes buff
+        reward atacar{}
+    gg
+
+    open combo recibir{score dano} drops noloot glhf
+        scan dano under 0 glhf
+            wipe{"el dano no puede ser negativo: " gain dano}
+        gg
+        vida sap dano
+    gg
+
+    open combo getGolpes{} drops score glhf
+        reward golpes
+    gg
+
+    open combo estado{} drops lore glhf
+        reward nombre gain " (vida " gain vida gain ")"
+    gg
+gg
+
+guild Guerrero evolves Personaje glhf
+    solo score fuerza
+
+    /w sin super: el hijo llena lo que hereda, que para eso es party
+    combo Guerrero{lore nombre | score fuerza} drops noloot glhf
+        me.nombre set nombre
+        me.fuerza set fuerza
+        vida set 150
+    gg
+
+    open combo atacar{} drops score glhf
+        reward fuerza crit 2
+    gg
+gg
+
+guild Mago evolves Personaje glhf
+    solo score mana
+
+    combo Mago{lore nombre | score mana} drops noloot glhf
+        me.nombre set nombre
+        me.mana set mana
+    gg
+
+    /w hechizo fuerte mientras haya mana, despues un golpe flojo
+    open combo atacar{} drops score glhf
+        scan mana atleast 10 glhf
+            mana sap 10
+            reward 30
+        gg
+        reward 2
+    gg
+gg
+
+/w recibe cualquier Personaje: un Guerrero o un Mago tambien sirven
+combo pelear{Personaje p | score rondas} drops score glhf
+    stash score total set 0
+    stash score i set 0
+    farm i set 0 | i under rondas | i buff glhf
+        total boost p.turno{}
+    gg
+    reward total
+gg
+
+lobby.launch{start THE GAME} glhf
+    stash Guerrero conan set spawn Guerrero{"Conan" | 12}
+    stash Mago merlin set spawn Mago{"Merlin" | 25}
+
+    /w un vector del tipo padre con objetos de las dos clases
+    stash squad[Personaje] grupo set <conan | merlin>
+
+    stash score i set 0
+    farm i set 0 | i under grupo.size | i buff glhf
+        stash Personaje p set grupo<i>
+        chat.send{p.estado{} gain " hace " gain pelear{p | 3} gain " de dano en 3 rondas"}
+    gg
+
+    chat.send{"Conan ataco " gain conan.getGolpes{} gain " veces"}
+
+    conan.recibir{40}
+    chat.send{conan.estado{}}
+
+    /w un dano negativo lanza un wipe, y el revive lo atrapa
+    clutch glhf
+        merlin.recibir{drain 5}
+        chat.send{"esto no se ve"}
+    gg revive {e} glhf
+        chat.rage{"Error en linea " gain e.line gain ": " gain e.reason}
+    gg checkpoint glhf
+        chat.send{merlin.estado{}}
+    gg
+gg

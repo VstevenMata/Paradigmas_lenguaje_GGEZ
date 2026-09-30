@@ -1,0 +1,33 @@
+/w Biblioteca: no tiene lobby.launch, se usa desde otro archivo con travel.
+/w Todo lo que esta aca se ve afuera como estadisticas.algo
+
+inventory Resumen glhf
+    score mayor
+    score menor
+    aim promedio
+gg
+
+combo promedio{squad[score] datos} drops aim glhf
+    stash aim suma set 0
+    stash score i set 0
+    farm i set 0 | i under datos.size | i buff glhf
+        suma boost datos<i>
+    gg
+    reward suma split datos.size
+gg
+
+combo resumir{squad[score] datos} drops Resumen glhf
+    scan datos.size matches 0 glhf
+        wipe{"no se puede resumir un squad vacio"}
+    gg
+
+    stash score mayor set datos<0>
+    stash score menor set datos<0>
+    stash score i set 0
+    farm i set 1 | i under datos.size | i buff glhf
+        scan datos<i> over mayor glhf mayor set datos<i> gg
+        scan datos<i> under menor glhf menor set datos<i> gg
+    gg
+    /w adentro del archivo el tipo se llama Resumen, afuera estadisticas.Resumen
+    reward spawn Resumen{mayor | menor | promedio{datos}}
+gg

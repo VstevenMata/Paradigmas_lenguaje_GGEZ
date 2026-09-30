@@ -77,7 +77,10 @@ ggezc run <archivo.ggez>
 - **stderr**: errores — uno por línea, con el formato
   `archivo:línea:columna: etapa: mensaje` (estilo gcc), donde *etapa* es `error lexico`,
   `error sintactico`, `error semantico` o `error en ejecucion`. Ya está implementado en
-  `src/ggez/errores.py`.
+  `src/ggez/errores.py`. *archivo* es donde está el error, que puede ser uno traído con
+  `travel`: va relativo a la carpeta del archivo que se ejecuta, con `/`
+  (`lib/utilidades.ggez:7:14: ...`). Nunca lleva la unidad (`C:`), para no romper la
+  expresión regular del panel Problemas.
 - **Código de salida**: `0` = corrió sin errores. Distinto de `0` = algo falló (léxico,
   sintáctico o en ejecución) — no importa cuál, alcanza con no-cero.
 
