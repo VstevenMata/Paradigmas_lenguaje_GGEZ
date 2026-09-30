@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:ParadigmasLenguajePropio.Controls"
              xmlns:services="using:ParadigmasLenguajePropio.Services"
+             xmlns:models="using:ParadigmasLenguajePropio.Models"
              x:Class="ParadigmasLenguajePropio.Views.DialogOverlayView"
              x:DataType="services:DialogService"
              IsVisible="{Binding IsVisible}"
@@ -11,13 +12,125 @@
     <Grid Background="#5A000000">
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
             <controls:Win95Bevel BevelThickness="4" Padding="4" Background="{DynamicResource TemaBackgroundBrush}">
-                <StackPanel MinWidth="260" MaxWidth="480">
+                <StackPanel MinWidth="260" MaxWidth="920">
                     <Border Background="{DynamicResource TemaTitleBarBrush}" Padding="6,4">
                         <TextBlock Text="{Binding Titulo}" Foreground="White" FontSize="16" />
                     </Border>
 
-                    <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource TemaTextoBrush}" FontSize="16"
-                               TextWrapping="Wrap" Margin="16,16,16,0" />
+                    <TextBlock Text="{Binding Mensaje}" IsVisible="{Binding !EsAyuda}" Foreground="{DynamicResource TemaTextoBrush}"
+                               FontSize="16" TextWrapping="Wrap" Margin="16,16,16,0" />
+
+                    <StackPanel IsVisible="{Binding EsAyuda}" Width="900">
+                        <TextBlock Text="{Binding Subtitulo}" Foreground="{DynamicResource TemaTextoBrush}" Opacity="0.8"
+                                   FontSize="14" TextWrapping="Wrap" Margin="14,10,14,0" />
+
+                        <controls:Win95Bevel Sunken="True" BevelThickness="2" Margin="10,8,10,0"
+                                             Background="{DynamicResource TemaCampoFondoBrush}">
+                            <ScrollViewer MaxHeight="560" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding Secciones}" Grid.IsSharedSizeScope="True" Margin="12,12,16,4">
+                                    <ItemsControl.Styles>
+                                        <Style Selector="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TemaCampoTextoBrush}" />
+                                            <Setter Property="FontSize" Value="14" />
+                                            <Setter Property="TextWrapping" Value="Wrap" />
+                                        </Style>
+                                        <Style Selector="TextBlock.codigo">
+                                            <Setter Property="FontFamily" Value="DejaVu Sans Mono, Liberation Mono, Consolas, monospace" />
+                                            <Setter Property="FontSize" Value="13" />
+                                            <Setter Property="TextWrapping" Value="Wrap" />
+                                        </Style>
+                                        <Style Selector="TextBlock.etiqueta">
+                                            <Setter Property="FontSize" Value="12" />
+                                            <Setter Property="FontWeight" Value="Bold" />
+                                            <Setter Property="Opacity" Value="0.65" />
+                                            <Setter Property="Margin" Value="0,0,0,2" />
+                                        </Style>
+                                        <Style Selector="Border.codigo">
+                                            <Setter Property="Background" Value="#12000000" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="Padding" Value="8,5" />
+                                        </Style>
+                                    </ItemsControl.Styles>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:SeccionAyuda">
+                                            <StackPanel Margin="0,0,0,18">
+                                                <Border Background="{DynamicResource TemaTitleBarBrush}" Padding="8,4">
+                                                    <TextBlock Text="{Binding Titulo}" Foreground="White" FontSize="15" FontWeight="Bold" />
+                                                </Border>
+                                                <TextBlock Text="{Binding Intro}" IsVisible="{Binding TieneIntro}" FontStyle="Italic"
+                                                           Opacity="0.8" Margin="6,8,0,0" />
+                                                <ItemsControl ItemsSource="{Binding Filas}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:FilaAyuda">
+                                                            <Panel>
+                                                                <!-- Atajo o palabra: clave a la izquierda, significado a la derecha -->
+                                                                <Grid IsVisible="{Binding !EsEjemplo}" Margin="6,8,0,0">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="Clave" />
+                                                                        <ColumnDefinition Width="*" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Panel Margin="0,0,18,0" MinWidth="150" VerticalAlignment="Top">
+                                                                        <ItemsControl ItemsSource="{Binding Teclas}" IsVisible="{Binding EsAtajo}">
+                                                                            <ItemsControl.ItemsPanel>
+                                                                                <ItemsPanelTemplate>
+                                                                                    <StackPanel Orientation="Horizontal" Spacing="4" />
+                                                                                </ItemsPanelTemplate>
+                                                                            </ItemsControl.ItemsPanel>
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate x:DataType="x:String">
+                                                                                    <controls:Win95Bevel BevelThickness="1" Padding="6,1"
+                                                                                                         Background="{DynamicResource TemaBackgroundBrush}">
+                                                                                        <TextBlock Text="{Binding}" FontSize="13"
+                                                                                                   Foreground="{DynamicResource TemaTextoBrush}" />
+                                                                                    </controls:Win95Bevel>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                        <Border Classes="codigo" IsVisible="{Binding EsPalabra}" Padding="6,1"
+                                                                                HorizontalAlignment="Left" Background="#0F1117">
+                                                                            <controls:CodigoGgez Codigo="{Binding Izquierda}" FontSize="13" FontWeight="Bold"
+                                                                                                 FontFamily="DejaVu Sans Mono, Liberation Mono, Consolas, monospace" />
+                                                                        </Border>
+                                                                    </Panel>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Derecha}" VerticalAlignment="Center" />
+                                                                </Grid>
+
+                                                                <!-- Ejemplo: titulo, explicacion y codigo GGEZ junto a su equivalente en Java -->
+                                                                <StackPanel IsVisible="{Binding EsEjemplo}" Margin="6,12,0,4" Spacing="4">
+                                                                    <TextBlock Text="{Binding Izquierda}" FontSize="15" FontWeight="Bold" />
+                                                                    <TextBlock Text="{Binding Derecha}" Margin="0,0,0,4" />
+                                                                    <Grid ColumnDefinitions="*,12,*">
+                                                                        <StackPanel>
+                                                                            <TextBlock Classes="etiqueta" Text="{Binding EtiquetaCodigo}" />
+                                                                            <Border Classes="codigo" Background="#0F1117">
+                                                                                <controls:CodigoGgez Codigo="{Binding Codigo}" FontSize="13" TextWrapping="Wrap"
+                                                                                                     FontFamily="DejaVu Sans Mono, Liberation Mono, Consolas, monospace" />
+                                                                            </Border>
+                                                                        </StackPanel>
+                                                                        <StackPanel Grid.Column="2" IsVisible="{Binding TieneJava}">
+                                                                            <TextBlock Classes="etiqueta" Text="{Binding EtiquetaJava}" />
+                                                                            <Border Classes="codigo" IsVisible="{Binding DerechaEsJava}" Opacity="0.85">
+                                                                                <TextBlock Classes="codigo" Text="{Binding Java}" />
+                                                                            </Border>
+                                                                            <Border Classes="codigo" IsVisible="{Binding DerechaMuestraGgez}" Background="#0F1117">
+                                                                                <controls:CodigoGgez Codigo="{Binding Java}" FontSize="13" TextWrapping="Wrap"
+                                                                                                     FontFamily="DejaVu Sans Mono, Liberation Mono, Consolas, monospace" />
+                                                                            </Border>
+                                                                        </StackPanel>
+                                                                    </Grid>
+                                                                </StackPanel>
+                                                            </Panel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </controls:Win95Bevel>
+                    </StackPanel>
 
                     <TextBox Name="PART_CampoPrompt" Text="{Binding ValorTexto, Mode=TwoWay}"
                               IsVisible="{Binding EsPrompt}" Margin="16,10,16,0" FontSize="15" />

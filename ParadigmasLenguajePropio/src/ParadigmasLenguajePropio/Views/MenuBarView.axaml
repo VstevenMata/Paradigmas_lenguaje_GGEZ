@@ -43,7 +43,11 @@
                                                             PointerEntered="Item_PointerEntered" PointerExited="Item_PointerExited">
                                                         <controls:Win95Bevel Sunken="True" BevelThickness="1" Padding="17,3"
                                                                              TieneBisel="{Binding EsResaltado}">
-                                                            <TextBlock Text="{Binding Texto}" FontSize="14" Foreground="{DynamicResource TemaTextoBrush}" />
+                                                            <Grid ColumnDefinitions="*,Auto">
+                                                                <TextBlock Text="{Binding Texto}" FontSize="14" Foreground="{DynamicResource TemaTextoBrush}" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Atajo}" FontSize="14" Margin="24,0,0,0"
+                                                                           Foreground="{DynamicResource TemaTextoBrush}" Opacity="0.7" />
+                                                            </Grid>
                                                         </controls:Win95Bevel>
                                                     </Border>
                                                 </Panel>

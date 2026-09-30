@@ -27,6 +27,11 @@ public partial class MainWindow : Window
 
         var gridContenido = this.FindControl<Grid>("PART_GridContenido")!;
         gridContenido.SizeChanged += (_, e) => vm.AlturaTerminalMaxima = Math.Max(160, e.NewSize.Height / 2);
+
+        KeyDown += (_, e) =>
+        {
+            if (!e.Handled && !vm.Dialogs.IsVisible && vm.MenuBar.EjecutarAtajo(e)) e.Handled = true;
+        };
     }
 
     void CerrarMenu_PointerPressed(object? sender, PointerPressedEventArgs e) => ViewModel?.MenuBar.CerrarTodos();

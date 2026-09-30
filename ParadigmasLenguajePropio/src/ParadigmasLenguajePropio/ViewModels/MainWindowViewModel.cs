@@ -194,7 +194,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // Ejecuta el .ggez abierto con Traductor/ggezc.py (contrato en Traductor/README.md)
     [RelayCommand]
-    async Task ConstruirAsync()
+    // tab = null compila la pestaña activa del panel enfocado
+    async Task ConstruirAsync(EditorTabViewModel? tab)
     {
         if (!HayLugarParaTerminal) return;
         await Editor.GuardarTodoAsync();
@@ -206,7 +207,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Terminal.EnfocarInstancia(terminal);
 
         // El traductor lee del disco, no del buffer
-        string? archivo = Editor.TabActiva?.RutaCompleta;
+        string? archivo = (tab ?? Editor.TabActiva)?.RutaCompleta;
         if (string.IsNullOrEmpty(archivo))
         {
             terminal.EscribirAviso("Guarde el archivo antes de construir.");
@@ -297,8 +298,8 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Abrir carpeta": Explorer.AbrirCarpetaDialogoCommand.Execute(null); break;
             case "Cerrar carpeta": Explorer.CerrarCarpetaCommand.Execute(null); break;
             case "Acerca de": _ = Dialogs.ShowModalAsync("Acerca de", "Aqui va la informacion del acerca de", "Cerrar"); break;
-            case "Sintaxis de GGEZ": _ = Dialogs.ShowModalAsync("Sintaxis", "Aqui va la informacion sobre la sintaxis", "Cerrar"); break;
-            case "Atajos de teclado": _ = Dialogs.ShowModalAsync("Atajos de teclado", "Aqui va la informacion sobre los atajos de teclado", "Cerrar"); break;
+            case "Sintaxis de GGEZ": _ = Dialogs.ShowAyudaAsync("Sintaxis de GGEZ", "Empieza por el diccionario: cada palabra de GGEZ equivale a un símbolo que ya conoces de Java", Ayuda.Sintaxis); break;
+            case "Atajos de teclado": _ = Dialogs.ShowAyudaAsync("Atajos de teclado", "Si el control enfocado usa la misma tecla, gana el control", Ayuda.Atajos); break;
             case "Nuevo": Editor.NuevoArchivo(); break;
             case "Guardar": _ = Editor.GuardarAsync(); break;
             case "Guardar como": _ = Editor.GuardarAsync(forzarElegirRuta: true); break;
@@ -311,7 +312,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Buscar": Editor.BuscarVisible = true; Editor.MostrarReemplazo = false; break;
             case "Buscar y reemplazar": Editor.BuscarVisible = true; Editor.MostrarReemplazo = true; break;
             case "Ir a línea": Editor.IrALineaVisible = true; break;
-            case "Construir": _ = ConstruirAsync(); break;
+            case "Construir": _ = ConstruirAsync(null); break;
             case "Pausar / Reanudar": PanelJuego.EnPausa = !PanelJuego.EnPausa; break;
             case "Ver salida": if (HayLugarParaTerminal) { TerminalVisible = true; Terminal.TabActiva = 1; } break;
             default: Console.WriteLine($"Menú: {opcion}"); break;

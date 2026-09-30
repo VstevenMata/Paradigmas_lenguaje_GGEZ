@@ -1,0 +1,225 @@
+/w Prueba completa de GGEZ: una mini aventura que usa todo el lenguaje
+/all
+    Cubre: modulos, tipos, variables, constantes, operadores, if/else,
+    switch, for, while, do-while, break/continue, funciones, listas,
+    errores, registros, clases, herencia y visibilidad.
+/end
+
+travel estadisticas from lib
+
+/w Registro: solo datos, como un record de Java
+inventory Item glhf
+    lore nombre
+    score poder
+gg
+
+/w Clase base: party = protected, asi los hijos pueden usar estos campos
+guild Personaje glhf
+    party lore nombre
+    party score vida
+    party score ataque
+
+    combo Personaje{lore n | score v | score a} drops noloot glhf
+        nombre set n
+        vida set v
+        ataque set a
+    gg
+
+    combo recibirDano{score dano} drops noloot glhf
+        vida sap dano
+        scan vida under 0 glhf
+            vida set 0
+        gg
+    gg
+
+    combo sigueVivo{} drops win glhf
+        reward vida over 0
+    gg
+
+    combo describir{} drops lore glhf
+        reward nombre gain " (vida " gain vida gain ")"
+    gg
+
+    combo grito{} drops lore glhf
+        reward "..."
+    gg
+gg
+
+/w Herencia: Guerrero evolves Personaje (extends)
+guild Guerrero evolves Personaje glhf
+    solo score furia set 0
+
+    combo Guerrero{lore n} drops noloot glhf
+        nombre set n
+        vida set 120
+        ataque set 15
+    gg
+
+    combo golpear{Personaje objetivo} drops noloot glhf
+        furia buff
+        stash score dano set ataque gain furia crit 2
+        objetivo.recibirDano{dano}
+        chat.send{"  " gain nombre gain " golpea por " gain dano}
+    gg
+
+    combo grito{} drops lore glhf
+        reward "POR LA GLORIA!"
+    gg
+gg
+
+guild Mago evolves Personaje glhf
+    solo score mana set 30
+
+    combo Mago{lore n} drops noloot glhf
+        nombre set n
+        vida set 80
+        ataque set 25
+    gg
+
+    combo lanzarHechizo{Personaje objetivo} drops noloot glhf
+        scan mana under 10 glhf
+            wipe{nombre gain " no tiene mana"}
+        gg
+        mana sap 10
+        objetivo.recibirDano{ataque}
+        chat.send{"  " gain nombre gain " lanza una bola de fuego por " gain ataque}
+    gg
+
+    combo grito{} drops lore glhf
+        reward "Por el poder arcano!"
+    gg
+gg
+
+/w Funciones sueltas
+combo curar{score vida | score cantidad | score maximo} drops score glhf
+    stash score resultado set vida gain cantidad
+    scan resultado over maximo glhf
+        reward maximo
+    gg
+    reward resultado
+gg
+
+combo rango{score puntos} drops lore glhf
+    scan puntos atleast 90 glhf
+        reward "S"
+    gg fallback scan puntos atleast 70 glhf
+        reward "A"
+    gg fallback scan puntos atleast 50 glhf
+        reward "B"
+    gg fallback glhf
+        reward "C"
+    gg
+gg
+
+combo separador{lore titulo} drops noloot glhf
+    chat.send{""}
+    chat.send{"=== " gain titulo gain " ==="}
+gg
+
+lobby.launch{start THE GAME} glhf
+    separador{"1. Tipos y operadores"}
+    stash score oro set 50
+    stash aim multiplicador set 1.5
+    stash lore heroe set "Link"
+    stash pixel inicial set 'L'
+    stash win tieneEspada set hit
+    hardcoded score MAX_NIVEL set 99
+
+    chat.send{"Heroe: " gain heroe gain ", inicial: " gain inicial}
+    chat.send{"Oro por multiplicador: " gain {oro crit multiplicador}}
+    chat.send{"7 split 2 = " gain {7 split 2} gain " y 7 split 2.0 = " gain {7 split 2.0}}
+    chat.send{"17 scrap 5 = " gain {17 scrap 5}}
+    chat.send{"Tiene espada y oro: " gain {tieneEspada chain oro over 0}}
+    chat.send{"No tiene espada: " gain dodge tieneEspada}
+    oro boost 25
+    oro sap 5
+    oro buff
+    chat.send{"Oro final: " gain oro gain " (nivel maximo " gain MAX_NIVEL gain ")"}
+
+    separador{"2. Listas y ciclo for"}
+    stash squad[score] puntajes set <95 | 72 | 40 | 88>
+    puntajes.recruit{61}
+    stash score i set 0
+    farm i set 0 | i under puntajes.size | i buff glhf
+        chat.send{"Puntaje " gain puntajes<i> gain " -> rango " gain rango{puntajes<i>}}
+    gg
+    chat.send{"Promedio (del modulo lib/estadisticas): " gain estadisticas.promedio{puntajes}}
+    puntajes.kick{0}
+    chat.send{"Sin el primero quedan " gain puntajes.size}
+
+    separador{"3. Switch"}
+    stash score opcion set 2
+    loadout opcion glhf
+        pick 1 glhf
+            chat.send{"Elegiste: Espada"}
+        gg
+        pick 2 | 3 glhf
+            chat.send{"Elegiste: Arco"}
+        gg
+        noob glhf
+            chat.send{"Elegiste: Nada"}
+        gg
+    gg
+
+    separador{"4. Break y continue"}
+    farm i set 1 | i atmost 10 | i buff glhf
+        scan i scrap 2 matches 0 glhf
+            respawn
+        gg
+        scan i over 7 glhf
+            ragequit
+        gg
+        chat.send{"Impar: " gain i}
+    gg
+
+    separador{"5. Registros"}
+    stash Item espada set spawn Item{"Espada Maestra" | 40}
+    stash Item escudo set spawn Item{"Escudo Hyliano" | 25}
+    chat.send{espada.nombre gain " + " gain escudo.nombre gain " = poder " gain {espada.poder gain escudo.poder}}
+
+    separador{"6. Clases, herencia y combate con while"}
+    stash Guerrero conan set spawn Guerrero{"Conan"}
+    stash Mago merlin set spawn Mago{"Merlin"}
+    stash squad[Personaje] equipo set <conan | merlin>
+    farm i set 0 | i under equipo.size | i buff glhf
+        chat.send{equipo<i>.describir{} gain " grita: " gain equipo<i>.grito{}}
+    gg
+
+    stash Personaje dragon set spawn Personaje{"Dragon" | 200 | 20}
+    stash score ronda set 0
+    survive dragon.sigueVivo{} chain ronda under 10 glhf
+        ronda buff
+        chat.send{"Ronda " gain ronda}
+        conan.golpear{dragon}
+        clutch glhf
+            merlin.lanzarHechizo{dragon}
+        gg revive {e} glhf
+            chat.rage{"  Fallo el hechizo: " gain e.reason}
+        gg
+        chat.send{"  " gain dragon.describir{}}
+    gg
+    scan dragon.sigueVivo{} glhf
+        chat.send{"El dragon escapo"}
+    gg fallback glhf
+        chat.send{"Dragon derrotado en " gain ronda gain " rondas"}
+    gg
+
+    separador{"7. Do-while y funciones"}
+    stash score vida set 10
+    grind glhf
+        vida set curar{vida | 30 | 100}
+        chat.send{"Curando... vida = " gain vida}
+    gg survive {vida under 100}
+
+    separador{"8. Errores de ejecucion"}
+    clutch glhf
+        stash score cero set 0
+        chat.send{10 split cero}
+    gg revive {e} glhf
+        chat.rage{"Error atrapado en la linea " gain e.line gain ": " gain e.reason}
+    gg checkpoint glhf
+        chat.send{"El checkpoint siempre corre"}
+    gg
+
+    separador{"Fin de la prueba: GG!"}
+gg

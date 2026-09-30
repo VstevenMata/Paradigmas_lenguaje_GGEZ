@@ -58,8 +58,8 @@ public class EditorTextArea : Control
     static readonly IBrush ColorSeleccion = new SolidColorBrush(Color.FromArgb(110, 51, 153, 255));
     static readonly IBrush ColorLineaActual = new SolidColorBrush(Color.FromRgb(235, 235, 235));
 
-    static readonly IBrush FondoOscuro = new SolidColorBrush(Color.Parse("#0F1117"));
-    static readonly IBrush TextoOscuro = new SolidColorBrush(Color.Parse("#D4D4D4"));
+    public static readonly IBrush FondoOscuro = new SolidColorBrush(Color.Parse("#0F1117"));
+    public static readonly IBrush TextoOscuro = new SolidColorBrush(Color.Parse("#D4D4D4"));
     static readonly IBrush LineaActualOscura = new SolidColorBrush(Color.Parse("#1C2030"));
 
     const double AnchoContinuacion = 10;
@@ -373,10 +373,10 @@ public class EditorTextArea : Control
     }
 
     static readonly IBrush ComentarioClaro = new SolidColorBrush(Color.Parse("#008000"));
-    static readonly IBrush ComentarioOscuro = new SolidColorBrush(Color.Parse("#57A64A"));
+    public static readonly IBrush ComentarioOscuro = new SolidColorBrush(Color.Parse("#57A64A"));
 
     // Rangos [Inicio, Fin) de comentario: "/w" a fin de linea y "/all ... /end" multilinea (enBloque arrastra el estado)
-    static List<(int Inicio, int Fin)> BuscarComentarios(string texto, ref bool enBloque)
+    public static List<(int Inicio, int Fin)> BuscarComentarios(string texto, ref bool enBloque)
     {
         var rangos = new List<(int, int)>();
         int c = 0;
@@ -424,8 +424,8 @@ public class EditorTextArea : Control
         return -1;
     }
 
-    // Repinta encima las palabras clave con color, saltando strings y comentarios
-    static void DibujarSintaxis(DrawingContext context, string texto, double y, double fontSize, List<(int Inicio, int Fin)> comentarios, bool ocultarDelimitadores = false)
+    // Palabras clave con color de una linea, saltando strings y comentarios
+    public static IEnumerable<(int Inicio, string Palabra, IBrush Color)> PalabrasColoreadas(string texto, List<(int Inicio, int Fin)> comentarios)
     {
         int c = 0;
         while (c < texto.Length)
@@ -448,13 +448,18 @@ public class EditorTextArea : Control
             while (c < texto.Length && (char.IsLetterOrDigit(texto[c]) || texto[c] == '_')) c++;
 
             string palabra = texto[inicio..c];
-            if (ocultarDelimitadores && palabra is "glhf" or "gg") continue;
+            if (ColoresSintaxis.TryGetValue(palabra, out var brush)) yield return (inicio, palabra, brush);
+        }
+    }
 
-            if (ColoresSintaxis.TryGetValue(palabra, out var brush))
-            {
-                double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..inicio], fontSize);
-                context.DrawText(EditorFont.Formatear(palabra, fontSize, brush), new Point(x, y));
-            }
+    // Repinta encima las palabras clave con color
+    static void DibujarSintaxis(DrawingContext context, string texto, double y, double fontSize, List<(int Inicio, int Fin)> comentarios, bool ocultarDelimitadores = false)
+    {
+        foreach (var (inicio, palabra, brush) in PalabrasColoreadas(texto, comentarios))
+        {
+            if (ocultarDelimitadores && palabra is "glhf" or "gg") continue;
+            double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..inicio], fontSize);
+            context.DrawText(EditorFont.Formatear(palabra, fontSize, brush), new Point(x, y));
         }
     }
 

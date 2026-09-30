@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.Services;
 
@@ -19,6 +20,16 @@ public partial class DialogService : ObservableObject
     [ObservableProperty]
     private bool _esPrompt;
 
+    // No null = dialogo de ayuda con secciones en vez de Mensaje
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EsAyuda))]
+    private IReadOnlyList<SeccionAyuda>? _secciones;
+
+    [ObservableProperty]
+    private string _subtitulo = "";
+
+    public bool EsAyuda => Secciones != null;
+
     [ObservableProperty]
     private string _valorTexto = "";
 
@@ -32,6 +43,7 @@ public partial class DialogService : ObservableObject
         Titulo = titulo;
         Mensaje = mensaje;
         EsPrompt = false;
+        Secciones = null;
         Botones.Clear();
         foreach (var b in botones) Botones.Add(b);
         IsVisible = true;
@@ -45,6 +57,7 @@ public partial class DialogService : ObservableObject
         Titulo = titulo;
         Mensaje = mensaje;
         EsPrompt = true;
+        Secciones = null;
         ValorTexto = valorInicial;
         Botones.Clear();
         // "Cancelar" al final a proposito: Escape elige siempre el ultimo boton
@@ -54,6 +67,14 @@ public partial class DialogService : ObservableObject
 
         _tcsPrompt = new TaskCompletionSource<string?>();
         return _tcsPrompt.Task;
+    }
+
+    public Task<int> ShowAyudaAsync(string titulo, string subtitulo, IReadOnlyList<SeccionAyuda> secciones)
+    {
+        var tarea = ShowModalAsync(titulo, "", "Cerrar");
+        Subtitulo = subtitulo;
+        Secciones = secciones;
+        return tarea;
     }
 
     [RelayCommand]
