@@ -1,24 +1,14 @@
-"""Errores del traductor, en el formato que el IDE ya sabe leer.
+"""Errores del traductor.
 
-El contrato con el IDE en C# (ver README.md) pide que cada error salga por stderr
-como:
-
-    archivo.ggez:LINEA:COLUMNA: error: mensaje
-
-Ese formato es el de gcc. El panel Problemas del IDE lo parsea con la expresion
-regular de TerminalViewModel.cs y arma una fila clickeable que salta a la linea.
+Salen por stderr como  archivo.ggez:LINEA:COLUMNA: etapa: mensaje  (estilo gcc).
+El panel Problemas del IDE parsea ese formato: si se cambia, se rompe alla.
 """
 
 from __future__ import annotations
 
 
 class ErrorGgez(Exception):
-    """Error con posicion en el archivo fuente.
-
-    Las subclases solo cambian la etapa que se reporta, para que al leer la
-    terminal quede claro si fallo el analisis lexico, el sintactico, el
-    semantico o la ejecucion.
-    """
+    """Error con linea y columna. Cada subclase solo cambia la etapa."""
 
     etapa = "error"
 

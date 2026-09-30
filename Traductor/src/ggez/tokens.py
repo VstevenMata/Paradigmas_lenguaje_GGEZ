@@ -1,7 +1,6 @@
-"""Tipos de token y tabla de palabras reservadas de GGEZ.
+"""Tokens y palabras reservadas. Seccion 1 de GRAMATICA.md.
 
-Corresponde a la seccion 1 de GRAMATICA.md. Si se agrega o se renombra una
-palabra reservada, este es el unico archivo que hay que tocar.
+Si hay que cambiar una palabra del lenguaje, se cambia ACA y nada mas.
 """
 
 from __future__ import annotations
@@ -34,9 +33,8 @@ class TipoToken(Enum):
     FIN_ARCHIVO = auto()
 
 
-# Las 60 palabras reservadas, en los mismos grupos que la Propuesta de Lenguaje.
-# chain / swap / dodge no estaban en el documento original: son los operadores
-# logicos AND / OR / NOT que faltaban (decision D-1 de GRAMATICA.md).
+# Las 60 palabras reservadas, agrupadas como en la Propuesta de Lenguaje.
+# chain/swap/dodge (AND/OR/NOT) los agregamos nosotros, no estaban -> D-1
 RESERVADAS: frozenset[str] = frozenset({
     # estructura
     "lobby", "launch", "start", "THE", "GAME", "travel", "from",
@@ -66,9 +64,11 @@ RESERVADAS: frozenset[str] = frozenset({
     "chain", "swap", "dodge",
 })
 
-# Subconjuntos que el analizador sintactico consulta seguido.
+# atajos que el parser usa todo el tiempo
 TIPOS_SIMPLES: frozenset[str] = frozenset({"score", "aim", "lore", "win", "pixel"})
-CONSTRUCTORES_COLECCION: frozenset[str] = frozenset({"squad", "stack", "queue"})
+# solo vectores -> D-21. stack y queue siguen reservadas para dar buen error
+CONSTRUCTORES_COLECCION: frozenset[str] = frozenset({"squad"})
+COLECCIONES_RETIRADAS: frozenset[str] = frozenset({"stack", "queue"})
 OP_RELACIONALES: frozenset[str] = frozenset({
     "matches", "mismatch", "over", "under", "atleast", "atmost",
 })
@@ -96,11 +96,11 @@ class Token:
     lexema: str
     linea: int
     columna: int
-    # valor ya convertido para los literales (int, float, str); None en el resto
+    # literales: el valor ya convertido. None en los demas tokens
     valor: object = None
 
     def es(self, *reservadas: str) -> bool:
-        """True si es una palabra reservada y coincide con alguna de las dadas."""
+        """True si es reservada y es alguna de estas."""
         return self.tipo is TipoToken.RESERVADA and self.lexema in reservadas
 
     def __str__(self) -> str:

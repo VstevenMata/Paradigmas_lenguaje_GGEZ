@@ -1,0 +1,61 @@
+/w Bloque 2: control de flujo completo
+
+lobby.launch{start THE GAME} glhf
+    hardcoded score MINIMO set 60
+    stash score i set 0
+    stash score suma set 0
+
+    /w scan con fallback encadenado
+    stash score nota set 85
+    scan nota atleast 90 glhf
+        chat.send{"Rango: Pro"}
+    gg fallback scan nota atleast MINIMO glhf
+        chat.send{"Rango: Decente"}
+    gg fallback glhf
+        chat.send{"Rango: Noob"}
+    gg
+
+    /w farm con ragequit y respawn
+    farm i set 1 | i atmost 10 | i buff glhf
+        scan i matches 4 glhf
+            respawn
+        gg
+        scan i over 6 glhf
+            ragequit
+        gg
+        suma boost i
+    gg
+    chat.send{"Suma 1..6 sin el 4: " gain suma}
+
+    /w survive
+    stash score cuenta set 3
+    survive cuenta over 0 glhf
+        chat.send{"Faltan: " gain cuenta}
+        cuenta nerf
+    gg
+
+    /w grind: corre al menos una vez aunque la condicion sea falsa
+    stash score nunca set 100
+    grind glhf
+        chat.send{"El grind siempre corre una vez"}
+        nunca buff
+    gg survive {nunca under 50}
+
+    /w loadout con varios valores por rama y noob
+    stash score dado set 3
+    loadout dado glhf
+        pick 1 | 2 glhf chat.send{"Bajo"} gg
+        pick 3 | 4 glhf chat.send{"Medio"} gg
+        noob       glhf chat.send{"Alto"} gg
+    gg
+
+    /w anidamiento: farm dentro de survive
+    stash score filas set 2
+    stash score j set 0
+    survive filas over 0 glhf
+        farm j set 1 | j atmost 3 | j buff glhf
+            chat.send{"fila " gain filas gain " col " gain j}
+        gg
+        filas nerf
+    gg
+gg

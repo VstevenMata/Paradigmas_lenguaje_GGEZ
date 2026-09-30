@@ -1,0 +1,50 @@
+/w Bloque 4: vectores (squad) y registros (inventory)
+/w GGEZ tiene una sola coleccion: el vector. No hay pilas ni colas.
+
+inventory Arma glhf
+    lore nombre
+    score dano
+gg
+
+combo promedio{squad[score] datos} drops aim glhf
+    stash score suma set 0
+    stash score i set 0
+    farm i set 0 | i under datos.size | i buff glhf
+        suma boost datos<i>
+    gg
+    reward suma split datos.size
+gg
+
+lobby.launch{start THE GAME} glhf
+    /w literal, indexado y .size
+    stash squad[score] marcador set <95 | 72 | 40>
+    chat.send{"marcador = " gain marcador}
+    chat.send{"primero  = " gain marcador<0>}
+    chat.send{"cuantos  = " gain marcador.size}
+    chat.send{"promedio = " gain promedio{marcador}}
+
+    /w agregar, sacar y modificar una posicion
+    marcador.recruit{88}
+    chat.send{"tras recruit = " gain marcador}
+    marcador.kick{0}
+    chat.send{"tras kick{0}  = " gain marcador}
+    marcador<0> set 99
+    chat.send{"tras <0> set  = " gain marcador}
+
+    /w un vector vacio se declara sin set y se llena despues
+    stash squad[lore] turnos
+    turnos.recruit{"Angel"}
+    turnos.recruit{"Maikel"}
+    chat.send{"turnos = " gain turnos}
+
+    /w registros
+    stash Arma espada set spawn Arma{"Espada larga" | 12}
+    chat.send{"arma = " gain espada}
+    chat.send{"dano = " gain espada.dano}
+    espada.dano set 20
+    chat.send{"dano mejorado = " gain espada.dano}
+
+    /w un vector de registros
+    stash squad[Arma] arsenal set <espada | spawn Arma{"Daga" | 5}>
+    chat.send{"segunda arma = " gain arsenal<1>.nombre}
+gg
