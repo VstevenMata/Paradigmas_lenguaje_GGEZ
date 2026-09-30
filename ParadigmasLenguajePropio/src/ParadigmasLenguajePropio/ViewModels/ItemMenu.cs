@@ -2,9 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// EsResaltado se maneja a mano desde el code-behind (PointerEntered/PointerExited) en vez de con
-// un Style Selector":pointerover" con combinador de descendiente: es mas confiable, el mismo
-// patron que EsActiva/EsAbierto en otros lados de la app.
+// EsResaltado a mano desde el code-behind: mas confiable que :pointerover con combinador de descendiente
 public partial class ItemMenu : ObservableObject
 {
     public string Texto { get; }

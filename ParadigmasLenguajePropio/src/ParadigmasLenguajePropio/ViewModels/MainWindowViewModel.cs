@@ -19,7 +19,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public SettingsViewModel Settings { get; }
     public PanelJuegoViewModel PanelJuego { get; } = new();
 
-    // se asigna despues de crear la Window, la necesitan Cortar/Copiar/Pegar del menu Editar
     public IClipboard? Clipboard { get; set; }
 
     const double AnchoExploradorMinimo = 100;
@@ -34,18 +33,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _exploradorVisible = true;
 
-    // que se ve adentro del panel lateral izquierdo: el arbol de archivos o la lista de
-    // extensiones (mismo lugar en pantalla, ver MainWindow.axaml). Elegir una de las dos fuerza
-    // el panel a abrirse si estaba colapsado, igual que clickear un icono de la activity bar de VS Code.
     [ObservableProperty]
     private bool _mostrarExtensiones;
 
-    // idem MostrarExtensiones, para el panel de Ajustes - mutuamente excluyentes
     [ObservableProperty]
     private bool _mostrarAjustes;
 
-    // true cuando ninguno de los dos paneles alternativos esta activo: ese es el momento en que
-    // el panel lateral muestra el explorador de archivos (ver MainWindow.axaml)
     public bool MostrarPanelPorDefecto => !MostrarExtensiones && !MostrarAjustes;
     partial void OnMostrarExtensionesChanged(bool value) => OnPropertyChanged(nameof(MostrarPanelPorDefecto));
     partial void OnMostrarAjustesChanged(bool value) => OnPropertyChanged(nameof(MostrarPanelPorDefecto));
@@ -65,24 +58,19 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private double _alturaTerminal = AlturaTerminalInicial;
 
-    // recalculada por MainWindow.axaml.cs cuando cambia el alto disponible (ver PART_GridContenido):
-    // la terminal debe poder crecer hasta la mitad del espacio, no un tope fijo en pixeles que en
-    // una ventana grande se queda corto y en una chica ni se nota
+    // La recalcula MainWindow.axaml.cs: la terminal puede crecer hasta la mitad del alto disponible
     [ObservableProperty]
     private double _alturaTerminalMaxima = 600;
 
     partial void OnAlturaTerminalChanged(double value) => OnPropertyChanged(nameof(AlturaTerminalEfectiva));
     partial void OnTerminalVisibleChanged(bool value) => OnPropertyChanged(nameof(AlturaTerminalEfectiva));
 
-    // si la ventana se achica y el tope baja de la altura actual, la terminal se ajusta con el resto
     partial void OnAlturaTerminalMaximaChanged(double value)
     {
         if (AlturaTerminal > value) AlturaTerminal = Math.Max(AlturaTerminalMinima, value);
     }
 
-    // la fila de la terminal en el Grid se bindea a esto en vez de a AlturaTerminal directo: al
-    // ocultarla (TerminalVisible=false) la fila debe colapsar a 0, no quedar en su ultima altura -
-    // pero el GridSplitter que la agranda arrastrando hacia arriba solo debe tocar AlturaTerminal
+    // La fila colapsa a 0 al ocultar la terminal sin perder AlturaTerminal (la que toca el GridSplitter)
     public double AlturaTerminalEfectiva
     {
         get => TerminalVisible ? AlturaTerminal : 0;
@@ -95,8 +83,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         Explorer = new ExplorerViewModel(Dialogs);
-        // la pestaña de chat de la terminal solo se habilita con la extension instalada (ver
-        // TerminalViewModel.ClaudeExtension / TerminalView.axaml)
         Terminal = new TerminalViewModel(Extensions.Claude);
         Editor = new EditorAreaViewModel(Dialogs, Extensions);
         Settings = new SettingsViewModel(Editor, Extensions);
@@ -104,23 +90,18 @@ public partial class MainWindowViewModel : ViewModelBase
         TitleBar.BuscarArchivos = Explorer.BuscarArchivosPorNombre;
         TitleBar.AbrirResultado = ruta => AbrirArchivo(Path.GetFileName(ruta), ruta);
         TitleBar.AplicarTema = Extensions.SeleccionarTema;
-        // el selector rapido de temas solo lista los que estan instalados (mas Win95, siempre fijo)
         SincronizarTemasDisponibles();
         Extensions.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ExtensionsViewModel.TemasInstalados)) SincronizarTemasDisponibles();
         };
 
-        // el comando "exit" cierra el panel, igual que el toggle del menu Ver
         Terminal.OnCerrar = () => TerminalVisible = false;
-        // click en una fila del panel "Problemas": abre el archivo (o lo enfoca si ya esta abierto)
-        // y mueve el cursor a la linea reportada, mismo mecanismo que "Ir a linea"
         Terminal.AbrirProblema = (ruta, linea) =>
         {
             AbrirArchivo(Path.GetFileName(ruta), ruta);
             Editor.IrALinea(linea);
         };
-        // la terminal se para en la carpeta abierta, como al abrir un proyecto en VSCode
         Explorer.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName != nameof(ExplorerViewModel.CarpetaRaiz)) return;
@@ -133,7 +114,6 @@ public partial class MainWindowViewModel : ViewModelBase
         Editor.OnAbrirArchivoExterno = AbrirArchivo;
         Editor.OnRevelarCarpeta = ruta => { Explorer.RevelarCarpeta(ruta); MostrarExplorador(); };
 
-        // la posicion del cursor en la barra de estado solo aparece con un archivo abierto
         Editor.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(EditorViewModel.LineaCursor) or nameof(EditorViewModel.ColumnaCursor) or nameof(EditorViewModel.HayArchivosAbiertos))
@@ -150,8 +130,7 @@ public partial class MainWindowViewModel : ViewModelBase
         foreach (var opcion in Extensions.TemasInstalados) TitleBar.Temas.Add(opcion);
     }
 
-    // reabre carpeta, layout de splits y terminales de la ultima sesion (ver EditorAreaViewModel.
-    // RestaurarLayout/TerminalViewModel.RestaurarCantidad), saltando lo que ya no exista en disco
+    // Reabre carpeta, splits y terminales de la ultima sesion, saltando lo que ya no exista en disco
     void RestaurarSesion()
     {
         var sesion = SesionPersistenciaService.Cargar();
@@ -161,14 +140,12 @@ public partial class MainWindowViewModel : ViewModelBase
             Explorer.AbrirCarpeta(sesion.CarpetaRaiz);
 
         Editor.RestaurarLayout(sesion.Layout);
-        // por si no habia CarpetaRaiz (archivos sueltos sin proyecto): la terminal igual arranca
-        // en la carpeta del archivo activo en vez de Environment.CurrentDirectory
+        // Sin carpeta raiz, la terminal arranca en la carpeta del archivo activo
         if (Editor.TabActiva != null) Terminal.RegistrarAperturaArchivo(Editor.TabActiva.RutaCompleta);
 
         Terminal.RestaurarCantidad(sesion.CantidadTerminales, sesion.TerminalActivaIndice);
     }
 
-    // llamado desde MainWindow.axaml.cs al cerrar la ventana
     public void GuardarSesion()
     {
         SesionPersistenciaService.Guardar(new SesionGuardada(
@@ -212,33 +189,23 @@ public partial class MainWindowViewModel : ViewModelBase
         if (texto != null) Editor.Pegar(texto);
     }
 
-    // una carpeta abierta ya alcanza (el Explorer.PropertyChanged de mas abajo para en CarpetaRaiz);
-    // un archivo abierto sin carpeta tambien sirve (Terminal.RegistrarAperturaArchivo usa su carpeta) -
-    // sin ninguna de las dos, la terminal arrancaria en Environment.CurrentDirectory (la carpeta del
-    // propio ejecutable, no la del proyecto del usuario)
+    // Sin carpeta ni archivo abierto la terminal arrancaria en la carpeta del ejecutable
     bool HayLugarParaTerminal => Explorer.HayProyecto || Editor.HayArchivosAbiertos;
 
-    // Ejecuta el .ggez abierto con el traductor (Traductor/ggezc.py). El contrato esta en
-    // Traductor/README.md: stdout es la salida del programa, stderr lleva los errores como
-    // archivo:linea:columna: etapa: mensaje, y el codigo de salida dice si fallo. Nada de eso
-    // necesita codigo nuevo aca: la terminal ya separa stdout de stderr, ya copia stderr a la
-    // pestaña Errores y ya marca en rojo el codigo distinto de cero.
+    // Ejecuta el .ggez abierto con Traductor/ggezc.py (contrato en Traductor/README.md)
     [RelayCommand]
     async Task ConstruirAsync()
     {
         if (!HayLugarParaTerminal) return;
         await Editor.GuardarTodoAsync();
         TerminalVisible = true;
-        // antes saltaba a la pestaña Errores (1); ahora que el comando corre de verdad, lo que
-        // el usuario quiere ver primero es la salida del programa, que vive en Terminal (0).
-        // Los errores igual se copian solos a la pestaña Errores (ver OnError).
         Terminal.TabActiva = 0;
 
         var terminal = Terminal.InstanciaParaComando;
         if (terminal == null) return;
         Terminal.EnfocarInstancia(terminal);
 
-        // el traductor lee del disco, no del buffer: sin ruta no hay nada que ejecutar
+        // El traductor lee del disco, no del buffer
         string? archivo = Editor.TabActiva?.RutaCompleta;
         if (string.IsNullOrEmpty(archivo))
         {
@@ -262,9 +229,7 @@ public partial class MainWindowViewModel : ViewModelBase
         terminal.EjecutarComando($"python \"{traductor}\" run \"{archivo}\"");
     }
 
-    // Busca Traductor/ggezc.py subiendo desde la carpeta del ejecutable: con 'dotnet run' el
-    // binario queda en bin/Debug/netX/, varios niveles debajo de la raiz del repo. Subir hasta
-    // encontrarlo evita tener que configurar la ruta a mano en cada maquina.
+    // Sube desde la carpeta del ejecutable (bin/Debug/netX/) hasta encontrar Traductor/ggezc.py
     static string? RutaDelTraductor()
     {
         for (var carpeta = new DirectoryInfo(AppContext.BaseDirectory); carpeta != null; carpeta = carpeta.Parent)
@@ -275,17 +240,12 @@ public partial class MainWindowViewModel : ViewModelBase
         return null;
     }
 
-    // comandos de la barra lateral de iconos (MainWindow.axaml): el original la tenia como una
-    // columna vertical de botones a la izquierda, aparte del menu - la migracion la habia dejado
-    // pendiente desde la Fase 2 y nunca se retomo
     [RelayCommand]
     void NuevoArchivo() => Editor.NuevoArchivo();
 
     [RelayCommand]
     Task Guardar() => Editor.GuardarAsync();
 
-    // abrir se bloquea hasta que haya una carpeta o un archivo abierto (ver HayLugarParaTerminal);
-    // cerrar nunca se bloquea
     [RelayCommand]
     void AlternarTerminal()
     {
@@ -294,22 +254,17 @@ public partial class MainWindowViewModel : ViewModelBase
         TerminalVisible = true;
     }
 
-    // el boton de Claude en la activity bar (ver Extensions.Claude.Instalada en MainWindow.axaml)
-    // abre la terminal directo en su pestaña de Claude, en vez de un panel aparte
     [RelayCommand]
     void MostrarChatClaude()
     {
         if (!Extensions.Claude.Instalada || !HayLugarParaTerminal) return;
         TerminalVisible = true;
-        Terminal.TabActiva = 0; // la pestaña "Terminal" ya es la real con la extension instalada
+        Terminal.TabActiva = 0;
     }
 
     [RelayCommand]
     void AlternarPausa() => PanelJuego.EnPausa = !PanelJuego.EnPausa;
 
-    // boton dedicado de la extension Trim Trailing Whitespace en la activity bar (ver
-    // Extensions.TrailingWhitespace.Instalada en MainWindow.axaml), mismo patron que
-    // MostrarChatClaude: solo actua si la extension esta instalada y hay un archivo abierto
     [RelayCommand]
     void LimpiarEspaciosSobrantes()
     {
@@ -378,8 +333,6 @@ public partial class MainWindowViewModel : ViewModelBase
         ExploradorVisible = !ExploradorVisible;
     }
 
-    // botones dedicados de la activity bar (📁 / 🧩): a diferencia de AlternarExplorador, estos no
-    // colapsan nada - solo eligen contenido y se aseguran de que el panel este abierto para verlo
     [RelayCommand]
     void MostrarExplorador()
     {

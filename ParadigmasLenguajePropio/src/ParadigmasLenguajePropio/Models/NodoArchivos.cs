@@ -3,8 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ParadigmasLenguajePropio.Models;
 
-// Reemplaza NodoArchivos.cs (UI/): mismo modelo (carga perezosa de hijos), ahora bindable
-// (ObservableCollection + INotifyPropertyChanged) para que TreeView reaccione solo.
 public partial class NodoArchivos : ObservableObject
 {
     [ObservableProperty]
@@ -23,13 +21,11 @@ public partial class NodoArchivos : ObservableObject
 
     public NodoArchivos? Padre { get; set; }
 
-    // raíz del proyecto abierto (no la carpeta placeholder "sin proyecto"): no se puede renombrar/mover
     public bool EsRaizDeProyecto => Padre == null && !string.IsNullOrEmpty(RutaCompleta);
 
     bool _intentoCarga;
 
-    // al expandir por primera vez dispara la carga perezosa; togglear Expandido a mano (ej. tras
-    // renombrar/eliminar hijos) no repite la carga porque _intentoCarga ya quedó en true
+    // Solo la primera expansion carga los hijos
     partial void OnExpandidoChanged(bool value)
     {
         if (value) Expandir();
@@ -58,11 +54,10 @@ public partial class NodoArchivos : ObservableObject
         }
         catch (Exception)
         {
-            // evita que falle si la carpeta no tiene permisos o hijos legibles
+            // Carpeta sin permisos o ilegible: se deja vacia
         }
     }
 
-    // vuelve a leer del disco: usarlo después de crear/renombrar/eliminar algo adentro
     public void Refrescar()
     {
         Hijos.Clear();
@@ -76,7 +71,6 @@ public partial class NodoArchivos : ObservableObject
         RutaCompleta = rutaCompleta,
     };
 
-    // los hijos se leen recién al expandir por primera vez (lazy load)
     public static NodoArchivos CarpetaDesdeDisco(string rutaCompleta) => new()
     {
         Nombre = Path.GetFileName(rutaCompleta.TrimEnd(Path.DirectorySeparatorChar)),

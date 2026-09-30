@@ -3,8 +3,7 @@ using Avalonia.Data.Converters;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// barra de "instalando" fantasma en ExtensionsView: progreso 0..1 -> ancho en pixeles del relleno,
-// sobre el mismo ancho fijo que tiene el contenedor en el XAML (ver ExtensionsView.axaml)
+// Progreso 0..1 -> ancho del relleno, sobre el ancho fijo del contenedor en ExtensionsView.axaml
 public class ProgresoAAnchoConverter : IValueConverter
 {
     public static readonly ProgresoAAnchoConverter Instance = new();

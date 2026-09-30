@@ -22,47 +22,29 @@
 
         <views:AppTitleBarView Grid.Row="0" DataContext="{Binding TitleBar}" />
 
-        <!-- Fase 2: esqueleto de layout con Grid + GridSplitter, reemplaza el calculo manual de Bounds
-             y el arrastre de divisores a mano de Ggez.cs.
-             La terminal es una franja de todo el ancho debajo de explorador+editor+panel derecho
-             (los tres se achican para hacerle lugar), igual que en el original: no va anidada
-             solo en la columna del editor. -->
+        <!-- La terminal es una franja de todo el ancho debajo de explorador+editor+panel derecho -->
         <Grid Name="PART_GridContenido" Grid.Row="1" Margin="4" ColumnDefinitions="Auto,Auto,*,Auto,Auto">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" MinHeight="120" />
                 <RowDefinition Height="Auto" />
-                <!-- MaxHeight lo hace cumplir el propio Grid al acomodar filas, no alcanza con
-                     clampear en el setter de AlturaTerminalEfectiva: el GridSplitter escribe el
-                     alto directo mientras se arrastra y con eso solo se pasaba de largo hasta
-                     arriba de todo en vez de frenar a la mitad. -->
+                <!-- MaxHeight en el Grid: el GridSplitter escribe el alto directo y se saltaba el clamp del setter -->
                 <RowDefinition Height="{Binding AlturaTerminalEfectiva, Converter={StaticResource PxGridLength}, Mode=TwoWay}"
                                MaxHeight="{Binding AlturaTerminalMaxima}" />
             </Grid.RowDefinitions>
 
-            <!-- barra lateral de iconos (la "activity bar"): en el original era una columna vertical
-                 de botones aparte del menu, con Tooltip y separadores entre grupos.
-                 Agrupada por categoria (vs. accion): paneles/vistas, archivo, ejecucion, buscar,
-                 terminal/chat - cada grupo separado por un Win95Divider con mas margen que el
-                 espaciado normal entre botones de un mismo grupo. -->
             <StackPanel Grid.Column="0" Grid.RowSpan="3" Width="34" Spacing="3" Margin="0,0,4,0">
 
-                <!-- grupo: paneles/vistas (que se ve, no una accion puntual) -->
                 <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarExploradorCommand}"
                         ToolTip.Tip="Mostrar/ocultar explorador">
                     <Image RenderOptions.BitmapInterpolationMode="None"
                            Source="{Binding ExploradorVisible, Converter={x:Static conv:BoolToIconoConverter.Instance}, ConverterParameter='Icon_PuertaAbierta.png|Icon_PuertaCerrada.png'}" />
                 </Button>
 
-                <!-- estos dos eligen que se muestra ADENTRO del panel lateral (arbol de archivos vs
-                     lista de extensiones), como los iconos de la activity bar de VS Code - el de
-                     arriba solo abre/cierra el panel en si. Emojis (📁/🧩) no sirven aca: el
-                     TemaFontFamily (Liberation Sans) no trae esos glifos y salian como tofu/caja rota. -->
+                <!-- Sin emojis: la fuente del tema no trae esos glifos (salian como tofu) -->
                 <Button Width="28" Height="28" Padding="4" Command="{Binding MostrarExploradorCommand}" ToolTip.Tip="Explorador">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_CarpetaAbierta.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
                 <Button Width="28" Height="28" Padding="6" Command="{Binding MostrarExtensionesPanelCommand}" ToolTip.Tip="Extensiones">
-                    <!-- placeholder de icono "grilla de apps" (4 cuadraditos) hasta que haya un
-                         pixel-art propio tipo pieza de rompecabezas a tono con el resto de Assets/Icons -->
                     <Grid RowDefinitions="*,*" ColumnDefinitions="*,*" Width="13" Height="13">
                         <Rectangle Grid.Row="0" Grid.Column="0" Fill="{DynamicResource TemaTextoBrush}" Margin="0,0,1,1" />
                         <Rectangle Grid.Row="0" Grid.Column="1" Fill="{DynamicResource TemaTextoBrush}" Margin="1,0,0,1" />
@@ -71,7 +53,6 @@
                     </Grid>
                 </Button>
                 <Button Width="28" Height="28" Padding="6" Command="{Binding MostrarAjustesPanelCommand}" ToolTip.Tip="Ajustes">
-                    <!-- placeholder tipo "sliders" hasta que haya pixel-art propio -->
                     <Grid Width="13" Height="13">
                         <Rectangle Height="2" Fill="{DynamicResource TemaTextoBrush}" VerticalAlignment="Top" />
                         <Rectangle Height="2" Fill="{DynamicResource TemaTextoBrush}" VerticalAlignment="Center" />
@@ -84,7 +65,6 @@
 
                 <controls:Win95Divider Margin="0,5" />
 
-                <!-- grupo: archivo (acciones sobre archivos/carpetas) -->
                 <Button Width="28" Height="28" Padding="4" Command="{Binding NuevoArchivoCommand}" ToolTip.Tip="Nuevo archivo">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Documento.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
@@ -99,8 +79,6 @@
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_NewDocumento.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
-                <!-- solo aparece si la extension "trailing-whitespace" esta Instalada (mismo patron
-                     que el boton de Claude mas abajo): limpia los espacios sobrantes del archivo activo -->
                 <Button Width="28" Height="28" Padding="2" IsVisible="{Binding Extensions.TrailingWhitespace.Instalada}"
                         Command="{Binding LimpiarEspaciosSobrantesCommand}" ToolTip.Tip="{Binding Extensions.TrailingWhitespace.Nombre}">
                     <Border CornerRadius="3" Background="{Binding Extensions.TrailingWhitespace.IconoColor}">
@@ -111,7 +89,6 @@
 
                 <controls:Win95Divider Margin="0,5" />
 
-                <!-- grupo: ejecucion -->
                 <Button Width="28" Height="28" Padding="4" Command="{Binding ConstruirCommand}" ToolTip.Tip="Construir">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Build.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
@@ -121,20 +98,16 @@
 
                 <controls:Win95Divider Margin="0,5" />
 
-                <!-- grupo: buscar -->
                 <Button Width="28" Height="28" Padding="4" Command="{Binding MostrarBuscarCommand}" ToolTip.Tip="Buscar">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Lupa.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
                 <controls:Win95Divider Margin="0,5" />
 
-                <!-- grupo: terminal/chat (tambien paneles, no acciones puntuales) -->
                 <Button Width="28" Height="28" Padding="3" Command="{Binding AlternarTerminalCommand}" ToolTip.Tip="Terminal">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Terminal.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
-                <!-- solo aparece si la extension "claude" esta Instalada (ver ExtensionsViewModel.Claude);
-                     abre la terminal, que con la extension instalada ya es la real (ver TerminalView) -->
                 <Button Width="28" Height="28" Padding="2" IsVisible="{Binding Extensions.Claude.Instalada}"
                         Command="{Binding MostrarChatClaudeCommand}" ToolTip.Tip="{Binding Extensions.Claude.Nombre}">
                     <Border CornerRadius="3" Background="{Binding Extensions.Claude.IconoColor}">
@@ -157,17 +130,9 @@
                                       MinWidth="0" MaxWidth="560" />
                 </Grid.ColumnDefinitions>
 
-                <!-- IsVisible en el Border de afuera: el ancho ya cambia de una (sin animacion), pero
-                     mientras se arrastra el GridSplitter en vivo el ancho pasa por valores chicos
-                     sin que ExploradorVisible cambie - ClipToBounds sigue haciendo falta para eso.
-                     Con IsVisible=False (panel cerrado del todo) ni siquiera se mide/dibuja el
-                     contenido de adentro (arbol de archivos/extensiones/ajustes), en vez de
-                     seguir viva a ancho 0 -->
+                <!-- ClipToBounds hace falta mientras se arrastra el splitter; IsVisible=False evita medir el contenido con el panel cerrado -->
                 <Border Grid.Column="0" ClipToBounds="True" IsVisible="{Binding ExploradorVisible}">
-                    <!-- el IsVisible de cada vista va en el Border envolvente (no en la vista) porque,
-                         apenas la vista pisa su propio DataContext con Explorer/Extensions, un
-                         binding puesto ahi mismo se resuelve contra ese DataContext nuevo en vez del
-                         de la ventana -->
+                    <!-- IsVisible en el Border y no en la vista: la vista pisa su DataContext y el binding se resolveria contra el nuevo -->
                     <Grid>
                         <Border IsVisible="{Binding MostrarPanelPorDefecto}">
                             <views:ExplorerView DataContext="{Binding Explorer}" />
@@ -194,8 +159,6 @@
                 </Border>
             </Grid>
 
-            <!-- arrastrando este splitter hacia arriba la terminal crece: ResizeDirection=Rows mueve el
-                 limite entre la fila de arriba (*, editor/explorador/juego) y la de la terminal -->
             <GridSplitter Grid.Row="1" Grid.Column="2" Height="6" Background="Transparent" ResizeDirection="Rows"
                           IsVisible="{Binding TerminalVisible}" />
 
@@ -205,8 +168,6 @@
 
             <controls:Win95Divider Grid.Column="3" Grid.RowSpan="3" Orientation="Vertical" Margin="4,0,0,0" />
 
-            <!-- barra lateral derecha, mismo patron que la izquierda: un boton-puerta aparte de la
-                 vista que muestra/oculta el panel del juego -->
             <StackPanel Grid.Column="4" Grid.RowSpan="3" Width="34" Margin="4,0,0,0">
                 <Button Width="28" Height="28" Padding="2" Command="{Binding AlternarPanelDerechoCommand}"
                         ToolTip.Tip="Mostrar/ocultar panel derecho">
@@ -218,20 +179,14 @@
 
         <views:StatusBarView Grid.Row="2" DataContext="{Binding StatusBar}" />
 
-        <!-- cierra el menu al clickear afuera de el (fuera de la fila del titulo, donde viven los
-             encabezados): el Popup del menu no usa IsLightDismissEnabled porque esa capa invisible
-             tapaba el hover hacia los otros encabezados (ver MenuBarView.axaml) -->
+        <!-- Cierre del menu por click afuera a mano: IsLightDismissEnabled tapaba el hover de los otros encabezados -->
         <Border Grid.Row="1" Grid.RowSpan="2" Background="Transparent"
                 IsVisible="{Binding MenuBar.HayMenuAbierto}" PointerPressed="CerrarMenu_PointerPressed" />
     </Grid>
 
     <views:DialogOverlayView DataContext="{Binding Dialogs}" />
 
-    <!-- sin decoracion nativa (WindowDecorations=None) el SO no da bordes arrastrables para
-         redimensionar: estos 8 grips invisibles de 5px cubren los bordes/esquinas y delegan en
-         BeginResizeDrag, mismo patron que el BeginMoveDrag de la barra de titulo (ver
-         AppTitleBarView.axaml.cs). El centro (fila/columna del medio) queda sin elemento, asi el
-         click pasa de largo hacia el contenido de abajo. -->
+    <!-- Sin decoracion nativa: 8 grips invisibles en bordes/esquinas delegan en BeginResizeDrag -->
     <Grid ColumnDefinitions="5,*,5" RowDefinitions="5,*,5">
         <Border Grid.Row="0" Grid.Column="0" Background="Transparent" Cursor="TopLeftCorner" Tag="NorthWest" PointerPressed="BordeResize_PointerPressed" />
         <Border Grid.Row="0" Grid.Column="1" Background="Transparent" Cursor="TopSide" Tag="North" PointerPressed="BordeResize_PointerPressed" />

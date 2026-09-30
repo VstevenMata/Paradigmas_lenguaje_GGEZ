@@ -29,9 +29,7 @@ public partial class ExplorerView : UserControl
         _catchAll = this.FindControl<Border>("PART_CatchAll")!;
         _area = this.FindControl<Control>("PART_Area")!;
 
-        // sin PlacementTarget, Placement="Pointer" no sabe a que ventana/TopLevel anclarse: eso
-        // hacia que el popup terminara como una ventana de OS sin acotar, cubriendo toda la
-        // pantalla en vez de quedar contenido en la ventana de la app
+        // Sin PlacementTarget el popup con Placement="Pointer" cubria toda la pantalla
         _menuContextual.PlacementTarget = _area;
         _menuContextual.Placement = PlacementMode.Pointer;
 
@@ -45,8 +43,6 @@ public partial class ExplorerView : UserControl
         AbrirMenuVacio();
     }
 
-    // el punto del click ya no hace falta: Placement="Pointer" (con PlacementTarget puesto en el
-    // constructor) se posiciona solo ahi
     void AbrirMenuContextual(NodoArchivos nodo, Point _)
     {
         if (ViewModel is not { } vm) return;
@@ -88,8 +84,6 @@ public partial class ExplorerView : UserControl
         _catchAll.IsVisible = false;
     }
 
-    // igual que las filas del submenu del menu principal: bisel hundido al pasar el mouse,
-    // texto siempre negro (ver MenuBarView.axaml para el mismo patron)
     Border CrearItem(string texto, Action accion)
     {
         var bevel = new Win95Bevel

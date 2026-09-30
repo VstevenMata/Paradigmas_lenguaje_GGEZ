@@ -5,17 +5,9 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// donde soltar una pestaña arrastrada: Arriba/Abajo/Izquierda/Derecha la parten en dos (armando
-// una grilla, no solo apilando), Centro la mueve sin partir (o solo la reactiva si se suelta
-// sobre su propio panel)
 public enum ZonaDrop { Arriba, Abajo, Izquierda, Derecha, Centro }
 
-// Dueña de varios EditorViewModel ("paneles") organizados en un arbol binario de splits (ver
-// Models/NodoPanel), para el split tipo VS Code: arrastrar una pestaña arriba/abajo/izquierda/
-// derecha del area central arma una grilla de hasta MaxPaneles archivos a la vez, en cualquier
-// combinacion (no solo una fila o una columna). Expone la MISMA superficie publica que
-// EditorViewModel tenia cuando era el unico panel, reenviando todo a PanelEnfocado - asi
-// MainWindowViewModel.Editor no cambia en ningun otro lugar que lo use.
+// Paneles del editor en un arbol binario de splits; reenvia la API de EditorViewModel a PanelEnfocado
 public partial class EditorAreaViewModel : ViewModelBase
 {
     public const int MaxPaneles = 4;
@@ -96,8 +88,6 @@ public partial class EditorAreaViewModel : ViewModelBase
         return panel;
     }
 
-    // ─────────────────────────── recorrido del arbol ───────────────────────────
-
     public IEnumerable<EditorViewModel> TodosLosPaneles() => Recorrer(Raiz);
 
     static IEnumerable<EditorViewModel> Recorrer(NodoPanel nodo)
@@ -109,8 +99,6 @@ public partial class EditorAreaViewModel : ViewModelBase
 
     public int ContarHojas() => TodosLosPaneles().Count();
 
-    // ─────────────────────────── sesion (guardar/restaurar layout) ───────────────────────────
-
     public NodoLayoutSesion? GuardarLayout() => ConvertirALayout(Raiz);
 
     static NodoLayoutSesion? ConvertirALayout(NodoPanel nodo)
@@ -120,7 +108,7 @@ public partial class EditorAreaViewModel : ViewModelBase
             var panel = nodo.Panel!;
             var tabs = panel.Tabs.Where(t => !string.IsNullOrEmpty(t.RutaCompleta))
                 .Select(t => new TabSesion(t.RutaCompleta, t.FilaCursor, t.ColumnaCursor)).ToList();
-            if (tabs.Count == 0) return null; // sin nada guardable (solo pestañas "Sin titulo", o vacio)
+            if (tabs.Count == 0) return null;
 
             int indiceActivo = panel.TabActiva != null ? tabs.FindIndex(t => t.RutaCompleta == panel.TabActiva.RutaCompleta) : -1;
             return new NodoLayoutSesion(new PanelSesion(tabs, indiceActivo), default, null, null);
@@ -128,18 +116,14 @@ public partial class EditorAreaViewModel : ViewModelBase
 
         var a = ConvertirALayout(nodo.A!);
         var b = ConvertirALayout(nodo.B!);
-        // si un lado del split no tenia nada guardable, el split se colapsa en el otro (mismo
-        // criterio que Podar() al vaciarse un panel en vivo)
         return a == null ? b : b == null ? a : new NodoLayoutSesion(null, nodo.Orientacion, a, b);
     }
 
-    // reemplaza el panel inicial vacio por el arbol guardado, saltando archivos que ya no existan
-    // en disco (y colapsando paneles que se quedan sin ninguno)
     public void RestaurarLayout(NodoLayoutSesion? layout)
     {
         if (layout == null) return;
         var nuevaRaiz = ConstruirDesdeLayout(layout);
-        if (nuevaRaiz == null) return; // nada del layout guardado sigue existiendo
+        if (nuevaRaiz == null) return;
 
         Raiz = nuevaRaiz;
         EnfocarPanel(TodosLosPaneles().First());
@@ -178,8 +162,6 @@ public partial class EditorAreaViewModel : ViewModelBase
         return panel;
     }
 
-    // reemplaza la hoja que contiene "objetivo" por "reemplazo"; reusa las ramas que no
-    // cambiaron (no reconstruye el arbol entero, solo el camino hasta la hoja tocada)
     static NodoPanel Reemplazar(NodoPanel nodo, EditorViewModel objetivo, NodoPanel reemplazo)
     {
         if (nodo.EsHoja) return ReferenceEquals(nodo.Panel, objetivo) ? reemplazo : nodo;
@@ -190,8 +172,7 @@ public partial class EditorAreaViewModel : ViewModelBase
         return NodoPanel.Dividido(nodo.Orientacion, nuevoA, nuevoB);
     }
 
-    // null = "esta hoja se borro"; si un hijo de un split vuelve null, el split colapsa y
-    // sobrevive directamente el hermano (el nodo split desaparece, no queda un split de 1 solo)
+    // null = hoja borrada; el split colapsa y sobrevive el hermano
     static NodoPanel? Podar(NodoPanel nodo, EditorViewModel objetivoVacio)
     {
         if (nodo.EsHoja) return ReferenceEquals(nodo.Panel, objetivoVacio) ? null : nodo;
@@ -209,12 +190,10 @@ public partial class EditorAreaViewModel : ViewModelBase
     {
         if (panel.HayArchivosAbiertos || ContarHojas() <= 1) return;
 
-        Raiz = Podar(Raiz, panel)!; // ContarHojas()>1 garantiza que no era la unica hoja
+        Raiz = Podar(Raiz, panel)!;
         if (!TodosLosPaneles().Contains(PanelEnfocado))
             EnfocarPanel(TodosLosPaneles().First());
     }
-
-    // ─────────────────────────── foco ───────────────────────────
 
     public void EnfocarPanel(EditorViewModel panel)
     {
@@ -225,10 +204,7 @@ public partial class EditorAreaViewModel : ViewModelBase
         NotificarTodoElProxy();
     }
 
-    // los nombres de propiedad son identicos entre EditorViewModel y EditorAreaViewModel a
-    // proposito - es lo que permite reenviar el PropertyChanged tal cual, sin mapear nombre por
-    // nombre, para todo lo que cambia SIN que cambie el panel enfocado (tipear en la busqueda,
-    // mover el cursor, etc.)
+    // Los nombres de propiedad coinciden con EditorViewModel a proposito para reenviar PropertyChanged tal cual
     void PanelEnfocado_PropertyChanged(object? sender, PropertyChangedEventArgs e) =>
         OnPropertyChanged(e.PropertyName);
 
@@ -241,14 +217,11 @@ public partial class EditorAreaViewModel : ViewModelBase
         nameof(NumeroLineaTexto), nameof(TamanoFuente), nameof(TamanoTab),
     };
 
-    // cambiar de panel enfocado no dispara por si solo el PropertyChanged de estas propiedades
-    // (el valor "de afuera" cambio, pero ningun setter se llamo) - hay que avisarlo a mano
+    // Cambiar de panel no dispara ningun setter, hay que avisar a mano
     void NotificarTodoElProxy()
     {
         foreach (var propiedad in PropiedadesProxy) OnPropertyChanged(propiedad);
     }
-
-    // ─────────────────────────── proxy: delega en PanelEnfocado ───────────────────────────
 
     public EditorTabViewModel? TabActiva => PanelEnfocado.TabActiva;
     public bool HayArchivosAbiertos => PanelEnfocado.HayArchivosAbiertos;
@@ -284,16 +257,12 @@ public partial class EditorAreaViewModel : ViewModelBase
     public void ConfirmarIrALinea() => PanelEnfocado.ConfirmarIrALinea();
     public void LimpiarEspaciosSobrantes() => PanelEnfocado.LimpiarEspaciosSobrantes();
 
-    // a diferencia del resto de los proxies: guarda TODOS los paneles, no solo el enfocado
     public async Task GuardarTodoAsync()
     {
         foreach (var panel in TodosLosPaneles().ToList()) await panel.GuardarTodoAsync();
     }
 
-    // dedupe GLOBAL: a diferencia de EditorViewModel.AbrirArchivo (que solo mira sus propios
-    // Tabs), aca hay que escanear TODOS los paneles antes de decidir que el archivo no esta
-    // abierto en ningun lado - si no, dos paneles distintos podrian terminar con el mismo
-    // archivo abierto dos veces como dos buffers independientes
+    // Busca en TODOS los paneles para no abrir el mismo archivo como dos buffers distintos
     public void AbrirArchivo(string nombre, string rutaCompleta)
     {
         foreach (var panel in TodosLosPaneles())
@@ -314,8 +283,6 @@ public partial class EditorAreaViewModel : ViewModelBase
         foreach (var panel in TodosLosPaneles()) panel.ActualizarRutaSiEstaAbierta(rutaVieja, rutaNueva, nombreNuevo);
     }
 
-    // ─────────────────────────── arrastrar pestañas entre paneles ───────────────────────────
-
     public void MoverTab(EditorTabViewModel tab, EditorViewModel origen, EditorViewModel destino, ZonaDrop zona)
     {
         if (zona == ZonaDrop.Centro)
@@ -334,17 +301,12 @@ public partial class EditorAreaViewModel : ViewModelBase
             return;
         }
 
-        // partir en dos no tiene sentido si es la unica pestaña de su propio panel arrastrada
-        // sobre si mismo: dejaria un panel vacio al lado de uno con el mismo contenido
         if (ReferenceEquals(origen, destino) && origen.Tabs.Count == 1) return;
 
-        // el chequeo del tope va ANTES de sacar la pestaña de origen: si se chequeara despues,
-        // un split rechazado igual habria arrancado la pestaña de origen sin ponerla en
-        // ningun lado. Es una aproximacion conservadora: si origen quedara vacio y se podara,
-        // el conteo neto podria no subir - pero cubrir ese caso no vale la complejidad.
+        // El tope se chequea ANTES de sacar la pestaña para no perderla si el split se rechaza
         if (ContarHojas() >= MaxPaneles) return;
 
-        origen.QuitarTab(tab); // puede podar `origen` del arbol de forma sincronica
+        origen.QuitarTab(tab);
 
         var nuevo = CrearPanel();
         nuevo.Tabs.Add(tab);
@@ -358,8 +320,6 @@ public partial class EditorAreaViewModel : ViewModelBase
             nuevoVaPrimero ? NodoPanel.Hoja(nuevo) : NodoPanel.Hoja(destino),
             nuevoVaPrimero ? NodoPanel.Hoja(destino) : NodoPanel.Hoja(nuevo));
 
-        // referencial, no por indice: encuentra "destino" donde este, sin importar si QuitarTab
-        // acaba de podar a "origen" (la identidad de destino no cambia con eso)
         Raiz = Reemplazar(Raiz, destino, dividido);
         EnfocarPanel(nuevo);
     }

@@ -6,19 +6,13 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Reemplaza PanelCentral.cs (la parte de administracion de pestañas: abrir/cerrar/guardar/nuevo).
-// El render/scroll/hit-testing del texto en sí vive en EditorTextArea/EditorGutter; la logica de
-// edicion linea-a-linea vive en EditorTabViewModel.
+// Administra las pestañas de un panel: abrir, cerrar, guardar y nuevo
 public partial class EditorViewModel : ViewModelBase
 {
     readonly DialogService _dialogos;
 
-    // la necesita EditorTextArea (via EditorView.axaml) para saber que extensiones de resaltado
-    // estan Instalada en cada frame de Render (rainbow-indent, trailing-whitespace,
-    // todo-highlight, bracket-colorizer)
     public ExtensionsViewModel Extensiones { get; }
 
-    // se asigna despues de crear la Window (necesita IStorageProvider para "Guardar como")
     public FileDialogService? Archivos { get; set; }
 
     public ObservableCollection<EditorTabViewModel> Tabs { get; } = new();
@@ -37,7 +31,6 @@ public partial class EditorViewModel : ViewModelBase
     public Action<string, string>? OnAbrirArchivoExterno { get; set; }
     public Action<string>? OnRevelarCarpeta { get; set; }
 
-    // "carpeta > subcarpeta > archivo.ggez", con cada segmento clickeable
     public IReadOnlyList<BreadcrumbSegmentoViewModel> BreadcrumbSegmentos { get; private set; } = Array.Empty<BreadcrumbSegmentoViewModel>();
 
     void ActualizarBreadcrumb()
@@ -58,7 +51,6 @@ public partial class EditorViewModel : ViewModelBase
                 AlElegirCarpeta = nodo => OnRevelarCarpeta?.Invoke(nodo.RutaCompleta),
             });
 
-        // archivo sin guardar: sin ruta, no hay carpeta que listar
         if (string.IsNullOrEmpty(TabActiva.RutaCompleta))
         {
             Agregar(TabActiva.Nombre, "");
@@ -79,7 +71,6 @@ public partial class EditorViewModel : ViewModelBase
         for (int i = 0; i < partes.Length; i++)
         {
             bool esArchivo = i == partes.Length - 1;
-            // el segmento del archivo lista la carpeta que lo contiene, no a si mismo
             if (!esArchivo) acumulada = Path.Combine(acumulada, partes[i]);
             Agregar(partes[i], acumulada);
         }
@@ -95,7 +86,6 @@ public partial class EditorViewModel : ViewModelBase
         segmento.EsAbierto = !yaAbierto;
     }
 
-    // barra de buscar/reemplazar (BarraBusqueda.cs original) y el cuadro de ir a línea (CuadroIrALinea.cs)
     [ObservableProperty] private bool _buscarVisible;
     [ObservableProperty] private bool _mostrarReemplazo;
     [ObservableProperty] private string _patronBusqueda = "";
@@ -105,9 +95,7 @@ public partial class EditorViewModel : ViewModelBase
     [ObservableProperty] private bool _irALineaVisible;
     [ObservableProperty] private string _numeroLineaTexto = "";
 
-    // zoom del editor (Ctrl+rueda / Ctrl +/-/0 en EditorTextArea, o el menu Ver): independiente
-    // por panel, igual que BuscarVisible/IrALineaVisible - cada split de EditorAreaViewModel tiene
-    // su propio EditorViewModel y por lo tanto su propio zoom.
+    // Zoom independiente por panel
     const double ZoomMinimo = 10;
     const double ZoomMaximo = 36;
     const double ZoomPorDefecto = 18;
@@ -116,7 +104,7 @@ public partial class EditorViewModel : ViewModelBase
     const int TamanoTabMinimo = 1;
     const int TamanoTabMaximo = 8;
 
-    // ultimo tamaño/tab usado en cualquier panel, persistido en disco - los paneles nuevos arrancan con esto
+    // Los paneles nuevos arrancan con el ultimo tamaño/tab persistido
     static readonly ConfiguracionUsuario _configuracionInicial = ConfiguracionService.CargarGuardada();
     public static double TamanoFuentePreferido { get; set; } = _configuracionInicial.TamanoFuente;
     public static int TamanoTabPreferido { get; set; } = _configuracionInicial.TamanoTab;
@@ -136,7 +124,6 @@ public partial class EditorViewModel : ViewModelBase
         ConfiguracionService.Guardar(new ConfiguracionUsuario(TamanoFuentePreferido, value));
     }
 
-    // direccion: 1 acercar, -1 alejar, 0 restablecer al tamaño por defecto
     public void CambiarZoom(int direccion) => TamanoFuente = direccion switch
     {
         0 => ZoomPorDefecto,
@@ -147,8 +134,6 @@ public partial class EditorViewModel : ViewModelBase
     public void CambiarTamanoTab(int direccion) =>
         TamanoTab = Math.Clamp(TamanoTab + direccion, TamanoTabMinimo, TamanoTabMaximo);
 
-    // busca mientras se escribe, sin esperar Enter (como el original) - estos partial methods los
-    // dispara el source generator de [ObservableProperty] solo, no hace falta suscribirse a mano
     partial void OnPatronBusquedaChanged(string value) => ActualizarBusqueda();
     partial void OnDistingueMayusculasChanged(bool value) => ActualizarBusqueda();
 
@@ -192,7 +177,6 @@ public partial class EditorViewModel : ViewModelBase
         Tabs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HayArchivosAbiertos));
     }
 
-    // crea una pestaña nueva sin ruta: recién se asigna un archivo real al guardarla
     public void NuevoArchivo()
     {
         var tab = new EditorTabViewModel(NombreNuevoDisponible(), "");
@@ -210,7 +194,6 @@ public partial class EditorViewModel : ViewModelBase
         return $"{baseNombre} {n}";
     }
 
-    // evita abrir el mismo archivo dos veces en pestañas distintas
     public void AbrirArchivo(string nombre, string rutaCompleta)
     {
         var existente = Tabs.FirstOrDefault(a => a.RutaCompleta == rutaCompleta);
@@ -271,9 +254,7 @@ public partial class EditorViewModel : ViewModelBase
         QuitarTab(tab);
     }
 
-    // saca la pestaña de este panel y reacomoda TabActiva - sin confirmar nada, a diferencia
-    // de CerrarArchivoAsync: la usa tambien EditorAreaViewModel al arrastrar una pestaña a
-    // otro panel, donde "cerrar sin guardar" no aplica porque el archivo no se pierde
+    // Sin confirmar nada: tambien se usa al arrastrar una pestaña a otro panel
     public void QuitarTab(EditorTabViewModel tab)
     {
         int indice = Tabs.IndexOf(tab);
@@ -295,7 +276,6 @@ public partial class EditorViewModel : ViewModelBase
         }
     }
 
-    // si ese archivo está abierto en una pestaña, la sincroniza con su nueva ruta (ej: se renombró desde el explorador)
     public void ActualizarRutaSiEstaAbierta(string rutaVieja, string rutaNueva, string nombreNuevo)
     {
         var tab = Tabs.FirstOrDefault(a => a.RutaCompleta == rutaVieja);
@@ -323,7 +303,7 @@ public partial class EditorViewModel : ViewModelBase
         {
             if (Archivos == null) return;
             var rutaElegida = await Archivos.GuardarComoAsync(tab.Nombre);
-            if (string.IsNullOrEmpty(rutaElegida)) return; // cancelado por el usuario
+            if (string.IsNullOrEmpty(rutaElegida)) return;
 
             tab.RutaCompleta = rutaElegida;
             tab.Nombre = Path.GetFileName(rutaElegida);
@@ -339,8 +319,6 @@ public partial class EditorViewModel : ViewModelBase
             Console.WriteLine($"No se pudo guardar {tab.RutaCompleta}: {ex.Message}");
         }
     }
-
-    // ─────────────────────────── delegan a la pestaña activa ───────────────────────────
 
     public void Copiar(Action<string> alPortapapeles)
     {

@@ -1,11 +1,4 @@
-"""Paso 2: con los tokens arma el arbol.
-
-Una funcion por cada regla de GRAMATICA.md, con el mismo nombre, asi se pueden
-ir leyendo los dos al lado.
-
-Que el por vaya antes que el mas no esta escrito en ningun lado: sale solo del
-orden en que las funciones de expresion se llaman entre si.
-"""
+"""Paso 2: arma el arbol, una funcion por regla de GRAMATICA.md. La precedencia sale del orden de llamadas."""
 
 from __future__ import annotations
 
@@ -31,8 +24,6 @@ class Sintactico:
         self.tokens = tokens
         self.archivo = archivo
         self.pos = 0
-
-    # ---------------------------------------------------------------- helpers
 
     @property
     def actual(self) -> Token:
@@ -70,11 +61,7 @@ class Sintactico:
         return self._avanzar()
 
     def _fin_linea(self) -> None:
-        """Cierra la sentencia. En GGEZ no hay ';', es el salto de linea.
-
-        Un gg tambien la cierra, sin consumirlo -> D-19. Eso permite escribir
-        un bloque en una linea:  pick 10 | 9 glhf reward "Pro" gg
-        """
+        """Cierra la sentencia con salto de linea; un gg tambien, sin consumirlo -> D-19."""
         if self.actual.tipo is TipoToken.FIN_ARCHIVO or self.actual.es("gg"):
             return
         if self.actual.tipo is not TipoToken.FIN_LINEA:
@@ -88,8 +75,6 @@ class Sintactico:
     def _saltar_lineas(self) -> None:
         while self.actual.tipo is TipoToken.FIN_LINEA:
             self._avanzar()
-
-    # --------------------------------------------------------------- programa
 
     def analizar(self) -> arbol.Programa:
         inicio = self.actual
@@ -254,13 +239,9 @@ class Sintactico:
         return cuerpo
 
     def _cuerpo_bloque(self) -> arbol.Bloque:
-        """glhf + sentencias, frenando ANTES del gg sin consumirlo.
-
-        Separado de bloque() porque hay casos donde el gg no cierra nada:
-        'gg fallback' (el else) y 'gg survive' (el grind).
-        """
+        """glhf + sentencias sin consumir el gg: en 'gg fallback' y 'gg survive' el gg no cierra."""
         t = self._consumir_reservada("glhf")
-        self._saltar_lineas()   # opcional, el bloque puede seguir en la misma linea
+        self._saltar_lineas()
         sentencias: list[arbol.Nodo] = []
 
         while not self.actual.es("gg"):
@@ -270,8 +251,6 @@ class Sintactico:
             self._saltar_lineas()
 
         return arbol.Bloque(sentencias, linea=t.linea, columna=t.columna)
-
-    # ------------------------------------------------------------- sentencias
 
     def sentencia(self) -> arbol.Nodo:
         if self.actual.es("stash", "hardcoded"):
@@ -329,13 +308,11 @@ class Sintactico:
         )
 
     def _verificar_designador(self, nodo: arbol.Nodo, token: Token) -> None:
-        """A la izquierda del set solo va un nombre, un campo o un indice."""
         if not isinstance(nodo, (arbol.Identificador, arbol.Acceso, arbol.Indice, arbol.Me)):
             raise self._error("el lado izquierdo de una asignacion no es asignable", token)
 
     def sent_reward(self) -> arbol.Reward:
         t = self._consumir_reservada("reward")
-        # si el tipo esta bien lo revisa el paso 3; aca solo miro si hay valor
         vacio = (
             self.actual.tipo in (TipoToken.FIN_LINEA, TipoToken.FIN_ARCHIVO)
             or self.actual.es("gg")
@@ -343,8 +320,6 @@ class Sintactico:
         valor = None if vacio else self.expresion()
         self._fin_linea()
         return arbol.Reward(valor, linea=t.linea, columna=t.columna)
-
-    # ------------------------------------------------------ control de flujo
 
     def sent_scan(self) -> arbol.Scan:
         t = self._consumir_reservada("scan")
@@ -467,8 +442,6 @@ class Sintactico:
             raise self._error("un 'pick' solo admite valores literales", t)
         return nodo
 
-    # ------------------------------------------------------------- errores
-
     def sent_clutch(self) -> arbol.Clutch:
         # igual que el scan: los gg del medio no cierran nada, vienen pegados
         # al revive y al checkpoint
@@ -500,7 +473,7 @@ class Sintactico:
         return arbol.Wipe(motivo, linea=t.linea, columna=t.columna)
 
     def decl_variable(self) -> arbol.DeclVariable:
-        t = self._avanzar()                       # stash o hardcoded
+        t = self._avanzar()
         constante = t.lexema == "hardcoded"
         tipo = self.tipo()
         nombre = self._consumir(TipoToken.IDENTIFICADOR, "el nombre de la variable").lexema
@@ -549,8 +522,7 @@ class Sintactico:
             nombre += "." + self._consumir(TipoToken.IDENTIFICADOR, f"el nombre despues de '{nombre}.'").lexema
         return nombre
 
-    # ------------------------------------------------------------ expresiones
-    # el orden de estas funciones es lo que decide que va primero
+    # El orden de estas funciones decide la precedencia
 
     def expresion(self) -> arbol.Nodo:
         return self.expr_or()

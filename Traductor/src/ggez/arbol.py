@@ -1,10 +1,4 @@
-"""Las piezas del arbol.
-
-Una clase por cada regla de GRAMATICA.md. Todas guardan linea y columna, asi
-los errores pueden decir donde fue.
-
-Se llama arbol.py y no ast.py porque ast ya existe en Python y choca.
-"""
+"""Nodos del arbol, uno por regla de GRAMATICA.md. Se llama arbol.py porque ast.py choca con Python."""
 
 from __future__ import annotations
 
@@ -15,16 +9,13 @@ from dataclasses import dataclass, field
 class Nodo:
     linea: int = field(default=0, kw_only=True)
     columna: int = field(default=0, kw_only=True)
-    # lo prende el paso 3 cuando un score va a parar a un aim. El paso 4 lo
-    # ve y lo pasa a decimal, si no 3 split 2 daria 1 aunque sea un aim
+    # Lo prende el paso 3 cuando un score va a un aim; si no, 3 split 2 daria 1
     a_aim: bool = field(default=False, kw_only=True)
 
 
-# --------------------------------------------------------------------- tipos
 
 @dataclass
 class Tipo(Nodo):
-    """El tipo tal cual esta escrito en el programa."""
     nombre: str                          # score, aim, lore, win, pixel, o un nombre propio
     interno: "Tipo | None" = None        # el T de squad[T]
 
@@ -32,7 +23,6 @@ class Tipo(Nodo):
         return f"{self.nombre}[{self.interno}]" if self.interno else self.nombre
 
 
-# ------------------------------------------------------------------ programa
 
 @dataclass
 class Programa(Nodo):
@@ -58,7 +48,6 @@ class Bloque(Nodo):
     sentencias: list[Nodo]
 
 
-# --------------------------------------------------------------- sentencias
 
 @dataclass
 class DeclVariable(Nodo):
@@ -86,18 +75,13 @@ class Incremento(Nodo):
 
 @dataclass
 class SentenciaExpresion(Nodo):
-    """Una expresion suelta como sentencia, casi siempre una llamada."""
     expresion: Nodo
 
 
-# ---------------------------------------------------------- control de flujo
 
 @dataclass
 class Scan(Nodo):
-    """scan cond glhf ... gg [fallback glhf ... gg]
-
-    sino = Bloque si es un fallback normal, Scan si es un 'fallback scan'.
-    """
+    """scan cond glhf ... gg [fallback glhf ... gg]; sino es Bloque o Scan (fallback scan)."""
     condicion: Nodo
     entonces: "Bloque"
     sino: "Bloque | Scan | None" = None
@@ -151,7 +135,6 @@ class Respawn(Nodo):
     """respawn: salta a la siguiente vuelta."""
 
 
-# ------------------------------------------------------------------ errores
 
 @dataclass
 class Clutch(Nodo):
@@ -168,7 +151,6 @@ class Wipe(Nodo):
     motivo: Nodo
 
 
-# ------------------------------------------------------------------ funciones
 
 @dataclass
 class Parametro(Nodo):
@@ -193,7 +175,6 @@ class Reward(Nodo):
     valor: Nodo | None = None
 
 
-# ----------------------------------------------------------------- registros
 
 @dataclass
 class DeclInventory(Nodo):
@@ -209,7 +190,6 @@ class Spawn(Nodo):
     argumentos: list[Nodo]
 
 
-# -------------------------------------------------------------------- guild
 
 @dataclass
 class DeclCampo(Nodo):
@@ -229,7 +209,6 @@ class DeclGuild(Nodo):
     metodos: list[DeclCombo]             # el que se llama igual es el constructor
 
 
-# -------------------------------------------------------------- expresiones
 
 @dataclass
 class Literal(Nodo):

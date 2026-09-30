@@ -5,9 +5,6 @@
              x:Class="ParadigmasLenguajePropio.Views.PanelJuegoView"
              x:DataType="vm:PanelJuegoViewModel">
 
-    <!-- Reemplaza PanelJuego.cs + el Panel.cs generico que envolvia (acá no hacia falta: nunca
-         mostraba minimizar/maximizar/cerrar). La vista del juego en si sigue sin diseñar, como en
-         el original - esto es placeholder con progreso/pausa de ejemplo. -->
     <Grid RowDefinitions="Auto,*">
         <Border Grid.Row="0" Height="26" Background="{DynamicResource TemaTitleBarBrush}">
             <TextBlock Text="Juego" Foreground="White" FontSize="18" Margin="8,0,0,0" VerticalAlignment="Center" />

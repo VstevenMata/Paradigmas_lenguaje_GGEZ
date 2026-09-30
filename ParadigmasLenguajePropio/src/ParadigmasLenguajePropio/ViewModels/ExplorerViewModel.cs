@@ -5,17 +5,13 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Reemplaza ExploradorArchivos.cs: el arbol/scroll/hit-testing/menu-contextual a mano los reemplaza
-// el TreeView nativo (ver ExplorerView.axaml); esta clase se queda con la logica de dominio
-// (abrir/crear/renombrar/eliminar) que sigue siendo igual de necesaria.
+// Logica de dominio del explorador: abrir, crear, renombrar y eliminar
 public partial class ExplorerViewModel : ViewModelBase
 {
     readonly DialogService _dialogos;
 
-    // se asigna despues de crear la Window (FileDialogService necesita la Window para IStorageProvider)
     public FileDialogService? Archivos { get; set; }
 
-    // conectados por MainWindowViewModel cuando el editor/terminal existan (Fases 5-6)
     public Action<NodoArchivos>? OnAbrirArchivo { get; set; }
     public Action<string, string, string>? OnArchivoRenombrado { get; set; }
 
@@ -51,7 +47,7 @@ public partial class ExplorerViewModel : ViewModelBase
         if (!string.IsNullOrEmpty(ruta)) AbrirCarpeta(ruta);
     }
 
-    // solo deja de mostrar el proyecto en el explorador: no toca nada en disco ni cierra pestañas del editor
+    // No toca nada en disco ni cierra pestañas del editor
     [RelayCommand]
     void CerrarCarpeta()
     {
@@ -61,8 +57,7 @@ public partial class ExplorerViewModel : ViewModelBase
         OnPropertyChanged(nameof(CarpetaRaiz));
     }
 
-    // botón/menú contextual "Crear carpeta": si ya hay proyecto abierto crea adentro de su raíz,
-    // si no, arranca uno nuevo (elige ubicación, pide nombre, lo abre)
+    // Con proyecto abierto crea dentro de la raiz; si no, arranca un proyecto nuevo
     [RelayCommand]
     async Task CrearCarpetaAsync()
     {
@@ -97,7 +92,6 @@ public partial class ExplorerViewModel : ViewModelBase
     [RelayCommand]
     Task NuevaCarpeta(NodoArchivos nodo) => CrearHijoAsync(nodo, esCarpeta: true);
 
-    // crea como hijo de la carpeta clickeada, o como hermano si se clickeó un archivo
     async Task CrearHijoAsync(NodoArchivos nodo, bool esCarpeta)
     {
         var carpetaDestino = nodo.EsCarpeta ? nodo : nodo.Padre;
@@ -152,7 +146,7 @@ public partial class ExplorerViewModel : ViewModelBase
             var rutaVieja = nodo.RutaCompleta;
             nodo.RutaCompleta = rutaNueva;
             nodo.Nombre = nuevoNombre;
-            nodo.Refrescar(); // si tenía hijos ya cargados, quedaron apuntando a la ruta vieja
+            nodo.Refrescar(); // sus hijos cargados quedaron apuntando a la ruta vieja
 
             OnArchivoRenombrado?.Invoke(rutaVieja, rutaNueva, nuevoNombre);
         }
@@ -182,7 +176,7 @@ public partial class ExplorerViewModel : ViewModelBase
             }
             else
             {
-                CerrarCarpeta(); // era la raíz del proyecto: vuelve al estado "sin carpeta abierta"
+                CerrarCarpeta();
             }
         }
         catch (Exception ex)
@@ -197,13 +191,12 @@ public partial class ExplorerViewModel : ViewModelBase
             OnAbrirArchivo?.Invoke(nodo);
     }
 
-    // expande cada carpeta del camino y selecciona la carpeta elegida
     public void RevelarCarpeta(string rutaCompleta)
     {
         if (Raiz == null || string.IsNullOrEmpty(rutaCompleta)) return;
 
         var relativa = Path.GetRelativePath(Raiz.RutaCompleta, rutaCompleta);
-        if (relativa.StartsWith("..")) return; // fuera de la carpeta del proyecto, nada que revelar
+        if (relativa.StartsWith("..")) return;
 
         var actual = Raiz;
         if (relativa != ".")
@@ -212,7 +205,7 @@ public partial class ExplorerViewModel : ViewModelBase
             {
                 actual.Expandido = true;
                 var siguiente = actual.Hijos.FirstOrDefault(h => h.Nombre == parte);
-                if (siguiente == null) return; // no deberia pasar si la ruta viene de disco
+                if (siguiente == null) return;
                 actual = siguiente;
             }
         }
@@ -221,7 +214,6 @@ public partial class ExplorerViewModel : ViewModelBase
         Seleccionado = actual;
     }
 
-    // como el "Go to File" de VSCode: filtra por nombre de archivo entre todo lo que hay bajo la carpeta abierta
     public List<ResultadoBusqueda> BuscarArchivosPorNombre(string consulta)
     {
         if (string.IsNullOrEmpty(CarpetaRaiz)) return new();

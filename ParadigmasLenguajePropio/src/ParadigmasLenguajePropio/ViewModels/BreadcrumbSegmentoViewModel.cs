@@ -4,7 +4,6 @@ using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Un segmento clickeable del breadcrumb: al abrirse lista el contenido de CarpetaCompleta.
 public partial class BreadcrumbSegmentoViewModel : ObservableObject
 {
     public string Texto { get; }

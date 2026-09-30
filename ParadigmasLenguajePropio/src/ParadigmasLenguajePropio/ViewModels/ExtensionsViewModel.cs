@@ -7,9 +7,7 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Panel de extensiones: vive en el mismo lugar de pantalla que ExplorerView, se intercambian con
-// el toggle de la barra de iconos (ver MainWindow.axaml / MainWindowViewModel.MostrarExtensiones).
-// Lista <-> detalle es un solo estado (Seleccionada), no dos vistas separadas.
+// Panel de extensiones; lista y detalle son un solo estado (Seleccionada)
 public partial class ExtensionsViewModel : ViewModelBase
 {
     public ObservableCollection<ExtensionInfo> Extensiones { get; } = new()
@@ -49,8 +47,7 @@ public partial class ExtensionsViewModel : ViewModelBase
             new[] { "Cambia colores, biseles y tipografia de toda la app", "Desinstalar vuelve al tema Win95 por defecto" }),
     };
 
-    // que Tema activa cada extension de tema y con que nombre corto se muestra en el selector
-    // rapido (ver TemasInstalados) - agregar una fila aca alcanza para un tema nuevo (Contra)
+    // Agregar una fila aca alcanza para un tema nuevo
     static readonly (string Id, Tema Tema, string Nombre)[] TemasDisponibles =
     [
         ("tema-zelda", Tema.Zelda, "Zelda"),
@@ -61,16 +58,12 @@ public partial class ExtensionsViewModel : ViewModelBase
     static readonly IReadOnlyDictionary<string, Tema> TemasPorId =
         TemasDisponibles.ToDictionary(t => t.Id, t => t.Tema);
 
-    // solo los temas con la extension instalada - Win95 no es una extension, el consumidor
-    // (AppTitleBarViewModel.Temas via MainWindowViewModel) lo agrega aparte como opcion fija
+    // Win95 no es extension: lo agrega aparte AppTitleBarViewModel
     public IEnumerable<OpcionTema> TemasInstalados =>
         TemasDisponibles.Where(t => Extensiones.First(e => e.Id == t.Id).Instalada)
                          .Select(t => new OpcionTema(t.Nombre, t.Tema));
 
-    // referencias directas por indice, mismo motivo que Claude: EditorTextArea (rainbow-indent,
-    // trailing-whitespace, todo-highlight, bracket-colorizer, modo-oscuro, pacman-bloques), MainWindow.axaml
-    // (trailing-whitespace) y EditorView.axaml (modo-oscuro) necesitan consultar Instalada sin
-    // buscar por Id en cada frame
+    // Referencias por indice para consultar Instalada en cada frame sin buscar por Id
     public ExtensionInfo Claude => Extensiones[0];
     public ExtensionInfo RainbowIndent => Extensiones[1];
     public ExtensionInfo TrailingWhitespace => Extensiones[2];
@@ -82,9 +75,6 @@ public partial class ExtensionsViewModel : ViewModelBase
     [ObservableProperty]
     private ExtensionInfo? _seleccionada;
 
-    // recuerda entre sesiones que extensiones estaban instaladas (ver ExtensionesPersistenciaService):
-    // se restaura al arrancar y se re-guarda cada vez que cualquiera cambia de estado, tanto por el
-    // boton de Instalar/Desinstalar como por la animacion fantasma al terminar
     public ExtensionsViewModel()
     {
         var instaladas = ExtensionesPersistenciaService.CargarInstaladas();
@@ -101,9 +91,7 @@ public partial class ExtensionsViewModel : ViewModelBase
             };
         }
 
-        // restaura el tema ACTIVO de la sesion anterior (distinto de instalado, ver
-        // AplicarTemaDeExtension) - solo si su extension sigue instalada, por si el archivo de
-        // configuracion quedo desincronizado a mano
+        // Restaura el tema activo solo si su extension sigue instalada
         var temaGuardado = TemaService.CargarGuardado();
         bool sigueDisponible = temaGuardado == Tema.Win95 ||
             Extensiones.Any(e => TemasPorId.TryGetValue(e.Id, out var t) && t == temaGuardado && e.Instalada);
@@ -113,9 +101,7 @@ public partial class ExtensionsViewModel : ViewModelBase
     void GuardarInstaladas() =>
         ExtensionesPersistenciaService.Guardar(Extensiones.Where(e => e.Instalada).Select(e => e.Id));
 
-    // instalar un tema lo activa de una (como instalar un tema de VS Code); desinstalar solo
-    // vuelve a Win95 si era el que estaba activo - instalado y activo son cosas distintas, igual
-    // que cualquier otra extension: se puede tener varias instaladas y usar solo una a la vez
+    // Instalar un tema lo activa; desinstalar vuelve a Win95 solo si era el activo
     void AplicarTemaDeExtension(ExtensionInfo ext)
     {
         var tema = TemasPorId[ext.Id];
@@ -123,10 +109,6 @@ public partial class ExtensionsViewModel : ViewModelBase
         else if (TemaService.Actual == tema) TemaService.Aplicar(Tema.Win95);
     }
 
-    // punto de entrada unico para elegir tema desde fuera del panel de extensiones (menu Ver, el
-    // boton de pincel junto al buscador): Win95 solo activa, nunca desinstala nada; un tema no
-    // instalado se instala (lo que ya lo activa via AplicarTemaDeExtension); uno ya instalado solo
-    // se reactiva
     public void SeleccionarTema(Tema tema)
     {
         if (tema == Tema.Win95) { TemaService.Aplicar(Tema.Win95); return; }
@@ -149,8 +131,7 @@ public partial class ExtensionsViewModel : ViewModelBase
         InstalarConAnimacion(ext);
     }
 
-    // "descarga fantasma": no hay red de por medio, el codigo de la extension ya esta compilado
-    // en la app - esto solo simula una barra de progreso antes de prender Instalada
+    // Descarga simulada: el codigo ya esta compilado, solo anima el progreso
     static void InstalarConAnimacion(ExtensionInfo ext)
     {
         if (ext.Instalando) return;

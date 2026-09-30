@@ -5,9 +5,7 @@ using Avalonia.Media;
 
 namespace ParadigmasLenguajePropio.Controls;
 
-// Reemplazo de Win95Style.DrawDivisorHorizontal/Vertical: linea oscura seguida de una clara, 1px cada una.
-// Se dibuja directo (no via ControlTheme/Template) porque son dos lineas de 1px, no vale la pena
-// templatizarlo por orientacion.
+// Divisor Win95: linea oscura seguida de una clara, 1px cada una
 public class Win95Divider : Control
 {
     public static readonly StyledProperty<Orientation> OrientationProperty =
@@ -24,10 +22,7 @@ public class Win95Divider : Control
         AffectsRender<Win95Divider>(OrientationProperty);
     }
 
-    // el tamaño deseado es solo su grosor: quien lo contiene lo estira (HorizontalAlignment/
-    // VerticalAlignment por defecto son Stretch) via Arrange, no via Measure. Devolver
-    // availableSize.Width/Height directo rompe con Grid.RowSpan/ColumnSpan, donde puede llegar
-    // double.PositiveInfinity durante la medicion.
+    // Devolver availableSize rompe con RowSpan/ColumnSpan (llega Infinity); el contenedor lo estira en Arrange
     protected override Size MeasureOverride(Size availableSize) =>
         Orientation == Orientation.Horizontal ? new Size(0, 2) : new Size(2, 0);
 

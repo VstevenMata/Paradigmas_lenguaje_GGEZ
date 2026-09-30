@@ -2,8 +2,7 @@ using System.Text.Json;
 
 namespace ParadigmasLenguajePropio.Services;
 
-// recuerda que extensiones quedaron instaladas entre sesiones: un archivo de config chico en el
-// perfil del usuario (ApplicationData -> ~/.config en Linux), no hace falta una base de datos para esto
+// Guarda las extensiones instaladas entre sesiones en un config del perfil del usuario
 public static class ExtensionesPersistenciaService
 {
     static readonly string RutaArchivo = Path.Combine(

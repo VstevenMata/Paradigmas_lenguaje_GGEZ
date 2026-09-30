@@ -12,8 +12,6 @@ public partial class EditorAreaView : UserControl
 
     ContentControl _host = null!;
 
-    // que vista corresponde a cada panel, para poder enfocar la correcta sin recorrer el
-    // visual tree - se reconstruye entera cada vez que Raiz cambia, junto con las vistas
     readonly Dictionary<EditorViewModel, EditorView> _vistasPorPanel = new();
 
     public EditorAreaView()
@@ -33,9 +31,7 @@ public partial class EditorAreaView : UserControl
         };
     }
 
-    // splits pasan pocas veces por sesion (el usuario arrastra una pestaña de vez en cuando):
-    // reconstruir el arbol de controles entero cada vez que Raiz cambia es simple y sobra de
-    // rapido, no hace falta un diff incremental
+    // Los splits son raros: reconstruir todo el arbol de controles es simple y basta
     void Reconstruir(EditorAreaViewModel vm)
     {
         _vistasPorPanel.Clear();
@@ -43,13 +39,7 @@ public partial class EditorAreaView : UserControl
         EnfocarPanelActual(vm);
     }
 
-    // se llama tanto al reconstruir el arbol como cada vez que PanelEnfocado cambia SOLO (sin
-    // que cambie Raiz, ej: mover una pestaña Centro a otro panel ya existente). El Post busca
-    // la vista recien cuando efectivamente corre, no antes - asi da lo mismo el orden entre
-    // "cambio Raiz" y "cambio PanelEnfocado" (varia segun la operacion) porque para cuando el
-    // callback se ejecuta la cascada sincronica ya termino del todo y el estado es el final.
-    // Sin esto, tras partir/podar un panel el foco de teclado quedaba huerfano en una vista ya
-    // destruida y no se podia escribir en ningun lado hasta clickear a mano.
+    // El Post busca la vista cuando ya termino la cascada de cambios; sin esto el foco quedaba en una vista destruida
     void EnfocarPanelActual(EditorAreaViewModel vm)
     {
         Dispatcher.UIThread.Post(() =>

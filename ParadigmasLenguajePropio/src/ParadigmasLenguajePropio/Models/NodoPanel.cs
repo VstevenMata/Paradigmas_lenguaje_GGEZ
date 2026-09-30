@@ -2,13 +2,9 @@ using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Models;
 
-// Apilado = arriba/abajo, LadoALado = izquierda/derecha
 public enum OrientacionSplit { Apilado, LadoALado }
 
-// nodo de un arbol binario de splits del area de edicion: o es una hoja (un panel) o es un
-// split con exactamente 2 hijos (A = arriba/izquierda, B = abajo/derecha). El arbol se
-// reconstruye entero en cada cambio (nunca se muta in-place), por eso no tiene puntero al
-// padre - a diferencia de NodoArchivos (arbol vivo con lazy-load) quedaria obsoleto enseguida.
+// Hoja (un panel) o split con 2 hijos (A = arriba/izquierda); inmutable, se reconstruye en cada cambio
 public sealed record NodoPanel
 {
     public EditorViewModel? Panel { get; }

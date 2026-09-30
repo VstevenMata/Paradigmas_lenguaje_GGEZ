@@ -2,21 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="using:ParadigmasLenguajePropio.Controls">
 
-    <!-- Mecanica compartida por TODOS los temas: un ControlTheme swapeado entero (como se probo
-         primero para el bisel) no se re-aplica solo a los controles ya creados al cambiar de
-         paleta en caliente - swapear Application.Styles reevalua bien los recursos usados como
-         VALOR (DynamicResource en una propiedad), pero no fuerza a un control ya instanciado a
-         re-resolver que ControlTheme le corresponde. Por eso el Template de Win95Bevel es UNICO y
-         vive siempre aca: la forma (esquinas, grosor de cada anillo) sale de recursos
-         DynamicResource (Thickness/CornerRadius, ver Themes/Paletas/*.axaml), nunca de un
-         ControlTheme distinto por tema. -->
+    <!-- Template de Win95Bevel UNICO para todos los temas: un ControlTheme por tema no se re-aplica a controles ya creados al cambiar de paleta; la forma sale de DynamicResource -->
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- Reemplaza Win95Style.DrawBevel: dos anillos concentricos con brillo/sombra segun
-                 Sunken. Win95 los deja pegados y asimetricos (TemaBevelGrosorExterior recorta a
-                 solo arriba+izquierda) para el bisel clasico de un solo trazo; Zelda/Sonic los
-                 separan con Margin y grosor parejo en las 4 caras para el marco doble - misma
-                 estructura, solo cambian los valores por tema. -->
             <ControlTheme x:Key="{x:Type controls:Win95Bevel}" TargetType="controls:Win95Bevel">
                 <Setter Property="Padding" Value="2" />
                 <Setter Property="Template">
@@ -50,7 +38,6 @@
                 </Style>
             </ControlTheme>
 
-            <!-- Reemplaza Button.cs: bisel Win95 en vez del hover/press por polling -->
             <ControlTheme x:Key="{x:Type Button}" TargetType="Button">
                 <Setter Property="Background" Value="{DynamicResource TemaBackgroundBrush}" />
                 <Setter Property="Foreground" Value="{DynamicResource TemaTextoBrush}" />
@@ -84,15 +71,9 @@
         </ResourceDictionary>
     </Styles.Resources>
 
-    <!--
-        Lo de abajo NO son ControlTheme con x:Key (que reemplazan el template entero, como Button):
-        son Style sueltos que solo tocan color/bisel de controles nativos (TextBox, ScrollBar, Menu,
-        TreeView) sin tocar su Template original, para no arriesgar romper su comportamiento
-        (caret, drag del thumb, etc.) reimplementando esas partes a mano.
-    -->
+    <!-- Estilos sueltos sin tocar el Template de los controles nativos, para no romper caret, drag del thumb, etc. -->
 
-    <!-- caja de texto: fondo + borde oscuro solido (bisel hundido real no se puede sin
-         reemplazar el Template, que requiere PART_TextPresenter con los bindings exactos) -->
+    <!-- Bisel hundido real requeriria reemplazar el Template de TextBox -->
     <Style Selector="TextBox">
         <Setter Property="Background" Value="{DynamicResource TemaCampoFondoBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TemaCampoTextoBrush}" />
@@ -107,8 +88,6 @@
         <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />
     </Style>
 
-    <!-- scrollbar: track + thumb/flechas con bisel, sobre el Track/Thumb que ya trae el tema
-         base (SimpleTheme) - mas chico que reescribir el Template de ScrollBar/Track entero -->
     <Style Selector="ScrollBar">
         <Setter Property="Background" Value="{DynamicResource TemaScrollTrackBrush}" />
         <Setter Property="MinWidth" Value="16" />
@@ -129,12 +108,7 @@
         <Setter Property="BorderThickness" Value="1" />
     </Style>
 
-    <!-- flechas del scrollbar: cada tema define su propia forma en TemaFlechaScrollData - UNA sola
-         geometria "apuntando arriba" en un cuadro de 8x4 (ver Paletas/*.axaml) - las otras 3
-         direcciones salen de rotarla 180/±90 en vez de redibujar cada una a mano. El Path de la
-         flecha vive DENTRO del template propio de RepeatButton (un ControlTheme anidado dentro
-         del de ScrollBar): from RepeatButton hay que seguir con un selector descendente comun
-         (espacio), no con otro "/template/" - un segundo "/template/" ahi no matchea nada. -->
+    <!-- Una sola geometria de flecha por tema, rotada para las 4 direcciones. Dentro del template de RepeatButton va selector descendente, un segundo /template/ no matchea -->
     <Style Selector="ScrollBar[Orientation=Vertical] /template/ RepeatButton#PART_LineUpButton Path">
         <Setter Property="Data" Value="{DynamicResource TemaFlechaScrollData}" />
         <Setter Property="Fill" Value="{DynamicResource TemaFlechaScrollBrush}" />
@@ -164,8 +138,6 @@
         </Setter>
     </Style>
 
-    <!-- menu: fondo/hover con contraste, y el cajon de un submenu con bisel en vez del
-         popup plano por defecto -->
     <Style Selector="MenuItem">
         <Setter Property="FontFamily" Value="{DynamicResource TemaFontFamily}" />
     </Style>
@@ -178,7 +150,6 @@
     <Style Selector="Menu /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="{DynamicResource TemaBackgroundBrush}" />
     </Style>
-    <!-- el cajon del submenu desplegado: mismo bisel que un menu contextual del explorador -->
     <Style Selector="Popup /template/ Border">
         <Setter Property="Background" Value="{DynamicResource TemaBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />
@@ -186,26 +157,17 @@
         <Setter Property="CornerRadius" Value="0" />
     </Style>
 
-    <!-- arbol de archivos: fondo transparente (el sunken bevel lo pone ExplorerView) -->
     <Style Selector="TreeView">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FontFamily" Value="{DynamicResource TemaFontFamily}" />
     </Style>
 
-    <!-- red de seguridad: el texto siempre usa el color de texto del tema activo. Sin esto, si el
-         SO reporta modo oscuro, los tokens de color de SimpleTheme pueden resolver a un gris claro
-         pensado para fondos oscuros, y quedar casi invisible sobre un fondo claro (Win95) o el
-         mismo color de fondo (un tema oscuro tipo Zelda). -->
+    <!-- Sin esto, con el SO en modo oscuro SimpleTheme puede dejar el texto casi invisible -->
     <Style Selector="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource TemaTextoBrush}" />
     </Style>
 
-    <!-- tooltip: fondo propio del tema (TemaTooltipBackgroundBrush, siempre un tono claro tipo
-         papel/pickup en los 4 temas) en vez del blanco por defecto de SimpleTheme. El texto NO usa
-         TemaTextoBrush (pensado para el fondo principal, blanco en Sonic/Mega Man - invisible sobre
-         un tooltip claro) sino TemaCampoTextoBrush, el mismo color ya pensado para texto sobre
-         fondos claros (TextBox/campos) - "ToolTip TextBlock" pesa mas que la regla de TextBlock de
-         arriba por ser un selector mas especifico, así que sí gana. -->
+    <!-- El texto del tooltip usa TemaCampoTextoBrush: TemaTextoBrush es blanco en Sonic/Mega Man y no se ve sobre el fondo claro -->
     <Style Selector="ToolTip">
         <Setter Property="Background" Value="{DynamicResource TemaTooltipBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />
@@ -216,7 +178,6 @@
         <Setter Property="Foreground" Value="{DynamicResource TemaCampoTextoBrush}" />
     </Style>
 
-    <!-- checkbox (buscar y reemplazar: "Distingue mayúsculas") -->
     <Style Selector="CheckBox /template/ Border#NormalRectangle">
         <Setter Property="Background" Value="{DynamicResource TemaCampoFondoBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />

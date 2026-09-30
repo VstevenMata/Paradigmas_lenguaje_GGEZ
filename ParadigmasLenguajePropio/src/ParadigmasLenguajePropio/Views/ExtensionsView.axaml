@@ -8,17 +8,12 @@
              x:Class="ParadigmasLenguajePropio.Views.ExtensionsView"
              x:DataType="vm:ExtensionsViewModel">
 
-    <!-- Mismo lugar en pantalla que ExplorerView (ver MainWindow.axaml): la barra de iconos
-         intercambia cual de las dos se muestra. Lista <-> detalle vive adentro de este mismo
-         panel via Seleccionada (null = lista), como en VS Code el marketplace reemplaza al
-         explorador de archivos en el mismo lugar de la barra lateral. -->
     <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
         <TextBlock Grid.Row="0" Text="Extensiones" FontSize="16" Margin="2,4,0,4" />
 
         <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="3">
             <Grid>
 
-                <!-- ─────────────────────────── lista ─────────────────────────── -->
                 <ScrollViewer IsVisible="{Binding Seleccionada, Converter={x:Static aconv:ObjectConverters.IsNull}}">
                     <ItemsControl ItemsSource="{Binding Extensiones}">
                         <ItemsControl.ItemTemplate>
@@ -52,7 +47,6 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- ─────────────────────────── detalle ─────────────────────────── -->
                 <ScrollViewer IsVisible="{Binding Seleccionada, Converter={x:Static aconv:ObjectConverters.IsNotNull}}">
                     <StackPanel Margin="4" DataContext="{Binding Seleccionada}" x:DataType="models:ExtensionInfo">
 

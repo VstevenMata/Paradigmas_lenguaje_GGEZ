@@ -5,8 +5,7 @@ using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// Reemplaza ExploradorArchivos.IconoPara: misma asignacion de icono por nodo (incluye el mismo
-// logo de la app para archivos .ggez, y el mismo typo "Caperta" del asset original de carpeta cerrada).
+// "Caperta" es el nombre real del asset de carpeta cerrada
 public class NodoIconoConverter : IValueConverter
 {
     public static readonly NodoIconoConverter Instance = new();

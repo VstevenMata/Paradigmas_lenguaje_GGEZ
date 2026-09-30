@@ -8,11 +8,7 @@ using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Panel de terminal: administra varias TerminalInstanceViewModel (hasta MaxTerminales) mostradas
-// lado a lado en columnas, mas la pestaña fija "Errores" (salida de Construir, nunca se multiplica).
-// Cada instancia es un proceso independiente, simulado o una PTY real segun la extension de Claude
-// al momento de crearla (ver TerminalInstanceViewModel.EsReal) - ver esa clase para la logica de
-// una sola terminal.
+// Panel de terminal: varias instancias en columnas mas la pestaña fija "Errores"
 public partial class TerminalViewModel : ViewModelBase
 {
     public const int MaxTerminales = 4;
@@ -20,18 +16,10 @@ public partial class TerminalViewModel : ViewModelBase
 
     public ObservableCollection<TerminalInstanceViewModel> Instancias { get; } = new();
 
-    // subconjunto de Instancias con EnColumna=true, en el mismo orden relativo - SOLO para contar y
-    // ubicar posiciones (ver TerminalView.axaml.cs). El panel de columnas se renderiza directo sobre
-    // Instancias (ver TerminalView.axaml, IsVisible por item): si esta coleccion filtrada fuera el
-    // ItemsSource, ocultar una columna la sacaria del ItemsControl y Avalonia destruiria su vista -
-    // para la terminal real (ClaudeTerminalView/PTY, ver ese archivo) eso significa perder la sesion
-    // entera al volver a mostrarla. Manteniendo Instancias como unico ItemsSource, ocultar solo
-    // apaga IsVisible: la vista (y la PTY) sigue viva de fondo.
+    // Solo para contar posiciones; el ItemsSource es Instancias para que ocultar no destruya la vista (y la PTY)
     public IEnumerable<TerminalInstanceViewModel> InstanciasVisibles => Instancias.Where(i => i.EnColumna);
 
-    // convierte una posicion relativa a las visibles (0 = antes de la primera, Count = al final) a
-    // la posicion absoluta equivalente dentro de Instancias - las ocultas no ocupan celda en la
-    // grilla (ver TerminalView.axaml) pero si cuentan para el orden real de la lista
+    // Convierte una posicion entre las visibles a la posicion absoluta en Instancias
     int PosicionAbsoluta(int posicionVisible)
     {
         int vistos = 0;
@@ -44,34 +32,22 @@ public partial class TerminalViewModel : ViewModelBase
         return Instancias.Count;
     }
 
-    // el complemento: las que existen pero estan ocultas (ver CerrarDeVista) - se listan apiladas
-    // verticalmente junto a las columnas (ver TerminalView.axaml) para poder volver a mostrarlas
-    // (ver MostrarEnColumna)
     public ObservableCollection<TerminalInstanceViewModel> InstanciasOcultas { get; } = new();
 
     public bool PuedeCrearTerminal => Instancias.Count < MaxTerminales;
 
-    // el "+" solo tiene sentido con la pestaña Terminal activa y con lugar para una mas
     public bool MuestraBotonCrear => EsTabTerminal && PuedeCrearTerminal;
 
-    // la unica instancia con foco de teclado a la vez, aunque todas las columnas se vean juntas -
-    // se cambia clickeando la pestaña o el contenido de cualquier terminal (ver EnfocarInstancia)
     [ObservableProperty]
     private TerminalInstanceViewModel? _instanciaActiva;
 
-    // Donde mandar un comando que no tecleo el usuario (el boton Construir). Se prefiere la que
-    // tiene el foco; si esa quedo oculta o todavia no hay ninguna activa, la primera visible.
-    // Se saltan las terminales reales de la extension de Claude: esas corren una PTY con su
-    // propia sesion interactiva y meterles un comando por este camino no haria lo esperado.
+    // Destino de comandos del boton Construir; se saltan las PTY reales porque tienen su propia sesion
     public TerminalInstanceViewModel? InstanciaParaComando =>
         InstanciaActiva is { EnColumna: true, EsReal: false } activa
             ? activa
             : InstanciasVisibles.FirstOrDefault(i => !i.EsReal);
 
-    // la extension de Claude (ver ExtensionsViewModel.Claude): decide con que corre CADA columna
-    // NUEVA (ver TerminalInstanceViewModel.EsReal) - una PTY real (ClaudeTerminalView) en vez de la
-    // simulada por pipes, fijo para esa instancia de por vida (instalar/desinstalar la extension
-    // despues no convierte retroactivamente las que ya estaban abiertas)
+    // Decide si cada columna NUEVA es PTY real o simulada; no cambia las ya abiertas
     public ExtensionInfo ClaudeExtension { get; }
 
     [ObservableProperty]
@@ -82,22 +58,16 @@ public partial class TerminalViewModel : ViewModelBase
     public bool EsTabErrores => TabActiva == 1;
     public bool EsTabProblemas => TabActiva == 2;
 
-    // conectado por MainWindowViewModel: abre el archivo del problema clickeado y salta a su linea
-    // (mismo mecanismo que "Ir a linea", ver EditorAreaViewModel.IrALinea)
     public Action<string, int>? AbrirProblema { get; set; }
 
-    // carpeta inicial de cada terminal nueva y de la terminal real (ver ClaudeTerminalView) - la
-    // sigue el explorador de archivos (ver EstablecerDirectorio/RegistrarAperturaArchivo). Una vez
-    // creada, cada instancia seguis su propio cwd (cd), esto solo semilla las nuevas.
+    // Solo semilla el cwd de las terminales nuevas; cada instancia sigue su propio cd
     public string DirectorioActual => _directorioActual;
     string _directorioActual = Environment.CurrentDirectory;
 
     public ObservableCollection<TerminalLinea> LineasErrores { get; } = new();
     bool _huboErroresReales;
 
-    // formato esperado del traductor: "archivo.ggez:12:5: error: mensaje" o "... warning: mensaje"
-    // (ver ideas/panel-problemas.md) - lineas que no matchean simplemente no generan una fila aca,
-    // siguen visibles tal cual en la pestaña Errores
+    // Formato del traductor: "archivo.ggez:12:5: error: mensaje"; lo que no matchea no genera fila
     static readonly Regex RegexProblema = new(@"^(?<archivo>[^:]+):(?<linea>\d+):(?<columna>\d+):\s*(?<severidad>error|warning)?:?\s*(?<mensaje>.+)$", RegexOptions.Compiled);
 
     public ObservableCollection<ProblemaItem> Problemas { get; } = new();
@@ -106,7 +76,7 @@ public partial class TerminalViewModel : ViewModelBase
     [RelayCommand]
     void AbrirProblemaEnEditor(ProblemaItem problema) => AbrirProblema?.Invoke(problema.Archivo, problema.Linea);
 
-    public Action? OnCerrar; // lo dispara el comando "exit" de cualquier instancia
+    public Action? OnCerrar;
 
     public TerminalViewModel(ExtensionInfo claudeExtension)
     {
@@ -115,14 +85,10 @@ public partial class TerminalViewModel : ViewModelBase
         LineasErrores.Add(new TerminalLinea("", "Los errores no existen", TerminalColorLinea.Escrito));
         Problemas.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HayProblemas));
 
-        // la primera terminal si se muestra de una (sin ella el panel arrancaria vacio); las que
-        // se crean despues con "+" quedan en la lista de ocultas, el usuario decide donde ponerlas
-        // arrastrandolas al area de columnas (ver CrearInstancia/TerminalView.axaml.cs)
+        // Solo la primera se muestra; las creadas con "+" quedan ocultas hasta arrastrarlas
         CrearInstancia(mostrarDeUna: true);
     }
 
-    // el "+" del panel: la terminal nueva NO aparece sola como columna - queda en InstanciasOcultas
-    // (se ve como un chip en la barra de arriba) hasta que el usuario la arrastra o la clickea
     [RelayCommand]
     void CrearTerminal() => CrearInstancia(mostrarDeUna: false);
 
@@ -166,24 +132,19 @@ public partial class TerminalViewModel : ViewModelBase
         else
         {
             if (!InstanciasOcultas.Contains(instancia)) InstanciasOcultas.Add(instancia);
-            // si se ocultaba la activa, el foco pasa a la primera columna que haya quedado visible
             if (InstanciaActiva == instancia) EnfocarInstancia(InstanciasVisibles.FirstOrDefault());
         }
     }
 
-    // saca la columna de la vista pero la deja viva (proceso, historial, salida intactos) - se
-    // puede volver a mostrar arrastrandola o clickeandola desde la lista de ocultas (ver
-    // MostrarEnColumna/MostrarEnColumnaEnPosicion). Distinto de Eliminar, que la mata de verdad.
+    // Oculta la columna sin matar el proceso (Eliminar si la mata)
     [RelayCommand]
     void CerrarDeVista(TerminalInstanceViewModel instancia) => instancia.EnColumna = false;
 
-    // click simple en un chip de la lista de ocultas: REEMPLAZA a la activa (la que estaba se va a
-    // la lista, esta ocupa su mismo lugar) en vez de agregarse como columna nueva al lado - eso es
-    // lo que hace arrastrarla (ver MostrarEnColumnaEnPosicion), un gesto distinto y mas explicito
+    // Click en un chip oculto reemplaza a la activa en su mismo lugar
     [RelayCommand]
     void MostrarEnColumna(TerminalInstanceViewModel instancia)
     {
-        if (instancia.EnColumna) { TabActiva = 0; EnfocarInstancia(instancia); return; } // ya era visible, solo enfocar
+        if (instancia.EnColumna) { TabActiva = 0; EnfocarInstancia(instancia); return; }
 
         var anterior = InstanciaActiva;
         if (anterior != null && anterior.EnColumna)
@@ -192,10 +153,6 @@ public partial class TerminalViewModel : ViewModelBase
             anterior.EnColumna = false;
             instancia.EnColumna = true;
 
-            // reubica instancia justo donde estaba anterior en la lista absoluta, para que ocupe su
-            // mismo lugar visual (las ocultas no cuentan para el orden en pantalla, ver
-            // InstanciasVisibles) - mismo ajuste de indice al mover dentro de la propia lista que en
-            // MostrarEnColumnaEnPosicion
             int posicionInstancia = Instancias.IndexOf(instancia);
             int posicionFinal = posicionInstancia < posicionAnterior ? posicionAnterior - 1 : posicionAnterior;
             if (posicionInstancia != posicionFinal) Instancias.Move(posicionInstancia, posicionFinal);
@@ -209,9 +166,6 @@ public partial class TerminalViewModel : ViewModelBase
         EnfocarInstancia(instancia);
     }
 
-    // marca una instancia como la activa (click en su pestaña o en su contenido, ver
-    // TerminalView.axaml.cs y TerminalInstanceView.axaml.cs) - null limpio quita el resaltado sin
-    // marcar ninguna (ver Instancia_PropertyChanged al ocultar la ultima activa visible)
     [RelayCommand]
     public void EnfocarInstancia(TerminalInstanceViewModel? instancia)
     {
@@ -221,17 +175,13 @@ public partial class TerminalViewModel : ViewModelBase
         if (instancia != null) instancia.EsActiva = true;
     }
 
-    // soltar una pestaña de terminal en el area de columnas (ver TerminalView.axaml.cs, arrastrada
-    // desde otra columna para reordenar, o desde la lista de ocultas/pendientes para mostrarla por
-    // primera vez) - "destino" es la posicion final entre las visibles, calculada a partir de la
-    // posicion horizontal del mouse; solo al lado, nunca abajo de otra (no hay segunda dimension,
-    // a diferencia del editor una lista plana ya alcanza)
+    // "destino" es la posicion final entre las visibles, calculada con la x del mouse
     public void MostrarEnColumnaEnPosicion(TerminalInstanceViewModel instancia, int destino)
     {
-        instancia.EnColumna = true; // si estaba oculta, ya queda contada como visible para lo que sigue
+        instancia.EnColumna = true;
 
         int origen = Instancias.IndexOf(instancia);
-        if (origen < 0) return; // no deberia pasar
+        if (origen < 0) return;
 
         int destinoAbsoluto = PosicionAbsoluta(destino);
         int nuevoIndice = Math.Clamp(destinoAbsoluto > origen ? destinoAbsoluto - 1 : destinoAbsoluto, 0, Instancias.Count - 1);
@@ -240,9 +190,7 @@ public partial class TerminalViewModel : ViewModelBase
         EnfocarInstancia(instancia);
     }
 
-    // el boton de basurero: a diferencia de CerrarDeVista, esto corta el proceso y la saca de
-    // Instancias para siempre. Si era la ultima, se crea una nueva de una - el panel nunca se
-    // queda sin ninguna terminal
+    // Mata el proceso; si era la ultima se crea otra para que el panel nunca quede vacio
     [RelayCommand]
     void Eliminar(TerminalInstanceViewModel instancia)
     {
@@ -257,11 +205,6 @@ public partial class TerminalViewModel : ViewModelBase
         if (Instancias.Count == 0) CrearInstancia(mostrarDeUna: true);
     }
 
-    // ─────────────────────────── Errores ───────────────────────────
-
-    // compartida entre todas las instancias (ver TerminalInstanceViewModel.OnError, conectado en
-    // CrearTerminal): la salida de error de cualquier terminal, de cualquier comando, tambien
-    // queda anotada aca para verla de un vistazo sin cambiar de instancia
     public void AgregarError(string texto)
     {
         if (!_huboErroresReales)
@@ -285,16 +228,12 @@ public partial class TerminalViewModel : ViewModelBase
             severidad));
     }
 
-    // el proceso en si no sobrevive al cierre de la app (ver SesionPersistenciaService) - esto solo
-    // recrea la cantidad de columnas que habia y reenfoca la que estaba activa. La primera instancia
-    // ya existe (ver ctor), por eso el loop parte de Instancias.Count en vez de 0.
+    // Solo recrea la cantidad de columnas; la primera ya existe desde el ctor
     public void RestaurarCantidad(int cantidad, int indiceActiva)
     {
         while (Instancias.Count < cantidad && PuedeCrearTerminal) CrearInstancia(mostrarDeUna: true);
         if (indiceActiva >= 0 && indiceActiva < Instancias.Count) EnfocarInstancia(Instancias[indiceActiva]);
     }
-
-    // ─────────────────────────── directorio y limpieza ───────────────────────────
 
     public void RegistrarAperturaArchivo(string rutaCompleta)
     {
@@ -308,7 +247,6 @@ public partial class TerminalViewModel : ViewModelBase
         _directorioActual = Path.GetFullPath(ruta);
     }
 
-    // corta los procesos que hayan quedado vivos al cerrar la app, para no dejar huerfanos
     public void Cerrar()
     {
         foreach (var instancia in Instancias) instancia.Cerrar();

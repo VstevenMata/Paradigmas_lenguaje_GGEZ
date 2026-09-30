@@ -19,11 +19,6 @@
         </Style>
     </UserControl.Styles>
 
-    <!-- Panel inferior: barra de pestañas fija arriba (Problemas / Terminal / Errores, estilo VS
-         Code - orden y set fijo, nada de Output/Debug Console porque no existen aca) y, debajo, el
-         contenido de la pestaña activa. Terminal es la unica con columnas multiples (una por
-         instancia, cada una con su propia pestaña arrastrable - ver mas abajo); las otras dos son
-         listas simples. -->
     <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
         <DockPanel Grid.Row="0" Margin="0,4,4,4" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Spacing="2">
@@ -43,17 +38,12 @@
                 </controls:Win95Bevel>
             </StackPanel>
 
-            <!-- boton "+" de columnas de terminal: solo tiene sentido con esa pestaña activa -->
             <Button DockPanel.Dock="Right" Width="22" Height="22" Padding="0" FontSize="14" FontWeight="Bold" Content="+"
                     Command="{Binding CrearTerminalCommand}" IsVisible="{Binding MuestraBotonCrear}"
                     ToolTip.Tip="Nueva terminal" />
         </DockPanel>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-            <!-- las ocultas (ver CerrarDeVista) ya no van arriba en la barra de pestañas - se agrupan
-                 en una columna angosta pegada al borde derecho de las columnas de terminal, apiladas
-                 verticalmente; un click las vuelve a mostrar reemplazando a la activa (ver
-                 MostrarEnColumna) y arrastrarlas permite soltarlas en una posicion puntual -->
             <ItemsControl Grid.Column="1" ItemsSource="{Binding InstanciasOcultas}" IsVisible="{Binding EsTabTerminal}"
                           VerticalAlignment="Top" Margin="4,0,0,0" x:CompileBindings="False">
                 <ItemsControl.ItemsPanel>
@@ -75,15 +65,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- una columna por instancia visible, todas del mismo ancho, siempre en fila -->
-            <!-- ItemsSource es Instancias (TODAS, no solo las visibles): si ocultar una la sacara de
-                 aca, Avalonia destruiria su contenedor y con el la vista - para la terminal real
-                 (ClaudeTerminalView, PTY) eso mata la sesion entera. En cambio se oculta el
-                 contenedor generado (el ContentPresenter que arma el ItemsControl) enlazando su
-                 IsVisible a mano en el code-behind (ver Columnas_ContainerPrepared): UniformGrid ya
-                 ignora los hijos con IsVisible=False tanto para contar como para ubicar celdas, asi
-                 que las ocultas simplemente no ocupan lugar, sin perder su estado (ver
-                 TerminalViewModel.InstanciasVisibles). -->
+            <!-- ItemsSource con TODAS las instancias: sacar una destruiria su vista (y la sesion PTY); las ocultas se esconden via IsVisible del contenedor -->
             <ItemsControl Grid.Column="0" Name="PART_Columnas" ItemsSource="{Binding Instancias}" IsVisible="{Binding EsTabTerminal}" x:CompileBindings="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -93,9 +75,6 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:TerminalInstanceViewModel">
                         <Grid RowDefinitions="Auto,*" Margin="2,0">
-                            <!-- pestaña de esta columna: nombre (arrastrable, PointerPressed/Moved/Released
-                                 abajo arman el drag-to-reorder) + ocultar + basurero, mismo patron visual
-                                 que las pestañas de archivo del editor -->
                             <controls:Win95Bevel Grid.Row="0" Height="22" BevelThickness="2" Margin="0,0,0,2"
                                                   Background="{DynamicResource TemaBackgroundBrush}"
                                                   PointerPressed="Pestana_PointerPressed" PointerMoved="Pestana_PointerMoved" PointerReleased="Pestana_PointerReleased">
@@ -116,10 +95,7 @@
                                 </StackPanel>
                             </controls:Win95Bevel>
 
-                            <!-- contenido: simulada o PTY real, fijo por instancia (ver
-                                 TerminalInstanceViewModel.EsReal) - las dos viven en el arbol visual,
-                                 solo una se muestra (ClaudeTerminalView revisa EsReal antes de
-                                 arrancar una sesion real de verdad, ver su code-behind) -->
+                            <!-- Las dos viven en el arbol; ClaudeTerminalView revisa EsReal antes de abrir un shell real -->
                             <Grid Grid.Row="1">
                                 <views:TerminalInstanceView DataContext="{Binding}" IsVisible="{Binding !EsReal}" />
                                 <views:ClaudeTerminalView DataContext="{Binding}" IsVisible="{Binding EsReal}" />
@@ -129,8 +105,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- linea de insercion mientras se arrastra una pestaña: solo horizontal, nunca indica
-                 "arriba/abajo" - las terminales solo se agrupan al lado, nunca apiladas -->
             <Border Name="PART_LineaInsercion" Width="3" HorizontalAlignment="Left" Background="#FF3070C0"
                     IsVisible="False" IsHitTestVisible="False" />
 
@@ -148,9 +122,6 @@
                 </ScrollViewer>
             </controls:Win95Bevel>
 
-            <!-- lista de problemas parseados de la salida de error (ver TerminalViewModel.AgregarError,
-                 formato "archivo:linea:columna: mensaje") - click en una fila abre el archivo y salta
-                 a la linea (ver AbrirProblemaEnEditorCommand / MainWindowViewModel.Terminal.AbrirProblema) -->
             <controls:Win95Bevel Sunken="True" BevelThickness="4" Background="Black" Padding="4" IsVisible="{Binding EsTabProblemas}">
                 <ScrollViewer>
                     <StackPanel>

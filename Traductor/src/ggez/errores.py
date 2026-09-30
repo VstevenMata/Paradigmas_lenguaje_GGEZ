@@ -1,8 +1,4 @@
-"""Errores del traductor.
-
-Salen por stderr como  archivo.ggez:LINEA:COLUMNA: etapa: mensaje  (estilo gcc).
-El panel Problemas del IDE parsea ese formato: si se cambia, se rompe alla.
-"""
+"""Errores como archivo.ggez:LINEA:COLUMNA: etapa: mensaje. El panel Problemas del IDE parsea este formato."""
 
 from __future__ import annotations
 

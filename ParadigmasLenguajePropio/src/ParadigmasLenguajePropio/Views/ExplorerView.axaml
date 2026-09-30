@@ -5,18 +5,11 @@
              x:Class="ParadigmasLenguajePropio.Views.ExplorerView"
              x:DataType="vm:ExplorerViewModel">
 
-    <!-- Reemplaza ExploradorArchivos.cs. El arbol se dibuja a mano (ExplorerTreeView, mismo patron
-         que EditorTextArea) en vez de TreeView nativo: el color de texto de TreeViewItem:selected
-         no se pudo controlar de forma confiable (mismo problema que tuvo Menu/MenuItem), y de paso
-         permite dibujar las lineas guia que conectan una carpeta con sus hijos, como el original.
-         El menu contextual tambien es un Popup propio en vez de ContextMenu nativo, por lo mismo;
-         todo su estado (abierto/cerrado, que items se ven) se maneja a mano en el code-behind. -->
     <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
         <TextBlock Grid.Row="0" Text="Archivos" FontSize="16" Margin="2,4,0,4" />
 
         <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="3">
             <Grid Name="PART_Area">
-                <!-- sin proyecto abierto: fantasma centrado + menu contextual para arrancar uno -->
                 <Border Background="Transparent" IsVisible="{Binding !HayProyecto}" PointerPressed="Vacio_PointerPressed">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Fantasma32px.png"
                            Width="32" Height="32" RenderOptions.BitmapInterpolationMode="None" />
@@ -27,16 +20,10 @@
                                                 Seleccionado="{Binding Seleccionado, Mode=TwoWay}" />
                 </ScrollViewer>
 
-                <!-- cierra el menu contextual al clickear afuera -->
                 <Border Name="PART_CatchAll" Background="Transparent" IsVisible="False"
                         PointerPressed="CerrarMenu_PointerPressed" />
 
-                <!-- menu contextual: un solo Popup, el contenido (que items se ven) lo arma el
-                     code-behind segun sobre que se clickeo -->
-                <!-- Placement/PlacementTarget/offsets se fijan a mano en el code-behind, con el punto
-                     exacto del click relativo a PART_Area (Placement="Pointer" hacia terminaba
-                     abriendo una ventana de popup sin acotar, cubriendo toda la pantalla en vez de
-                     quedar contenida en la ventana de la app) -->
+                <!-- Placement y offsets se fijan en el code-behind: Placement="Pointer" solo cubria toda la pantalla -->
                 <Popup Name="PART_MenuContextual" IsLightDismissEnabled="False" WindowManagerAddShadowHint="False">
                     <controls:Win95Bevel BevelThickness="2" Padding="2" Background="{DynamicResource TemaBackgroundBrush}">
                         <StackPanel Name="PART_ItemsMenuContextual" MinWidth="150" />

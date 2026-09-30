@@ -5,36 +5,23 @@ using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Controls;
 
-// Reemplaza la mitad "números de línea" de PanelCentral.DibujarTexto: se dibujan aparte de
-// EditorTextArea para poder vivir fuera de su ScrollViewer horizontal (los números no se
-// desplazan de lado, solo verticalmente, junto con el texto).
+// Numeros de linea aparte de EditorTextArea para no desplazarse con el scroll horizontal
 public class EditorGutter : Control
 {
-    const int MargenNumeros = 8; // 4px de aire a cada lado del numero mas ancho posible
+    const int MargenNumeros = 8;
 
-    // gris suave para distinguir la columna de numeros del blanco del area de texto, igual que el
-    // gutter de VSCode - un poco mas oscuro que el fondo del minimapa (246,246,246) porque aca hay
-    // texto chico encima (los numeros) y conviene mas contraste que en el minimapa
     static readonly IBrush FondoGutter = new SolidColorBrush(Color.FromRgb(238, 238, 238));
 
-    // extension Modo Oscuro: un pelin mas claro que el fondo del texto (#0F1117), igual que arriba
     static readonly IBrush FondoGutterOscuro = new SolidColorBrush(Color.Parse("#161A24"));
     static readonly IBrush NumerosOscuro = new SolidColorBrush(Color.Parse("#5C6370"));
 
     public EditorGutter()
     {
-        // defensivo: si por lo que sea un numero midiera mas de lo que AnchoNumeros calculo (fuente
-        // no tabular, redondeos), que se recorte en vez de pintarse fuera de esta columna y de ahi
-        // fuera del panel central - es justo el bug que reemplaza este ancho dinamico (ver abajo)
+        // Si un numero midiera mas de lo calculado, se recorta en vez de salirse del panel
         ClipToBounds = true;
     }
 
-    // antes un ancho fijo de 40px: a un zoom alto, un numero de 3 cifras a ese tamaño de fuente
-    // mide mas que eso, y como Render() lo alinea a la derecha (AnchoNumeros - formatted.Width),
-    // el resultado era una X negativa - el numero se dibujaba empezando a la izquierda de esta
-    // columna, es decir se salia del panel central. Se calcula a partir del numero MAS ANCHO que
-    // puede aparecer (la ultima linea: mas digitos que "999" si el archivo supera 999 lineas) al
-    // TamanoFuente actual, asi que escala solo con el zoom y con el largo del archivo.
+    // Se mide con el numero mas ancho posible (la ultima linea) al zoom actual; un ancho fijo se salia del panel
     double AnchoNumeros
     {
         get
@@ -53,9 +40,7 @@ public class EditorGutter : Control
         set => SetValue(TabProperty, value);
     }
 
-    // zoom (ver EditorTextArea.TamanoFuente): mismo StyledProperty bindeado desde el mismo lugar
-    // en EditorView.axaml, y AltoLinea derivado con EditorFont.AltoLinea - la misma cuenta que usa
-    // EditorTextArea, para que los numeros de linea nunca se desalineen del texto al hacer zoom.
+    // Mismo calculo de AltoLinea que EditorTextArea para no desalinear los numeros con el zoom
     public static readonly StyledProperty<double> TamanoFuenteProperty =
         AvaloniaProperty.Register<EditorGutter, double>(nameof(TamanoFuente), 18.0);
 
@@ -67,7 +52,6 @@ public class EditorGutter : Control
 
     public double AltoLinea => EditorFont.AltoLinea(TamanoFuente);
 
-    // bindeado a Extensiones.ModoOscuro.Instalada en EditorView.axaml
     public static readonly StyledProperty<bool> ModoOscuroProperty =
         AvaloniaProperty.Register<EditorGutter, bool>(nameof(ModoOscuro));
 
@@ -77,9 +61,7 @@ public class EditorGutter : Control
         set => SetValue(ModoOscuroProperty, value);
     }
 
-    // mismo par que EditorTextArea.DesplazamientoY/AltoVisible, sincronizado desde el mismo lugar
-    // (EditorView.axaml.cs, en cada ScrollChanged) - sin esto Render() dibujaba los numeros de
-    // TODAS las lineas del archivo en cada frame, aunque el gutter solo muestre unas pocas decenas
+    // Sincronizados desde EditorView igual que en EditorTextArea: solo se dibujan las lineas visibles
     public static readonly StyledProperty<double> DesplazamientoYProperty =
         AvaloniaProperty.Register<EditorGutter, double>(nameof(DesplazamientoY));
 
@@ -110,8 +92,6 @@ public class EditorGutter : Control
         TamanoFuenteProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.Refrescar());
         ModoOscuroProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.InvalidateVisual());
 
-        // scroll: no cambia el tamaño total del gutter, solo que rango dibuja - alcanza con
-        // InvalidateVisual()
         DesplazamientoYProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.InvalidateVisual());
         AltoVisibleProperty.Changed.AddClassHandler<EditorGutter>((c, _) => c.InvalidateVisual());
     }
@@ -132,14 +112,10 @@ public class EditorGutter : Control
         context.FillRectangle(ModoOscuro ? FondoGutterOscuro : FondoGutter, new Rect(Bounds.Size));
         var colorNumeros = ModoOscuro ? NumerosOscuro : Brushes.DarkGray;
 
-        // cacheado: AnchoNumeros vuelve a medir un string cada vez que se lee, no hace falta
-        // repetirlo una vez por linea (ya no cambia dentro de este frame)
         double anchoNumeros = AnchoNumeros;
         double margenDerecho = MargenNumeros / 2.0;
         double altoLinea = AltoLinea;
 
-        // mismo viewport que EditorTextArea.Render (ver comentario ahi): solo los numeros que
-        // realmente se ven, no el archivo entero en cada frame
         int primeraLinea = 0;
         int ultimaLinea = Tab.Lineas.Count - 1;
         if (AltoVisible > 0)

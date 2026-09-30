@@ -4,8 +4,7 @@ using Avalonia.Data.Converters;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// permite bindear ColumnDefinition.Width/RowDefinition.Height (GridLength) directo a un double del ViewModel,
-// para que GridSplitter pueda escribirle de vuelta al arrastrar.
+// Double <-> GridLength para que el GridSplitter pueda escribirle de vuelta al ViewModel
 public class PixelGridLengthConverter : IValueConverter
 {
     public static readonly PixelGridLengthConverter Instance = new();

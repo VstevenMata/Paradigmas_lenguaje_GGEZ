@@ -6,7 +6,6 @@
              x:Class="ParadigmasLenguajePropio.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
-    <!-- Mismo lugar en pantalla que ExplorerView/ExtensionsView (ver MainWindow.axaml) -->
     <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
         <TextBlock Grid.Row="0" Text="Ajustes" FontSize="16" Margin="2,4,0,4" />
 

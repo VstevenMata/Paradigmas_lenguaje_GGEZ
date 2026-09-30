@@ -1,17 +1,10 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Paleta "Sonic" (Sega Genesis): cuerpo azul cobalto con textura a cuadros tipo Green Hill
-         Zone, marco doble REDONDO dorado suave (como los anillos del juego) en vez del bisel plano
-         de Win95, franja superior en degrade diagonal rojo-dorado, campos de texto blancos. -->
+    <!-- Paleta "Sonic" (Sega Genesis) -->
 
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- textura de fondo: el anillo dorado del juego (un toro: circulo hueco via
-                 GeometryGroup FillRule=EvenOdd, exterior menos interior) repetido en grilla,
-                 en vez del piso a cuadros - hace juego con el bisel de anillo de arriba. Alpha
-                 bien bajo, es un tinte apenas insinuado, no un grafico que compita con el
-                 contenido de encima -->
             <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
                           SourceRect="0,0,32,32" DestinationRect="0,0,32,32">
                 <DrawingBrush.Drawing>
@@ -35,12 +28,10 @@
 
             <SolidColorBrush x:Key="TemaScrollTrackBrush" Color="#0A1A52" />
             <SolidColorBrush x:Key="TemaTitleBarBrush" Color="#C1272D" />
-            <!-- degrade diagonal (no horizontal como los demas temas) - efecto "velocidad" -->
             <LinearGradientBrush x:Key="TemaTitleBarActivaBrush" StartPoint="0%,0%" EndPoint="100%,100%">
                 <GradientStop Offset="0" Color="#C1272D" />
                 <GradientStop Offset="1" Color="#F2A900" />
             </LinearGradientBrush>
-            <!-- ventana sin foco: mismo degradado pero desaturado -->
             <LinearGradientBrush x:Key="TemaTitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="100%,100%">
                 <GradientStop Offset="0" Color="#4A4A66" />
                 <GradientStop Offset="1" Color="#6B6B88" />
@@ -53,18 +44,12 @@
             <SolidColorBrush x:Key="TemaTextoBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="TemaCampoFondoBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="#12297A" />
-            <!-- Silkscreen: misma altura de mayuscula relativa al tamaño de fuente que Liberation
-                 Sans (ver ZeldaPaleta.axaml) - mismo pixel font que el resto de temas retro -->
+            <!-- Silkscreen: misma altura de mayuscula que Liberation Sans -->
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
-            <!-- flecha del scrollbar (ver TemaBase.axaml): chevron afilado con muesca concava en la
-                 base (mas "veloz" que un triangulo comun), rojo como la franja superior -->
             <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L7,4 L4,2.5 L1,4 Z</StreamGeometry>
             <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#C1272D" />
 
-            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble bien
-                 redondeado, como un anillo - radio grande a proposito, en los botones chicos
-                 (~22-24px) queda casi una pastilla/circulo -->
             <CornerRadius x:Key="TemaBevelRadioExterior">14</CornerRadius>
             <CornerRadius x:Key="TemaBevelRadioInterior">12</CornerRadius>
             <Thickness x:Key="TemaBevelGrosorExterior">3</Thickness>

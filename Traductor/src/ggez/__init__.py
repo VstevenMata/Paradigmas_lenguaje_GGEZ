@@ -1,10 +1,4 @@
-"""Traductor de GGEZ.
-
-    fuente -> lexer.py -> sintactico.py -> semantico.py -> evaluador.py
-
-OJO: se llaman arbol.py y sintactico.py, no ast.py ni parser.py, porque esos
-dos nombres chocan con modulos de Python y el import falla raro.
-"""
+"""Traductor de GGEZ: lexer -> sintactico -> semantico -> evaluador. arbol/sintactico evitan chocar con ast/parser de Python."""
 
 from . import arbol
 from .errores import (

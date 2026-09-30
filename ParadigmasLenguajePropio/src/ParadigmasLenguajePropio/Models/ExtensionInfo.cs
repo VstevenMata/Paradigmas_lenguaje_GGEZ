@@ -4,17 +4,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ParadigmasLenguajePropio.Models;
 
-// La extension ya vive compilada en la app: "instalar" no descarga nada de internet, solo prende
-// Instalada (con una animacion de progreso fantasma en el medio, ver ExtensionsViewModel).
+// La extension ya esta compilada en la app: "instalar" solo prende Instalada
 public partial class ExtensionInfo : ObservableObject
 {
     public string Id { get; }
     public string Nombre { get; }
     public string Autor { get; }
 
-    // sigla corta (2-3 letras) sobre una placa de color, en vez de un emoji: ninguna de las
-    // fuentes de TemaFontFamily (ver Themes/Paletas/) trae glifos de emoji, salian como una caja
-    // rota/tofu
+    // Sigla en vez de emoji: las fuentes del tema no traen glifos de emoji (salian como tofu)
     public string Icono { get; }
     public IBrush IconoColor { get; }
 

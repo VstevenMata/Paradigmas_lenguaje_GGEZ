@@ -5,8 +5,6 @@
              x:Class="ParadigmasLenguajePropio.Views.MenuBarView"
              x:DataType="vm:MenuBarViewModel">
 
-    <!-- Reemplaza MenuBar.cs con un Popup propio (ver MenuBarViewModel para el porque) en vez del
-         Menu nativo de Avalonia. -->
     <StackPanel Orientation="Horizontal" Height="26" x:CompileBindings="False">
         <ItemsControl ItemsSource="{Binding Menus}">
             <ItemsControl.ItemsPanel>
@@ -25,18 +23,12 @@
                         </Border.Styles>
 
                         <Panel>
-                            <!-- hundido mientras el menu esta abierto, igual que el original (activo -> sunken) -->
                             <controls:Win95Bevel IsVisible="{Binding EsAbierto}" IsHitTestVisible="False"
                                                   Sunken="True" BevelThickness="1" Background="#3CFFFFFF" />
                             <TextBlock Text="{Binding Titulo}" Foreground="White" FontSize="16" VerticalAlignment="Center"
                                        Margin="8,0" IsHitTestVisible="False" />
 
-                            <!-- IsLightDismissEnabled=False: esa capa invisible tapaba el hover hacia los
-                                 otros encabezados. El cierre por click-afuera lo maneja MainWindow.axaml.
-                                 ShouldUseOverlayLayer=True: sin esto el popup es una ventana nativa aparte,
-                                 que en Linux queda desincronizada de la ventana principal (no la sigue, no
-                                 se repinta) al cambiar de ventana/escritorio del SO - con la capa overlay
-                                 se dibuja como parte de la ventana del IDE, asi que queda fijo a ella. -->
+                            <!-- ShouldUseOverlayLayer: sin esto en Linux el popup es una ventana aparte que no sigue a la principal -->
                             <Popup PlacementTarget="{Binding #PART_Encabezado}" Placement="BottomEdgeAlignedLeft"
                                    IsOpen="{Binding EsAbierto}" IsLightDismissEnabled="False" WindowManagerAddShadowHint="False"
                                    ShouldUseOverlayLayer="True">

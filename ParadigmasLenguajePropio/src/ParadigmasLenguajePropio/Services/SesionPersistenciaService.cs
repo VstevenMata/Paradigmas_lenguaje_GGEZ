@@ -6,12 +6,12 @@ namespace ParadigmasLenguajePropio.Services;
 public record TabSesion(string RutaCompleta, int Fila, int Columna);
 public record PanelSesion(List<TabSesion> Tabs, int IndiceActivo);
 
-// espejo serializable de NodoPanel (ver Models/NodoPanel.cs): Panel null = split con A/B, no null = hoja
+// Espejo serializable de NodoPanel: Panel null = split con A/B, no null = hoja
 public record NodoLayoutSesion(PanelSesion? Panel, OrientacionSplit Orientacion, NodoLayoutSesion? A, NodoLayoutSesion? B);
 
 public record SesionGuardada(string CarpetaRaiz, NodoLayoutSesion? Layout, int CantidadTerminales, int TerminalActivaIndice);
 
-// persiste carpeta, layout de splits (con cursor por pestaña) y terminales entre sesiones, mismo patron que TemaService
+// Persiste carpeta, layout de splits (con cursor por pestaña) y terminales entre sesiones
 public static class SesionPersistenciaService
 {
     static readonly string RutaArchivo = Path.Combine(

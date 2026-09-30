@@ -9,7 +9,7 @@ public enum Tema { Win95, Zelda, Sonic, MegaMan }
 // Cambia la paleta de colores incluida en App.axaml en caliente, sin reiniciar la ventana.
 public static class TemaService
 {
-    // indice del StyleInclude de la paleta dentro de Application.Styles (ver App.axaml)
+    // Indice del StyleInclude de la paleta en Application.Styles (App.axaml)
     const int IndicePaleta = 1;
 
     static readonly string RutaArchivo = Path.Combine(
@@ -41,8 +41,7 @@ public static class TemaService
         Guardar(tema);
     }
 
-    // el tema activo persiste aparte de que extensiones estan instaladas: instalado != activo,
-    // igual que cualquier extension real (se puede tener varias instaladas y usar solo una a la vez)
+    // El tema activo se guarda aparte de las extensiones instaladas: instalado != activo
     public static Tema CargarGuardado()
     {
         try

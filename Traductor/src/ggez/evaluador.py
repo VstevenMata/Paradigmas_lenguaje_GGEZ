@@ -1,10 +1,4 @@
-"""Paso 4: recorre el arbol y lo ejecuta. El ultimo.
-
-Va bajando por el arbol y resolviendo de abajo para arriba.
-
-chat.send sale por la salida normal y chat.rage por la de errores. Por eso el
-IDE los puede mostrar en pestanas distintas.
-"""
+"""Paso 4: recorre el arbol y lo ejecuta. chat.send va a stdout y chat.rage a stderr."""
 
 from __future__ import annotations
 
@@ -17,11 +11,7 @@ from .tokens import CONSTRUCTORES_COLECCION
 
 
 class Entorno:
-    """Donde se guardan los valores mientras corre. Un nivel por glhf...gg.
-
-    Es lo mismo que la tabla de simbolos del paso 3, pero con los valores en
-    vez de los tipos.
-    """
+    """Valores en ejecucion, un nivel por glhf...gg."""
 
     def __init__(self, padre: "Entorno | None" = None) -> None:
         self.valores: dict[str, object] = {}
@@ -49,7 +39,6 @@ class Entorno:
 
 
 class Modulo:
-    """Un modulo: de la libreria, tipo chat, o un archivo traido con travel."""
 
     def __init__(self, nombre: str, funciones: dict[str, object]) -> None:
         self.nombre = nombre
@@ -57,11 +46,7 @@ class Modulo:
 
 
 class Lugar:
-    """El archivo donde esta escrito algo: su nivel de afuera de todo y su nombre.
-
-    Un combo de utilidades.ggez ve los combo de utilidades.ggez, no los de quien
-    lo llamo, y si falla el error dice utilidades.ggez -> D-28.
-    """
+    """Nivel global y nombre del archivo donde esta escrito algo: un combo ve su propio archivo -> D-28."""
 
     def __init__(self, archivo: str, global_: Entorno) -> None:
         self.archivo = archivo
@@ -69,7 +54,6 @@ class Lugar:
 
 
 class Coleccion:
-    """Un squad. Adentro es una lista de Python y nada mas."""
 
     def __init__(self, constructor: str = "squad") -> None:
         self.constructor = constructor
@@ -80,7 +64,6 @@ class Coleccion:
 
 
 class Registro:
-    """Un inventory ya creado con spawn."""
 
     def __init__(self, tipo: str, campos: dict[str, object]) -> None:
         self.tipo = tipo
@@ -92,7 +75,6 @@ class Registro:
 
 
 class Clase:
-    """Un guild ya leido: de aca salen los objetos."""
 
     def __init__(self, declaracion: arbol.DeclGuild) -> None:
         self.nombre = declaracion.nombre
@@ -108,11 +90,7 @@ class Clase:
         self.con_herencia = self.padre is None
 
     def heredar(self, padre: "Clase") -> None:
-        """Se copia lo del padre abajo de lo propio -> D-27.
-
-        Los metodos del hijo pisan a los del padre, asi un objeto siempre corre
-        la version de su guild de verdad. El constructor NO se hereda.
-        """
+        """Copia lo del padre abajo de lo propio; los metodos del hijo pisan y el constructor NO se hereda -> D-27."""
         self.campos = padre.campos + self.campos
         metodos = dict(padre.metodos)
         metodos.update(self.metodos)
@@ -121,16 +99,13 @@ class Clase:
 
 
 class Objeto(Registro):
-    """Un objeto de un guild. Es un registro que ademas sabe de que guild es."""
 
     def __init__(self, clase: Clase, campos: dict[str, object]) -> None:
         super().__init__(clase.nombre, campos)
         self.clase = clase
 
 
-# ragequit, respawn y reward tienen que cortar desde donde sea (podes estar
-# metido dentro de tres scan). Los hago con excepciones asi no tengo que andar
-# devolviendo un aviso en cada sentencia. El ciclo o el combo las agarra.
+# ragequit, respawn y reward son excepciones para cortar desde cualquier profundidad
 class _SenalRagequit(Exception):
     pass
 
@@ -140,7 +115,6 @@ class _SenalRespawn(Exception):
 
 
 class _SenalReward(Exception):
-    """reward: corta el combo y se lleva el valor."""
 
     def __init__(self, valor: object) -> None:
         super().__init__()
@@ -148,14 +122,13 @@ class _SenalReward(Exception):
 
 
 class Combo:
-    """Un combo ya listo para llamarse."""
 
     def __init__(
         self, declaracion: arbol.DeclCombo, evaluador: "Evaluador", objeto: Objeto | None = None
     ) -> None:
         self.declaracion = declaracion
         self.evaluador = evaluador
-        self.objeto = objeto                 # el me, si es un metodo de un guild
+        self.objeto = objeto
 
     @property
     def nombre(self) -> str:
@@ -167,28 +140,22 @@ class Combo:
 
 class Evaluador:
     def __init__(self, archivo: str = "<entrada>") -> None:
-        # el archivo que esta corriendo ahora. Cambia al entrar a un combo de otro
         self.archivo = archivo
         self.entorno = Entorno()
-        # los inventory: nombre -> campos, en orden. Estos dos son de todo el programa
+        # Estos dos son de todo el programa
         self.registros: dict[str, list[str]] = {}
         self.clases: dict[str, Clase] = {}
-        # cada combo y cada campo de guild -> el archivo donde esta escrito
         self.lugares: dict[int, Lugar] = {}
 
     def _error(self, mensaje: str, nodo: arbol.Nodo) -> ErrorEjecucion:
         return ErrorEjecucion(mensaje, nodo.linea, nodo.columna, self.archivo)
 
-    # ------------------------------------------------------- libreria estandar
-
     def _texto(self, valor: object) -> str:
-        """Como se ve cada valor cuando se imprime."""
         if valor is None:
             return "afk"
         if isinstance(valor, bool):
             return "hit" if valor else "miss"
         if isinstance(valor, float):
-            # sin el .0 de mas cuando el decimal dio justo
             return f"{valor:g}"
         if isinstance(valor, Coleccion):
             return "<" + " | ".join(self._texto(e) for e in valor.elementos) + ">"
@@ -206,15 +173,11 @@ class Evaluador:
     def _chat_load(self, _argumentos: list[object]) -> str:
         return input()
 
-    # ---------------------------------------------------------------- programa
-
     def ejecutar(self, programa: arbol.Programa) -> None:
-        """Un solo archivo, sin travel."""
         _, lugar = self._cargar(programa, self.archivo, None, {})
         self._arrancar(programa, lugar)
 
     def ejecutar_archivos(self, archivos: list) -> None:
-        """Vienen en orden, el principal al final: lo que un archivo trae ya esta cargado."""
         exporta: dict[int, Modulo] = {}
         lugar = None
         for archivo in archivos:
@@ -236,8 +199,7 @@ class Evaluador:
         for nombre, importado in importa.items():
             lugar.global_.declarar(nombre, importado)
 
-        # igual que en el paso 3: primero anoto todos los combo, asi pueden
-        # llamarse entre si sin importar el orden en que esten escritos
+        # Primero se registran todos los combo para que se llamen sin importar el orden
         funciones: dict[str, object] = {}
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.DeclInventory):
@@ -252,11 +214,10 @@ class Evaluador:
                 for miembro in [*declaracion.campos, *declaracion.metodos]:
                     self.lugares[id(miembro)] = lugar
 
-        # los combo son lo que otro archivo ve como utilidades.algo
         return Modulo(modulo or archivo, funciones), lugar
 
     def _arrancar(self, programa: arbol.Programa, lugar: Lugar) -> None:
-        # recien con todo cargado: un guild puede heredar de uno de otro archivo
+        # Recien con todo cargado: un guild puede heredar de otro archivo
         for clase in self.clases.values():
             self._armar_herencia(clase)
 
@@ -270,9 +231,7 @@ class Evaluador:
         declaracion = combo.declaracion
         lugar = self.lugares[id(declaracion)]
 
-        # OJO: arranca desde el nivel de afuera de todo, no desde el de quien
-        # llamo. Adentro solo estan los parametros y los otros combo. Y es el
-        # de afuera de SU archivo, que puede no ser el de quien llamo
+        # OJO: arranca desde el global de SU archivo, no desde quien llamo
         anterior, archivo_anterior = self.entorno, self.archivo
         base = self._base_metodo(combo.objeto, lugar.global_) if combo.objeto else lugar.global_
         self.entorno = Entorno(base)
@@ -281,7 +240,7 @@ class Evaluador:
             self.entorno.declarar("me", combo.objeto)
         for parametro, valor in zip(declaracion.parametros, argumentos):
             if str(parametro.tipo) == "aim" and isinstance(valor, int) and not isinstance(valor, bool):
-                valor = float(valor)                 # score -> aim
+                valor = float(valor)
             self.entorno.declarar(parametro.nombre, valor)
 
         try:
@@ -292,8 +251,7 @@ class Evaluador:
             self.entorno, self.archivo = anterior, archivo_anterior
 
         if declaracion.retorno is not None:
-            # el paso 3 ya revisa esto, pero un ciclo que no da ni una vuelta
-            # se le puede escapar. Mejor avisar que devolver afk y que siga
+            # El paso 3 lo revisa, pero un ciclo sin vueltas se le puede escapar
             raise ErrorEjecucion(
                 f"el combo '{declaracion.nombre}' termino sin ejecutar 'reward'",
                 declaracion.linea, declaracion.columna, lugar.archivo,
@@ -301,8 +259,7 @@ class Evaluador:
         return None
 
     def _armar_herencia(self, clase: Clase) -> None:
-        # el padre primero: si no, el hijo copiaria un padre a medio armar.
-        # Los circulos ya los freno el paso 3
+        # El padre primero, si no el hijo copiaria un padre a medio armar
         if clase.con_herencia:
             return
         padre = self.clases[clase.padre]            # type: ignore[index]
@@ -310,21 +267,17 @@ class Evaluador:
         clase.heredar(padre)
 
     def _base_metodo(self, objeto: Objeto, global_: Entorno) -> Entorno:
-        """Lo que ve un metodo por encima de sus parametros, igual que en el paso 3:
-        campos del objeto -> metodos del guild -> combos globales del archivo del metodo.
-        """
+        """Alcance de un metodo: campos del objeto -> metodos del guild -> combos globales de su archivo."""
         metodos = Entorno(global_)
         for nombre, declaracion in objeto.clase.metodos.items():
             metodos.declarar(nombre, Combo(declaracion, self, objeto))
         campos = Entorno(metodos)
-        # los campos del objeto SON este nivel: escribir 'puntos set 3' a
-        # secas ya cambia el objeto, sin copiar nada
+        # Los campos del objeto SON este nivel: asignar a secas ya cambia el objeto
         campos.valores = objeto.campos
         return campos
 
     def _crear_objeto(self, clase: Clase, argumentos: list[object]) -> Objeto:
-        # el valor inicial se calcula afuera de todo, como lo reviso el paso 3.
-        # Afuera de todo en el archivo del campo: puede ser heredado de otro
+        # El valor inicial se evalua en el global del archivo del campo (puede ser heredado de otro)
         anterior, archivo_anterior = self.entorno, self.archivo
         campos: dict[str, object] = {}
         try:
@@ -344,7 +297,7 @@ class Evaluador:
         return objeto
 
     def _por_defecto(self, tipo: arbol.Tipo) -> object:
-        # como en Java: numeros en 0, win en miss, el resto en afk -> D-26
+        # Como en Java: numeros en 0, win en miss, el resto en afk -> D-26
         return {"score": 0, "aim": 0.0, "win": False}.get(tipo.nombre)
 
     def bloque(self, nodo: arbol.Bloque) -> None:
@@ -360,9 +313,8 @@ class Evaluador:
         if isinstance(nodo, arbol.DeclVariable):
             valor = self.expresion(nodo.valor) if nodo.valor is not None else None
             if str(nodo.tipo) == "aim" and isinstance(valor, int) and not isinstance(valor, bool):
-                valor = float(valor)               # score -> aim
+                valor = float(valor)
 
-            # el <a | b | c> llega sin tipo: se lo pone la declaracion
             constructor = nodo.tipo.nombre
             if constructor in CONSTRUCTORES_COLECCION:
                 if valor is None:
@@ -416,15 +368,11 @@ class Evaluador:
             self.sent_clutch(nodo)
 
         elif isinstance(nodo, arbol.Wipe):
-            # el wipe es un error en ejecucion mas, igual que dividir entre
-            # cero. Si nadie lo atrapa, sale por el mismo lado que los otros
             motivo = self.expresion(nodo.motivo)
             raise self._error(self._texto(motivo), nodo)
 
         else:
             raise self._error("sentencia no soportada todavia", nodo)
-
-    # ----------------------------------------------------- control de flujo
 
     def sent_scan(self, nodo: arbol.Scan) -> None:
         if self.expresion(nodo.condicion):
@@ -435,11 +383,10 @@ class Evaluador:
             self.bloque(nodo.sino)
 
     def _vuelta(self, cuerpo: arbol.Bloque) -> bool:
-        """Una vuelta del ciclo. Devuelve False si hay que cortar."""
         try:
             self.bloque(cuerpo)
         except _SenalRespawn:
-            pass                                    # sigue con la proxima
+            pass
         except _SenalRagequit:
             return False
         return True
@@ -449,8 +396,7 @@ class Evaluador:
         while self.expresion(nodo.condicion):
             if not self._vuelta(nodo.cuerpo):
                 break
-            # despues de un respawn el paso corre igual, si no el farm no
-            # avanzaria nunca y se quedaria colgado
+            # El paso corre igual tras un respawn, si no el farm se quedaria colgado
             self.sentencia(nodo.paso)
 
     def sent_survive(self, nodo: arbol.Survive) -> None:
@@ -459,7 +405,6 @@ class Evaluador:
                 break
 
     def sent_grind(self, nodo: arbol.Grind) -> None:
-        # condicion al final: el cuerpo corre minimo una vez
         while True:
             if not self._vuelta(nodo.cuerpo):
                 break
@@ -472,16 +417,13 @@ class Evaluador:
         for rama in nodo.ramas:
             if any(self.expresion(v) == seleccion for v in rama.valores):
                 self.bloque(rama.cuerpo)
-                return                              # sin caida entre ramas
+                return
 
         if nodo.defecto is not None:
             self.bloque(nodo.defecto)
 
-    # ------------------------------------------------------------- errores
-
     def sent_clutch(self, nodo: arbol.Clutch) -> None:
-        # el reward, ragequit y respawn no son ErrorEjecucion, asi que pasan
-        # de largo por el revive. Pero el checkpoint corre igual -> D-22
+        # reward/ragequit/respawn no son ErrorEjecucion y atraviesan el revive, pero el checkpoint corre igual -> D-22
         try:
             try:
                 self.bloque(nodo.intento)
@@ -492,7 +434,7 @@ class Evaluador:
                 self.bloque(nodo.final)
 
     def _revive(self, nodo: arbol.Clutch, error: ErrorEjecucion) -> None:
-        # la e se arma como un registro de dos campos -> D-15
+
         falla = Registro("error de revive", {"reason": error.mensaje, "line": error.linea})
         anterior = self.entorno
         self.entorno = Entorno(anterior)
@@ -520,7 +462,6 @@ class Evaluador:
                 raise self._error(f"'{destino.nombre}' no esta declarada", destino) from None
             return
 
-        # campo:  espada.dano set 20
         if isinstance(destino, arbol.Acceso):
             objeto = self.expresion(destino.objeto)
             if objeto is None:
@@ -539,7 +480,6 @@ class Evaluador:
             objeto.campos[destino.campo] = valor
             return
 
-        # posicion:  marcador<0> set 99
         if isinstance(destino, arbol.Indice):
             coleccion = self.expresion(destino.objeto)
             indice = self.expresion(destino.indice)
@@ -563,11 +503,8 @@ class Evaluador:
             raise self._error(f"se esperaba un numero y se obtuvo {self._texto(valor)}", nodo)
         return valor
 
-    # -------------------------------------------------------------- expresiones
-
     def expresion(self, nodo: arbol.Nodo) -> object:
         valor = self._calcular(nodo)
-        # un score que va a un aim se vuelve decimal aca -> lo marco el paso 3
         if nodo.a_aim and isinstance(valor, int) and not isinstance(valor, bool):
             return float(valor)
         return valor
@@ -592,7 +529,6 @@ class Evaluador:
             return self.binaria(nodo)
 
         if isinstance(nodo, arbol.LiteralColeccion):
-            # el tipo se lo pone la declaracion que lo recibe
             coleccion = Coleccion("squad")
             coleccion.elementos = [self.expresion(e) for e in nodo.elementos]
             return coleccion
@@ -653,7 +589,6 @@ class Evaluador:
             metodo = self._metodo_coleccion(objeto, nodo.campo, nodo)
             return metodo
 
-        # un metodo sale ya pegado a su objeto, listo para llamar
         if isinstance(objeto, Objeto) and nodo.campo in objeto.clase.metodos:
             return Combo(objeto.clase.metodos[nodo.campo], self, objeto)
 
@@ -665,7 +600,6 @@ class Evaluador:
             return objeto.campos[nodo.campo]
 
         if objeto is None:
-            # el NullPointerException de Java
             raise self._error(f"no se puede acceder a '{nodo.campo}': el valor es afk", nodo)
 
         raise self._error(f"no se puede acceder a '{nodo.campo}'", nodo)
@@ -676,7 +610,6 @@ class Evaluador:
         return f"el inventory {registro.tipo}"
 
     def _metodo_coleccion(self, coleccion: Coleccion, nombre: str, nodo: arbol.Nodo):
-        """Devuelve el metodo ya pegado a su vector, listo para llamar."""
         metodos = {
             "recruit": lambda args: coleccion.elementos.append(args[0]),
             "kick":    lambda args: self._kick(coleccion, args[0], nodo),
@@ -701,7 +634,6 @@ class Evaluador:
     def binaria(self, nodo: arbol.Binaria) -> object:
         op = nodo.operador
 
-        # si con el lado izquierdo ya alcanza, el derecho ni se mira
         if op == "chain":
             return bool(self.expresion(nodo.izquierda)) and bool(self.expresion(nodo.derecha))
         if op == "swap":
@@ -716,7 +648,6 @@ class Evaluador:
             return izq != der
 
         if op == "gain":
-            # si hay texto de algun lado, pega. Si no, suma
             if isinstance(izq, str) or isinstance(der, str):
                 return self._texto(izq) + self._texto(der)
             return self._numero(izq, nodo) + self._numero(der, nodo)
@@ -754,8 +685,7 @@ class Evaluador:
         raise self._error(f"operador no soportado: {op}", nodo)
 
     def _division_entera(self, a: int, b: int) -> int:
-        # como en C y Java se tira la parte decimal: -7 split 2 da -3.
-        # El // de Python redondea para abajo y daria -4, por eso no se usa
+        # Trunca como C y Java (-7 split 2 = -3); el // de Python daria -4
         cociente = abs(a) // abs(b)
         return cociente if (a < 0) == (b < 0) else -cociente
 

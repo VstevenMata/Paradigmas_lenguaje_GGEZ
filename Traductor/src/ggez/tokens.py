@@ -1,7 +1,4 @@
-"""Tokens y palabras reservadas. Seccion 1 de GRAMATICA.md.
-
-Si hay que cambiar una palabra del lenguaje, se cambia ACA y nada mas.
-"""
+"""Tokens y palabras reservadas (GRAMATICA.md seccion 1). Una palabra del lenguaje se cambia SOLO aca."""
 
 from __future__ import annotations
 
@@ -10,7 +7,6 @@ from enum import Enum, auto
 
 
 class TipoToken(Enum):
-    # literales
     ENTERO = auto()
     REAL = auto()
     CADENA = auto()
@@ -19,13 +15,12 @@ class TipoToken(Enum):
     IDENTIFICADOR = auto()
     RESERVADA = auto()
 
-    # delimitadores
     LLAVE_IZQ = auto()      # {  agrupacion, parametros, llamadas
-    LLAVE_DER = auto()      # }
+    LLAVE_DER = auto()
     MENOR = auto()          # <  indices y literales de coleccion
-    MAYOR = auto()          # >
+    MAYOR = auto()
     CORCHETE_IZQ = auto()   # [  genericos
-    CORCHETE_DER = auto()   # ]
+    CORCHETE_DER = auto()
     BARRA = auto()          # |  separador de elementos
     PUNTO = auto()          # .  acceso a miembro
 
@@ -33,40 +28,28 @@ class TipoToken(Enum):
     FIN_ARCHIVO = auto()
 
 
-# Las 60 palabras reservadas, agrupadas como en la Propuesta de Lenguaje.
-# chain/swap/dodge (AND/OR/NOT) los agregamos nosotros, no estaban -> D-1
+# chain/swap/dodge (AND/OR/NOT) no estaban en la propuesta original -> D-1
 RESERVADAS: frozenset[str] = frozenset({
-    # estructura
     "lobby", "launch", "start", "THE", "GAME", "travel", "from",
     "server", "region", "quit",
-    # declaraciones
     "stash", "hardcoded", "noloot", "afk",
-    # tipos
     "score", "aim", "lore", "win", "pixel",
     "squad", "stack", "queue", "inventory",
-    # booleanos
     "hit", "miss",
-    # flujo
     "scan", "fallback", "farm", "survive", "grind",
     "loadout", "pick", "noob", "ragequit", "respawn",
-    # funciones
     "combo", "reward", "drops",
-    # errores
     "clutch", "revive", "checkpoint", "wipe",
-    # POO
     "guild", "questline", "evolves", "spawn", "me", "open", "party", "solo",
-    # bloques
     "glhf", "gg",
-    # operadores
     "gain", "drain", "crit", "split", "scrap",
     "matches", "mismatch", "over", "under", "atleast", "atmost",
     "set", "boost", "sap", "buff", "nerf",
     "chain", "swap", "dodge",
 })
 
-# atajos que el parser usa todo el tiempo
 TIPOS_SIMPLES: frozenset[str] = frozenset({"score", "aim", "lore", "win", "pixel"})
-# solo vectores -> D-21. stack y queue siguen reservadas para dar buen error
+# Solo vectores -> D-21; stack y queue siguen reservadas para dar buen error
 CONSTRUCTORES_COLECCION: frozenset[str] = frozenset({"squad"})
 COLECCIONES_RETIRADAS: frozenset[str] = frozenset({"stack", "queue"})
 OP_RELACIONALES: frozenset[str] = frozenset({
@@ -100,7 +83,6 @@ class Token:
     valor: object = None
 
     def es(self, *reservadas: str) -> bool:
-        """True si es reservada y es alguna de estas."""
         return self.tipo is TipoToken.RESERVADA and self.lexema in reservadas
 
     def __str__(self) -> str:

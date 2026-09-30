@@ -1,9 +1,4 @@
-"""Junta el archivo principal con todo lo que trae con travel -> D-28.
-
-Cada archivo pasa por el paso 1 y el 2 una sola vez, aunque lo importen varios.
-Devuelve la lista en orden: primero los que no traen nada, el principal al final.
-Asi el paso 3 y el 4 siempre tienen listo lo que un archivo importa.
-"""
+"""Carga el principal y sus travel una sola vez cada uno, en orden de dependencias (principal al final) -> D-28."""
 
 from __future__ import annotations
 
@@ -24,9 +19,9 @@ MODULOS_LIBRERIA = {"chat", "physics", "rng", "clock", "save"}
 
 @dataclass
 class Archivo:
-    ruta: Path                        # completa, para no cargar dos veces el mismo
-    nombre: str                       # como sale en los errores: relativo al principal
-    modulo: str | None                # el X de 'travel X'. None en el principal
+    ruta: Path
+    nombre: str
+    modulo: str | None                # el X de 'travel X'; None en el principal
     programa: arbol.Programa
     importa: dict[str, "Archivo"] = field(default_factory=dict)
 
@@ -43,7 +38,7 @@ def cargar(ruta: Path) -> list[Archivo]:
         try:
             nombre = ruta_archivo.relative_to(raiz).as_posix()
         except ValueError:
-            # solo pasa con accesos directos de carpeta. Sin el C: que rompe al IDE
+            # Solo pasa con accesos directos de carpeta; la ruta con C: rompe al IDE
             nombre = ruta_archivo.name
         texto = ruta_archivo.read_text(encoding="utf-8-sig")
         programa = parsear(tokenizar(texto, nombre), nombre)
@@ -77,7 +72,7 @@ def cargar(ruta: Path) -> list[Archivo]:
             raise error(f"importacion en circulo: {nombres}")
 
         if destino in cargados:
-            return cargados[destino]                   # ya estaba: una sola vez
+            return cargados[destino]
 
         if not destino.is_file():
             donde = "la misma carpeta" if travel.paquete == MISMA_CARPETA else f"la carpeta '{travel.paquete}'"
@@ -110,10 +105,7 @@ def cargar(ruta: Path) -> list[Archivo]:
 
 
 def _con_nombre_de_modulo(programa: arbol.Programa, modulo: str) -> None:
-    """Adentro de utilidades.ggez se escribe Jugador, pero para todos los demas es
-    utilidades.Jugador. Lo renombro aca asi los pasos 3 y 4 ven un solo nombre y
-    dos archivos pueden tener cada uno su Jugador sin chocar.
-    """
+    """Renombra Jugador a utilidades.Jugador para que los pasos 3 y 4 vean un solo nombre sin choques."""
     propios = {
         d.nombre for d in programa.declaraciones
         if isinstance(d, (arbol.DeclGuild, arbol.DeclInventory))
@@ -140,7 +132,6 @@ def _con_nombre_de_modulo(programa: arbol.Programa, modulo: str) -> None:
 
 
 def _recorrer(nodo: arbol.Nodo):
-    """Todos los nodos del arbol, de arriba para abajo."""
     yield nodo
     for campo in fields(nodo):
         valor = getattr(nodo, campo.name)

@@ -7,26 +7,19 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Una terminal individual: proceso, lineas, historial, autocompletado. Es lo que antes vivia
-// mezclado en TerminalViewModel junto con la pestaña "Errores" y el swap con la extension de
-// Claude - eso ahora vive en TerminalViewModel (el panel), que puede tener varias instancias de
-// esta clase a la vez (hasta TerminalViewModel.MaxTerminales), una por proceso independiente.
+// Una terminal individual: proceso, lineas, historial y autocompletado
 public partial class TerminalInstanceViewModel : ViewModelBase
 {
     const int LimiteLineas = 2000;
     const int LimiteHistorial = 100;
-    const int LineasPorTick = 400; // tope de salida procesada por tick: un comando ruidoso no debe trabar la UI
+    const int LineasPorTick = 400; // tope por tick para que un comando ruidoso no trabe la UI
 
     [ObservableProperty]
     private string _nombre = "Terminal";
 
-    // si esta visible como columna en el panel (ver TerminalViewModel.InstanciasVisibles) - cerrar
-    // de la vista solo apaga esto, no mata el proceso ni la saca de Instancias; eso lo hace Eliminar
     [ObservableProperty]
     private bool _enColumna = true;
 
-    // solo una instancia es la activa a la vez (ver TerminalViewModel.InstanciaActiva) - todas las
-    // columnas se ven al mismo tiempo, pero el teclado y el resaltado de foco van a esta
     [ObservableProperty]
     private bool _esActiva;
 
@@ -38,16 +31,11 @@ public partial class TerminalInstanceViewModel : ViewModelBase
 
     public ObservableCollection<TerminalLinea> LineasTerminal { get; } = new();
 
-    // el comando "exit" cierra el panel entero (igual que el toggle del menu Ver), no solo esta
-    // instancia - lo conecta TerminalViewModel al crearla
+    // "exit" cierra el panel entero, no solo esta instancia
     public Action? OnCerrar;
 
-    // la salida de error de esta instancia tambien se copia a la pestaña "Errores" compartida del
-    // panel (ver TerminalViewModel.AgregarError) - conectado al crearla, igual que OnCerrar
     public Action<string>? OnError;
 
-    // clickear el contenido de esta terminal (no solo su pestaña, ver TerminalView.axaml) le pide
-    // al panel que la marque como la activa - conectado al crearla, igual que OnCerrar/OnError
     public Action? OnActivar;
 
     readonly TerminalProcessService _proceso = new();
@@ -61,9 +49,7 @@ public partial class TerminalInstanceViewModel : ViewModelBase
 
     public string DirectorioActual => _directorioActual;
 
-    // fija de por vida de la instancia (no reactiva a instalar/desinstalar la extension despues):
-    // si es real, esta columna corre una PTY de verdad (ver ClaudeTerminalView) en vez de la
-    // simulada por pipes de mas abajo - decidido una sola vez al crearla, en TerminalViewModel
+    // Fijo al crearla: si es real corre una PTY (ClaudeTerminalView) en vez de la simulada por pipes
     public bool EsReal { get; }
 
     public TerminalInstanceViewModel(string directorioInicial, bool esReal)
@@ -103,8 +89,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
     }
 
     public bool HayProcesoActivo => _proceso.ProcesoActivo;
-
-    // ─────────────────────────── ejecucion de comandos ───────────────────────────
 
     public void ConfirmarLinea()
     {
@@ -195,9 +179,7 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         OnPropertyChanged(nameof(PrefijoEntrada));
     }
 
-    // Corre un comando que NO tecleo el usuario (hoy: el boton Construir, que lanza el
-    // traductor de GGEZ - ver MainWindowViewModel.ConstruirAsync). Se hace eco de la linea
-    // con el prompt para que en la terminal se vea igual que si lo hubiera escrito a mano.
+    // Corre un comando que no tecleo el usuario, con eco del prompt como si lo hubiera escrito
     public bool EjecutarComando(string comando)
     {
         if (_proceso.ProcesoActivo)
@@ -211,8 +193,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         return true;
     }
 
-    // Un mensaje del IDE (no del proceso) en esta terminal, por ejemplo para explicar por que
-    // no se lanzo el traductor.
     public void EscribirAviso(string texto) => Escribir(texto, TerminalColorLinea.Aviso);
 
     public void CerrarEntradaEstandar()
@@ -247,8 +227,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         return texto.ToString();
     }
 
-    // ─────────────────────────── historial ───────────────────────────
-
     public void RecorrerHistorial(int direccion)
     {
         if (_historial.Count == 0) return;
@@ -261,8 +239,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         _indiceHistorial = nuevo;
         EntradaActual = _indiceHistorial == _historial.Count ? _borrador : _historial[_indiceHistorial];
     }
-
-    // ─────────────────────────── edicion de la linea viva ───────────────────────────
 
     public (string Texto, int Caret) BorrarHastaElInicio(string entrada, int caret)
     {
@@ -295,8 +271,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
 
     public static string AplanarParaPegar(string texto) =>
         texto.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ').Replace('\t', ' ');
-
-    // ─────────────────────────── autocompletado ───────────────────────────
 
     public (string Texto, int Caret) Autocompletar(string entrada, int caret)
     {
@@ -357,8 +331,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         return comun;
     }
 
-    // ─────────────────────────── contenido ───────────────────────────
-
     void Escribir(string texto, TerminalColorLinea color, string prefijo = "")
     {
         foreach (var trozo in texto.Split('\n'))
@@ -369,8 +341,6 @@ public partial class TerminalInstanceViewModel : ViewModelBase
 
         while (LineasTerminal.Count > LimiteLineas) LineasTerminal.RemoveAt(0);
     }
-
-    // ─────────────────────────── prompt y rutas ───────────────────────────
 
     public void EstablecerDirectorio(string ruta)
     {
@@ -403,8 +373,7 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         catch { return ruta; }
     }
 
-    // corta el proceso que haya quedado vivo y para el timer de drenado, tanto al eliminar esta
-    // instancia como al cerrar la app - si no, el timer sigue corriendo cada 33ms para siempre
+    // Sin parar el timer de drenado seguiria corriendo cada 33ms para siempre
     public void Cerrar()
     {
         _timer.Stop();

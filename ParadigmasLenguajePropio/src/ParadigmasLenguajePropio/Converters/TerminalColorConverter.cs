@@ -5,7 +5,6 @@ using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// misma paleta que PanelTerminal.cs (ColorPrompt/ColorEscrito/ColorError/ColorAviso)
 public class TerminalColorConverter : IValueConverter
 {
     public static readonly TerminalColorConverter Instance = new();

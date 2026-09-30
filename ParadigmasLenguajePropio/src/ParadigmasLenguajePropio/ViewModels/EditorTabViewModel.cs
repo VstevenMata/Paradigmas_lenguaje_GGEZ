@@ -5,9 +5,6 @@ namespace ParadigmasLenguajePropio.ViewModels;
 
 public enum TipoEdicion { Ninguna, Escritura, Borrado, Otro }
 
-// Reemplaza ArchivoAbierto (clase anidada en PanelCentral.cs) + buena parte de la lógica de edición
-// de PanelCentral.cs: modelo de líneas/cursor/selección/undo portado casi verbatim (no dependía de
-// Raylib), solo el render/hit-testing/scroll se rehacen en EditorTextArea/EditorGutter.
 public partial class EditorTabViewModel : ViewModelBase
 {
     const int LimiteHistorial = 200;
@@ -24,18 +21,15 @@ public partial class EditorTabViewModel : ViewModelBase
     [ObservableProperty]
     private bool _esActiva;
 
-    // lista mutable en el lugar (no ObservableCollection): notificar por cada letra tipeada sería
-    // carísimo. La vista se entera de los cambios via ContenidoCambiado, no por bindings de Lineas.
+    // List y no ObservableCollection: notificar por cada tecla seria carisimo; la vista usa ContenidoCambiado
     public List<string> Lineas = new() { "" };
 
     public int FilaCursor, ColumnaCursor, ColumnaDeseada;
     public bool HaySeleccion;
     public int SelFila, SelColumna;
 
-    // se disparan a mano al final de cada método que muta estado, en vez de INotifyPropertyChanged
-    // por campo (que sería carísimo para Lineas en cada tecla)
-    public event Action? ContenidoCambiado; // cambio de líneas: hace falta remedir/rewrap
-    public event Action? CursorCambiado; // solo caret/selección: alcanza con repintar
+    public event Action? ContenidoCambiado;
+    public event Action? CursorCambiado;
 
     readonly List<(List<string> Lineas, int Fila, int Columna)> _historialDeshacer = new();
     readonly List<(List<string> Lineas, int Fila, int Columna)> _historialRehacer = new();
@@ -52,8 +46,6 @@ public partial class EditorTabViewModel : ViewModelBase
 
     void AvisarContenido() => ContenidoCambiado?.Invoke();
     void AvisarCursor() => CursorCambiado?.Invoke();
-
-    // ─────────────────────────── edición ───────────────────────────
 
     public void InsertarTexto(string texto)
     {
@@ -228,9 +220,6 @@ public partial class EditorTabViewModel : ViewModelBase
         HaySeleccion = false;
     }
 
-    // comando de la extension Trim Trailing Whitespace (ver ExtensionsViewModel.TrailingWhitespace):
-    // solo quita espacios, no tabs literales - el editor inserta indentacion como espacios (ver
-    // EditorTextArea.OnKeyDown, Key.Tab -> "    "), nunca escribe '\t'
     public void LimpiarEspaciosSobrantes()
     {
         GuardarEstadoParaDeshacer(TipoEdicion.Otro);
@@ -247,8 +236,6 @@ public partial class EditorTabViewModel : ViewModelBase
     public bool AnclaEsAntesDelCursor() => SelFila != FilaCursor ? SelFila < FilaCursor : SelColumna < ColumnaCursor;
     public (int fila, int columna) SeleccionDesde() => AnclaEsAntesDelCursor() ? (SelFila, SelColumna) : (FilaCursor, ColumnaCursor);
     public (int fila, int columna) SeleccionHasta() => AnclaEsAntesDelCursor() ? (FilaCursor, ColumnaCursor) : (SelFila, SelColumna);
-
-    // ─────────────────────────── cursor ───────────────────────────
 
     public void MoverCursor(int fila, int columna, bool extenderSeleccion)
     {
@@ -312,7 +299,7 @@ public partial class EditorTabViewModel : ViewModelBase
         ColumnaDeseada = ColumnaCursor;
     }
 
-    // deja el cursor al inicio de esa línea (1-based, como se le muestra al usuario)
+    // numeroLinea es 1-based, como se le muestra al usuario
     public void IrALinea(int numeroLinea)
     {
         FilaCursor = Math.Clamp(numeroLinea - 1, 0, Lineas.Count - 1);
@@ -322,7 +309,6 @@ public partial class EditorTabViewModel : ViewModelBase
         AvisarCursor();
     }
 
-    // fila+columna (0-based) con clamp, por si el archivo cambio afuera del IDE desde que se guardo
     public void IrAPosicion(int fila, int columna)
     {
         FilaCursor = Math.Clamp(fila, 0, Lineas.Count - 1);
@@ -331,8 +317,6 @@ public partial class EditorTabViewModel : ViewModelBase
         HaySeleccion = false;
         AvisarCursor();
     }
-
-    // ─────────────────────────── buscar / reemplazar ───────────────────────────
 
     public (int actual, int total) Buscar(string patron, bool distingueMayus, bool siguiente)
     {
@@ -357,7 +341,7 @@ public partial class EditorTabViewModel : ViewModelBase
         int indiceElegido = siguiente
             ? coincidencias.FindIndex(o => o >= offsetFin)
             : coincidencias.FindLastIndex(o => o < offsetInicio);
-        if (indiceElegido < 0) indiceElegido = siguiente ? 0 : coincidencias.Count - 1; // da la vuelta
+        if (indiceElegido < 0) indiceElegido = siguiente ? 0 : coincidencias.Count - 1;
 
         int offsetMatch = coincidencias[indiceElegido];
         var inicio = PosicionDesdeOffset(offsetMatch);
@@ -456,13 +440,10 @@ public partial class EditorTabViewModel : ViewModelBase
         return offset + columna;
     }
 
-    // ─────────────────────────── deshacer / rehacer ───────────────────────────
-
     void GuardarEstadoParaDeshacer(TipoEdicion tipo)
     {
         Modificado = true;
 
-        // escritura y borrado se agrupan mientras se repiten, así deshacer no va letra por letra
         bool seAgrupaConLaAnterior = (tipo == TipoEdicion.Escritura || tipo == TipoEdicion.Borrado) && tipo == _ultimoTipoEdicion;
         if (seAgrupaConLaAnterior) return;
 

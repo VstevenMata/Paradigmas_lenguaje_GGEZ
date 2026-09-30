@@ -1,16 +1,10 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Paleta "Zelda" (A Link to the Past): cuerpo azul-indigo con textura tipo pergamino, marco
-         doble dorado redondeado (en vez del bisel plano de Win95), franja superior verde tunica
-         de Link, campos de texto color pergamino. -->
+    <!-- Paleta "Zelda" (A Link to the Past) -->
 
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- textura de fondo: base indigo + la Trifuerza (3 triangulos que dejan el hueco
-                 invertido del medio, como el simbolo real) repetida en grilla via TileMode - alpha
-                 bien bajo, es un tinte apenas insinuado, no un grafico que compita con el
-                 contenido de encima -->
             <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
                           SourceRect="0,0,40,36" DestinationRect="0,0,40,36">
                 <DrawingBrush.Drawing>
@@ -34,7 +28,6 @@
                 <GradientStop Offset="0" Color="#1B5E20" />
                 <GradientStop Offset="1" Color="#4CAF50" />
             </LinearGradientBrush>
-            <!-- ventana sin foco: mismo degradado pero desaturado -->
             <LinearGradientBrush x:Key="TemaTitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Offset="0" Color="#33334D" />
                 <GradientStop Offset="1" Color="#4A4A66" />
@@ -47,19 +40,12 @@
             <SolidColorBrush x:Key="TemaTextoBrush" Color="#F2E3B3" />
             <SolidColorBrush x:Key="TemaCampoFondoBrush" Color="#F5E6C8" />
             <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="#3B2A12" />
-            <!-- Silkscreen en vez de Press Start 2P: misma altura de mayuscula relativa al tamaño de
-                 fuente que Liberation Sans (Press Start 2P renderiza ~45% mas grande al mismo
-                 FontSize, desbordaba pestañas/botones de ancho fijo) -->
+            <!-- Silkscreen y no Press Start 2P: esa renderiza ~45% mas grande y desbordaba pestañas/botones -->
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
-            <!-- flecha del scrollbar (ver TemaBase.axaml): base curva hacia adentro en vez de recta,
-                 mas suave que un triangulo comun - dorado, mismo tono que el bisel y la Trifuerza -->
             <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L7,4 Q4,2.6 1,4 Z</StreamGeometry>
             <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#FFD54A" />
 
-            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): marco doble
-                 redondeado, separado (Margen), parejo en las 4 caras - como los cuadros de dialogo
-                 de Zelda, en vez del trazo unico y recto de Win95 -->
             <CornerRadius x:Key="TemaBevelRadioExterior">6</CornerRadius>
             <CornerRadius x:Key="TemaBevelRadioInterior">4</CornerRadius>
             <Thickness x:Key="TemaBevelGrosorExterior">2</Thickness>

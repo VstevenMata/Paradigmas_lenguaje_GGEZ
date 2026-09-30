@@ -40,10 +40,7 @@ def _comando_tokens(ruta: Path) -> int:
 
 
 def _comando_run(ruta: Path) -> int:
-    """Las cuatro etapas: lexico -> sintactico -> semantico -> ejecucion.
-
-    Los pasos 1 y 2 los hace el cargador, una vez por archivo, siguiendo los travel.
-    """
+    """Lexico y sintactico los hace el cargador por archivo; aca semantico y ejecucion."""
     archivos = cargar(ruta)
     semantico.analizar_archivos(archivos)
     ejecutar_archivos(archivos)
@@ -75,8 +72,7 @@ def main(argv: list[str] | None = None) -> int:
             return _comando_tokens(ruta)
         return _comando_run(ruta)
     except ErrorGgez as err:
-        # este formato lo parsea el panel Problemas del IDE. El archivo es el del
-        # error, que puede ser uno importado: lib/utilidades.ggez
+        # Formato que parsea el panel Problemas del IDE; el archivo puede ser uno importado
         print(err.formatear(err.archivo or ruta.name), file=sys.stderr)
         return FALLO_TRADUCCION
     except OSError as err:

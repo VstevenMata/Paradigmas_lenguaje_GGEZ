@@ -9,7 +9,6 @@
              Height="26">
 
     <UserControl.Styles>
-        <!-- botones chicos de la barra de titulo (min/max/cerrar, chevron, diseno): sin bisel hasta el hover -->
         <Style Selector="Button.titlebar-btn">
             <Setter Property="Width" Value="20" />
             <Setter Property="Height" Value="20" />
@@ -60,10 +59,7 @@
 
             </Grid>
 
-            <!-- buscar-en-el-proyecto: centrado sobre toda la franja del titulo. Va afuera del Grid
-                 de arriba porque esa columna "*" se centra solo en el espacio libre entre el menu y
-                 los botones, que no es simetrico (el menu ocupa mas que los tres botones) - asi queda
-                 centrado de verdad respecto de la ventana. -->
+            <!-- Fuera del Grid para centrarse respecto de la ventana y no del espacio libre entre menu y botones -->
             <StackPanel Orientation="Horizontal" Spacing="8"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Border Width="320" Height="18" Background="{DynamicResource TemaCampoFondoBrush}" BorderThickness="2"
@@ -79,9 +75,6 @@
                     </DockPanel>
                 </Border>
 
-                <!-- Placement=Bottom centra el popup horizontalmente respecto del campo de busqueda
-                     (antes quedaba pegado del lado izquierdo y, al ser mas ancho que el campo, se
-                     veia corrido hacia la derecha en vez de centrado debajo). -->
                 <Popup PlacementTarget="{Binding #PART_CampoBusqueda}" Placement="Bottom"
                        IsOpen="{Binding ResultadosVisibles}" IsLightDismissEnabled="False" WindowManagerAddShadowHint="False">
                     <Border Width="480" Background="{DynamicResource TemaBackgroundBrush}" BorderThickness="2"
@@ -112,7 +105,6 @@
                            RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
-                <!-- modal chica para elegir tema: mismo patron de Popup + Win95Bevel que el menu -->
                 <Popup PlacementTarget="{Binding #PART_BotonTema}" Placement="BottomEdgeAlignedRight"
                        IsOpen="{Binding MenuTemaAbierto}" IsLightDismissEnabled="True" WindowManagerAddShadowHint="False"
                        ShouldUseOverlayLayer="True">

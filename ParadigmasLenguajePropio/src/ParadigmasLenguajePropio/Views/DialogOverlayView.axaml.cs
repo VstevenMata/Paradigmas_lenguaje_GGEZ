@@ -12,7 +12,7 @@ public partial class DialogOverlayView : UserControl
     {
         InitializeComponent();
 
-        // cuando se hace visible, el foco va al campo del prompt (o al overlay, para que Escape funcione)
+        // Al mostrarse, el foco va al prompt o al overlay para que Escape funcione
         PropertyChanged += (_, e) =>
         {
             if (e.Property != IsVisibleProperty || !IsVisible) return;

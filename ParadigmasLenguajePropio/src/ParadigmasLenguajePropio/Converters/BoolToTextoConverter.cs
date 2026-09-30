@@ -3,7 +3,6 @@ using Avalonia.Data.Converters;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// generico para botones cuyo texto cambia segun un bool (ej. Instalada -> "Desinstalar"/"Instalar").
 // ConverterParameter: "textoSiTrue|textoSiFalse"
 public class BoolToTextoConverter : IValueConverter
 {

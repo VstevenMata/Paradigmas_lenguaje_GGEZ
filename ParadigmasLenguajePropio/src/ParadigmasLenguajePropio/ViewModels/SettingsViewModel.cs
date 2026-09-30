@@ -6,8 +6,7 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Panel de "Ajustes": mismo lugar en pantalla que ExplorerView/ExtensionsView, front chico sobre
-// EditorAreaViewModel (fuente/tab) y ExtensionsViewModel (temas), sin estado propio.
+// Panel de Ajustes sin estado propio: delega en EditorAreaViewModel y ExtensionsViewModel
 public partial class SettingsViewModel : ViewModelBase
 {
     readonly EditorAreaViewModel _editor;
@@ -16,7 +15,6 @@ public partial class SettingsViewModel : ViewModelBase
     public double TamanoFuente => _editor.TamanoFuente;
     public int TamanoTab => _editor.TamanoTab;
 
-    // Win95 fijo (no es extension) + los temas instalados
     public ObservableCollection<OpcionTema> Temas { get; } = new();
 
     public SettingsViewModel(EditorAreaViewModel editor, ExtensionsViewModel extensiones)

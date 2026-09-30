@@ -5,8 +5,7 @@ using Avalonia.Platform;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// para los pocos botones de la barra lateral cuyo icono cambia segun estado (explorador
-// abierto/cerrado, puerta abierta/cerrada de carpeta). ConverterParameter: "nombreSiTrue|nombreSiFalse"
+// ConverterParameter: "nombreSiTrue|nombreSiFalse"
 public class BoolToIconoConverter : IValueConverter
 {
     public static readonly BoolToIconoConverter Instance = new();

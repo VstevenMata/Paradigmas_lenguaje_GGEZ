@@ -8,9 +8,6 @@
              x:DataType="vm:TerminalInstanceViewModel">
 
     <UserControl.Styles>
-        <!-- marco de la instancia activa (ver TerminalViewModel.InstanciaActiva): todas las
-             columnas se ven al mismo tiempo, este es el unico indicio visual de cual tiene el
-             foco de teclado ahora mismo -->
         <Style Selector="Border.marcoActivo">
             <Setter Property="BorderBrush" Value="#3070C0" />
         </Style>
@@ -19,9 +16,6 @@
         </Style>
     </UserControl.Styles>
 
-    <!-- Una columna del panel de terminales (ver TerminalView.axaml): el contenido es el mismo
-         fondo negro + salida + linea viva que antes vivia directo en TerminalView, ahora repetido
-         una vez por instancia visible. -->
     <Border BorderThickness="2" Classes.marcoActivo="{Binding EsActiva}" Classes.marcoInactivo="{Binding !EsActiva}">
         <controls:Win95Bevel Sunken="True" BevelThickness="4" Background="Black" Padding="10" PointerPressed="Fondo_PointerPressed">
             <ScrollViewer Name="PART_Scroll">

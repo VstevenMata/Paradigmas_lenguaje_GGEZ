@@ -1,18 +1,10 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Paleta "Mega Man" (NES): armadura azul cobalto con highlight cian, textura de bloques tipo
-         mamposteria de un castillo de Wily (dos tonos de azul, sin lineas de junta), franja superior
-         en degrade vertical cian->azul tipo "carga del Mega Buster", contorno grueso y negro-azulado
-         imitando el borde solido de los sprites de la epoca. -->
+    <!-- Paleta "Mega Man" (NES) -->
 
     <Styles.Resources>
         <ResourceDictionary>
-            <!-- textura de fondo: bloques de mamposteria en "running bond" (filas alternadas
-                 desfasadas media unidad, repetida 2 veces en este tile para poder meter la pastilla
-                 de energia sin romper el patron de junta) + la pastilla de arma (el rombo que
-                 sueltan los enemigos) centrada, una cada 2 bloques - alpha bajo, un tinte, no un
-                 grafico que compita con el contenido -->
             <DrawingBrush x:Key="TemaBackgroundBrush" TileMode="Tile" Stretch="None"
                           SourceRect="0,0,32,16" DestinationRect="0,0,32,16">
                 <DrawingBrush.Drawing>
@@ -53,13 +45,10 @@
 
             <SolidColorBrush x:Key="TemaScrollTrackBrush" Color="#0B1533" />
             <SolidColorBrush x:Key="TemaTitleBarBrush" Color="#2255CC" />
-            <!-- degrade vertical (ni horizontal como Win95/Zelda ni diagonal como Sonic): efecto
-                 "carga" del Mega Buster, de cian arriba a azul profundo abajo -->
             <LinearGradientBrush x:Key="TemaTitleBarActivaBrush" StartPoint="0%,0%" EndPoint="0%,100%">
                 <GradientStop Offset="0" Color="#55CCFF" />
                 <GradientStop Offset="1" Color="#1E3F8F" />
             </LinearGradientBrush>
-            <!-- ventana sin foco: mismo degrade vertical pero desaturado -->
             <LinearGradientBrush x:Key="TemaTitleBarInactivaBrush" StartPoint="0%,0%" EndPoint="0%,100%">
                 <GradientStop Offset="0" Color="#8C97B8" />
                 <GradientStop Offset="1" Color="#5A5A72" />
@@ -74,15 +63,9 @@
             <SolidColorBrush x:Key="TemaCampoTextoBrush" Color="#16224E" />
             <FontFamily x:Key="TemaFontFamily">avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen</FontFamily>
 
-            <!-- flecha del scrollbar (ver TemaBase.axaml): triangulo "pixelado" a escalones de 1px,
-                 como un sprite de NES sin antialiasing - cian, mismo tono que el highlight/bisel -->
             <StreamGeometry x:Key="TemaFlechaScrollData">M4,0 L5,1 L6,1 L6,2 L7,2 L7,3 L8,3 L8,4 L0,4 L0,3 L1,3 L1,2 L2,2 L2,1 L3,1 Z</StreamGeometry>
             <SolidColorBrush x:Key="TemaFlechaScrollBrush" Color="#55CCFF" />
 
-            <!-- forma del bisel (ver ControlTheme compartido en TemaBase.axaml): esquinas rectas y
-                 anillos pegados (sin Margen) como Win95, pero invertido y parejo en las 4 caras -
-                 anillo exterior FINO claro y anillo interior GRUESO oscuro, imitando el contorno
-                 negro solido y grueso de los sprites de la epoca en vez del bisel 3D de los demas -->
             <CornerRadius x:Key="TemaBevelRadioExterior">0</CornerRadius>
             <CornerRadius x:Key="TemaBevelRadioInterior">0</CornerRadius>
             <Thickness x:Key="TemaBevelGrosorExterior">1</Thickness>

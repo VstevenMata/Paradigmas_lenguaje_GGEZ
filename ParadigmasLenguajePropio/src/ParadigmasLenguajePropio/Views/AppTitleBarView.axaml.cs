@@ -12,7 +12,6 @@ public partial class AppTitleBarView : UserControl
     Window? _window;
     Border _fondo = null!;
 
-    // el DataContext lo asigna quien compone esta vista (MainWindow, vía binding a MainWindowViewModel.TitleBar)
     AppTitleBarViewModel? ViewModel => DataContext as AppTitleBarViewModel;
 
     public AppTitleBarView()
@@ -23,15 +22,14 @@ public partial class AppTitleBarView : UserControl
         this.FindControl<Button>("PART_Minimizar")!.Click += (_, _) =>
         {
             if (_window == null) return;
-            // niri no tiene minimizar: lo mas parecido es mandar la ventana al workspace de abajo sin seguirla
+            // niri no tiene minimizar: se manda la ventana al workspace de abajo
             if (EnNiri) NiriAccion("move-window-to-workspace-down", "--focus", "false");
             else _window.WindowState = WindowState.Minimized;
         };
         this.FindControl<Button>("PART_Maximizar")!.Click += (_, _) =>
         {
             if (_window == null) return;
-            // bajo niri la app corre por xwayland-satellite, que ignora el pedido X11 de maximizar
-            // (_NET_WM_STATE_MAXIMIZED): se le pide directo a niri, que ademas alterna solo
+            // xwayland-satellite ignora el maximizar de X11, se le pide directo a niri
             if (EnNiri) NiriAccion("maximize-window-to-edges");
             else _window.WindowState = _window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         };
@@ -45,11 +43,10 @@ public partial class AppTitleBarView : UserControl
 
     static bool EnNiri => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NIRI_SOCKET"));
 
-    // las acciones de niri van sobre la ventana enfocada, que es esta: se acaba de clickear su boton
     static void NiriAccion(params string[] args)
     {
         try { System.Diagnostics.Process.Start("niri", ["msg", "action", .. args]); }
-        catch (System.ComponentModel.Win32Exception) { } // niri no esta en el PATH
+        catch (System.ComponentModel.Win32Exception) { }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -70,9 +67,7 @@ public partial class AppTitleBarView : UserControl
             activa ? "TemaTitleBarActivaBrush" : "TemaTitleBarInactivaBrush");
     }
 
-    // sin decoracion nativa no hay barra que el SO arrastre solo: BeginMoveDrag delega el arrastre
-    // al gestor de ventanas. Los controles hijos (botones, buscador) marcan el evento manejado,
-    // asi que este handler solo se dispara al clickear el fondo vacio de la franja.
+    // Sin decoracion nativa, BeginMoveDrag delega el arrastre al gestor de ventanas
     void Fondo_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (_window != null && e.GetCurrentPoint(_fondo).Properties.IsLeftButtonPressed)

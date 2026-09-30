@@ -7,11 +7,7 @@ using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.Controls;
 
-// Reemplaza el arbol de ExploradorArchivos.cs. Se dibuja a mano (mismo patron que EditorTextArea)
-// en vez de usar TreeView nativo: ademas de que asi el color del texto queda 100% bajo control
-// (TreeViewItem tiene su propio manejo interno de color para :selected que no se pudo
-// sobreescribir de forma confiable - el mismo problema que Menu/MenuItem), permite dibujar las
-// lineas guia que conectan una carpeta con sus hijos visibles, igual que el original.
+// Dibujado a mano: TreeViewItem no deja controlar el color de :selected y asi se dibujan las lineas guia
 public class ExplorerTreeView : Control
 {
     const int AltoFila = 22;
@@ -42,8 +38,8 @@ public class ExplorerTreeView : Control
         set => SetValue(SeleccionadoProperty, value);
     }
 
-    public event Action<NodoArchivos>? ArchivoAbierto; // doble click en un archivo
-    public event Action<NodoArchivos, Point>? MenuContextualSolicitado; // click derecho
+    public event Action<NodoArchivos>? ArchivoAbierto;
+    public event Action<NodoArchivos, Point>? MenuContextualSolicitado;
 
     NodoArchivos? _nodoUltimoClick;
     long _tiempoUltimoClickMs = -1;
@@ -57,25 +53,20 @@ public class ExplorerTreeView : Control
     {
         RaizProperty.Changed.AddClassHandler<ExplorerTreeView>((c, e) =>
         {
-            // no hace falta desuscribirse del arbol viejo: una vez que Raiz cambia nada vuelve a
-            // mutarlo, así que sus eventos no vuelven a dispararse (la escala de un explorador de
-            // archivos no justifica la complejidad de rastrear los delegates para sacarlos)
+            // Sin desuscribir del arbol viejo: una vez reemplazado no vuelve a mutar
             if (e.NewValue is NodoArchivos nuevo) SuscribirRecursivo(nuevo, c.Refrescar);
             c.Refrescar();
         });
         SeleccionadoProperty.Changed.AddClassHandler<ExplorerTreeView>((c, _) => c.InvalidateVisual());
     }
 
-    // se re-renderiza cuando cambia cualquier propiedad de cualquier nodo visible (expandido,
-    // hijos cargados, renombrado). Simplifica no tratar de suscribirse solo a lo estrictamente
-    // visible: la cantidad de nodos de un proyecto de este tamaño no lo justifica.
     static void SuscribirRecursivo(NodoArchivos nodo, Action refrescar)
     {
         nodo.PropertyChanged += (_, _) => refrescar();
         nodo.Hijos.CollectionChanged += (_, e) =>
         {
             refrescar();
-            // solo los nuevos: re-suscribir a todos duplicaba handlers en cada cambio
+            // Solo los nuevos: re-suscribir a todos duplicaba handlers
             if (e.NewItems != null) foreach (NodoArchivos hijo in e.NewItems) SuscribirRecursivo(hijo, refrescar);
         };
         foreach (var hijo in nodo.Hijos) SuscribirRecursivo(hijo, refrescar);
@@ -86,8 +77,6 @@ public class ExplorerTreeView : Control
         InvalidateMeasure();
         InvalidateVisual();
     }
-
-    // ─────────────────────────── recorrido ───────────────────────────
 
     IEnumerable<(NodoArchivos Nodo, int Nivel)> NodosVisibles()
     {
@@ -103,8 +92,6 @@ public class ExplorerTreeView : Control
                 foreach (var item in Recorrer(hijo, nivel + 1))
                     yield return item;
     }
-
-    // ─────────────────────────── medida / render ───────────────────────────
 
     protected override Size MeasureOverride(Size availableSize) =>
         new(availableSize.Width, NodosVisibles().Count() * AltoFila);
@@ -126,7 +113,6 @@ public class ExplorerTreeView : Control
         int filaInicioHijos = fila;
         foreach (var hijo in nodo.Hijos) DibujarNodo(context, hijo, nivel + 1, ref fila);
 
-        // guia vertical: conecta la carpeta con todos sus hijos visibles
         double xGuia = MargenIzquierdo + nivel * IndentacionPorNivel + LadoIconoCarpeta / 2.0;
         double yInicio = filaInicioHijos * AltoFila;
         double yFin = fila * AltoFila;
@@ -154,8 +140,6 @@ public class ExplorerTreeView : Control
         double yTexto = y + (AltoFila - texto.Height) / 2.0;
         context.DrawText(texto, new Point(x + LadoIconoCarpeta + 4, yTexto));
     }
-
-    // ─────────────────────────── entrada ───────────────────────────
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {

@@ -7,13 +7,8 @@
              x:DataType="vm:EditorViewModel"
              Focusable="True" KeyDown="Editor_KeyDown">
 
-    <!-- Reemplaza PanelCentral.cs. El texto/cursor/selección los dibuja EditorTextArea (control
-         custom); acá se arma todo lo demás: tabs, el par de ScrollViewer que reemplazan
-         ScrollBarWin95 (uno vertical envolviendo gutter+texto, uno horizontal solo para el texto,
-         así los números de línea no se desplazan de lado), y las barras de buscar/ir-a-línea. -->
     <Grid Name="PART_GridRaiz" RowDefinitions="Auto,Auto,*">
 
-        <!-- tabs -->
         <ScrollViewer Name="PART_ScrollTabs" Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                       IsVisible="{Binding HayArchivosAbiertos}">
             <ItemsControl ItemsSource="{Binding Tabs}" x:CompileBindings="False">
@@ -24,10 +19,6 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <!-- PointerMoved/PointerReleased, junto con Tab_PointerPressed, arman el gesto
-                             de arrastre (ver code-behind): un click simple sigue activando la pestaña
-                             de inmediato, recien al moverse mas de unos pixeles con el boton apretado
-                             arranca el drag-and-drop real -->
                         <controls:Win95Bevel Margin="0,0,3,0" Padding="8,4" MaxWidth="130" BevelThickness="2"
                                               Background="{DynamicResource TemaBackgroundBrush}"
                                               PointerPressed="Tab_PointerPressed"
@@ -50,8 +41,6 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- breadcrumbs: "carpeta > subcarpeta > archivo.ggez", cada segmento abre un menu con
-             el contenido de esa carpeta -->
         <StackPanel Grid.Row="1" IsVisible="{Binding HayArchivosAbiertos}">
             <ItemsControl ItemsSource="{Binding BreadcrumbSegmentos}" Margin="6,3" x:CompileBindings="False">
                 <ItemsControl.ItemsPanel>
@@ -108,9 +97,7 @@
             <controls:Win95Divider Orientation="Horizontal" />
         </StackPanel>
 
-        <!-- el fondo va por estilo y no como atributo (un valor local le ganaria al estilo): la
-             extension Modo Oscuro le pone la clase "oscuro". Hace falta ademas del fondo que pinta
-             EditorTextArea porque este tambien se ve debajo de la ultima linea del archivo -->
+        <!-- Fondo por estilo y no atributo: un valor local le ganaria a la clase "oscuro" -->
         <controls:Win95Bevel Grid.Row="2" Sunken="True" BevelThickness="3" Padding="0"
                              Classes.oscuro="{Binding Extensiones.ModoOscuro.Instalada}">
             <controls:Win95Bevel.Styles>
@@ -122,23 +109,13 @@
                 </Style>
             </controls:Win95Bevel.Styles>
             <Grid Name="PART_GridContenido">
-                <!-- sin archivos abiertos: fantasma centrado -->
                 <StackPanel IsVisible="{Binding !HayArchivosAbiertos}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Fantasma128px.png"
                            Width="128" Height="128" RenderOptions.BitmapInterpolationMode="None" />
                     <TextBlock Text="Sin archivos abiertos" FontSize="18" Foreground="Gray" HorizontalAlignment="Center" />
                 </StackPanel>
 
-                <!-- minimapa + scrollbar propios de ESTE panel (no globales/compartidos - se probo
-                     compartido entre paneles de un split y quedaba mal: un solo minimapa
-                     estirandose por la altura combinada de dos paneles apilados, sin relacion con
-                     donde termina cada archivo). Con split, cada EditorView (y por lo tanto cada
-                     panel) tiene su propio minimapa y su propia scrollbar, del mismo tamaño que
-                     ese panel. VerticalScrollBarVisibility=Hidden porque la scrollbar visible es
-                     PART_ScrollBarVertical (a la derecha del minimapa, ver mas abajo), no la nativa
-                     del ScrollViewer - Hidden no desactiva el scroll en si (rueda/teclado siguen
-                     andando), solo oculta el chrome nativo que quedaria sandwicheado entre el
-                     texto y el minimapa. Sincronizado a mano en SincronizarMinimapa (code-behind). -->
+                <!-- Minimapa y scrollbar propios de cada panel; la scrollbar nativa va Hidden (el scroll sigue andando) y se sincroniza en SincronizarMinimapa -->
                 <Grid IsVisible="{Binding HayArchivosAbiertos}" ColumnDefinitions="*,Auto,Auto">
                     <ScrollViewer Name="PART_ScrollVertical" Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden">
                         <Grid ColumnDefinitions="Auto,*">
@@ -146,12 +123,7 @@
                                                    ModoOscuro="{Binding Extensiones.ModoOscuro.Instalada}" />
                             <ScrollViewer Name="PART_ScrollHorizontal" Grid.Column="1"
                                           HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                                <!-- MinWidth=ancho del viewport: sin esto, un archivo con lineas cortas/vacias
-                                     (ej. uno nuevo con solo unos Enter) mide su ancho por la linea mas larga,
-                                     que puede dar casi 0px - el resaltado de la linea actual se dibuja "pared
-                                     a pared" con Bounds.Width asi que se VE clickeable en toda la fila, pero
-                                     el area real del control (y por lo tanto donde llega el click) quedaba
-                                     angosta y el click no hacia nada -->
+                                <!-- MinWidth = viewport: si no, con lineas cortas el control queda angosto y el click en la fila no llega -->
                                 <controls:EditorTextArea Name="PART_TextArea" Tab="{Binding TabActiva}" Extensiones="{Binding Extensiones}"
                                                           TamanoFuente="{Binding TamanoFuente}" TamanoTab="{Binding TamanoTab}"
                                                           MinWidth="{Binding #PART_ScrollHorizontal.Bounds.Width}" />
@@ -164,23 +136,11 @@
                     <ScrollBar Name="PART_ScrollBarVertical" Grid.Column="2" Orientation="Vertical" />
                 </Grid>
 
-                <!-- buscar / reemplazar / ir a linea: van afuera del Grid de arriba (que solo se
-                     muestra con HayArchivosAbiertos) porque el boton de la barra lateral los abre
-                     igual sin archivos abiertos - con la vieja ubicacion el click no mostraba nada
-                     y parecia que el boton estaba roto.
-                     Los dos widgets van en un StackPanel horizontal en vez de flotar cada uno con su
-                     propio HorizontalAlignment=Right: antes, con los dos abiertos a la vez, quedaban
-                     encimados en el mismo punto (ver captura del usuario). Ahora, al estar en el
-                     mismo StackPanel alineado a la derecha, "Buscar" siempre queda pegado al borde y
-                     "Ir a linea" (que va primero en el orden) se acomoda solo, a su izquierda, sin
-                     tapar nada; si alguno esta cerrado el otro no deja hueco (IsVisible=False no
-                     ocupa espacio en el StackPanel). -->
+                <!-- Fuera del Grid de arriba porque se pueden abrir sin archivos abiertos -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                             Margin="0,4,0,0" Spacing="8">
 
-                    <!-- ir a línea: VerticalAlignment=Top para que no se estire a la altura de "Buscar"
-                         (mas alto por el renglon de reemplazar) - sin esto el StackPanel horizontal
-                         lo agranda para que coincida, dejando un hueco vacio abajo -->
+                    <!-- Top para que el StackPanel no lo estire a la altura de "Buscar" -->
                     <Border VerticalAlignment="Top" BoxShadow="1 2 6 0 #60000000" IsVisible="{Binding IrALineaVisible}">
                         <controls:Win95Bevel BevelThickness="2" Background="{DynamicResource TemaBackgroundBrush}">
                             <StackPanel Margin="6" Spacing="2">
@@ -195,9 +155,7 @@
                         </controls:Win95Bevel>
                     </Border>
 
-                    <!-- buscar / reemplazar: Border afuera solo para la sombra (Win95Bevel no la
-                         expone), igual que el buscador flotante de VSCode; los campos van con fondo
-                         blanco y borde propio (antes se confundian con el fondo del panel). -->
+                    <!-- Border externo solo para la sombra (Win95Bevel no la expone) -->
                     <Border VerticalAlignment="Top" BoxShadow="1 2 6 0 #60000000" IsVisible="{Binding BuscarVisible}">
                         <controls:Win95Bevel BevelThickness="2" Background="{DynamicResource TemaBackgroundBrush}">
                             <StackPanel Margin="6" Spacing="4">
@@ -231,10 +189,6 @@
                     </Border>
                 </StackPanel>
 
-                <!-- previsualizacion de la zona de destino mientras se arrastra una pestaña (propia
-                     o de otro panel): el code-behind mueve/agranda esto en DragOver segun donde este
-                     el puntero (mitad de arriba = parte arriba, mitad de abajo = parte abajo, resto =
-                     mueve sin partir) - ver EditorView.axaml.cs -->
                 <Border Name="PART_OverlayDrop" IsVisible="False" IsHitTestVisible="False"
                         Background="#4055AAFF" BorderThickness="2" BorderBrush="#FF3070C0" />
             </Grid>

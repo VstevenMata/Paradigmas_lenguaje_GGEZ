@@ -8,16 +8,13 @@ namespace ParadigmasLenguajePropio.ViewModels;
 
 public partial class AppTitleBarViewModel : ViewModelBase
 {
-    // conectado por MainWindowViewModel en la Fase 4, cuando el explorador existe
     public Func<string, IEnumerable<ResultadoBusqueda>>? BuscarArchivos { get; set; }
     public Action<string>? AbrirResultado { get; set; }
 
     [ObservableProperty]
     private string _textoBusqueda = "";
 
-    // opciones del boton de pincel junto al buscador (ver AppTitleBarView.axaml) - Win95 siempre
-    // presente, el resto lo sincroniza MainWindowViewModel con ExtensionsViewModel.TemasInstalados
-    // (un tema no instalado no tiene que aparecer aca para elegirlo)
+    // Win95 siempre presente; el resto lo sincroniza MainWindowViewModel con los temas instalados
     public ObservableCollection<OpcionTema> Temas { get; } = new() { new("Win95", Tema.Win95) };
     public Action<Tema>? AplicarTema { get; set; }
 

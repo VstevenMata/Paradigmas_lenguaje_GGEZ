@@ -8,8 +8,6 @@ using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Views;
 
-// carga en el arrastre de una pestaña de terminal: solo la instancia (a diferencia de los tabs del
-// editor no hace falta acordarse de "de que panel salio" - solo hay una lista plana de columnas)
 record PayloadArrastreTerminal(TerminalInstanceViewModel Instancia);
 
 public partial class TerminalView : UserControl
@@ -17,7 +15,7 @@ public partial class TerminalView : UserControl
     static readonly DataFormat<PayloadArrastreTerminal> FormatoArrastreTerminal =
         DataFormat.CreateInProcessFormat<PayloadArrastreTerminal>("ggez/terminal-tab");
 
-    const double UmbralArrastre = 5; // pixeles antes de que un click-y-mantener se considere arrastre
+    const double UmbralArrastre = 5;
 
     TerminalViewModel? ViewModel => DataContext as TerminalViewModel;
 
@@ -53,19 +51,12 @@ public partial class TerminalView : UserControl
         _columnas.ContainerPrepared += Columnas_ContainerPrepared;
     }
 
-    // el ItemsControl arma un contenedor (ContentPresenter) por cada item de Instancias, ocultas
-    // incluidas (ver comentario en TerminalView.axaml) - lo unico que decide si esa columna se ve o
-    // no es este enlace de IsVisible a EnColumna, atado a mano en vez de por un Style porque los
-    // estilos de Avalonia cascadean por TODO el arbol visual descendiente (no solo dentro de este
-    // ItemsControl como en WPF): un Selector="ContentPresenter" pisaria tambien el ContentPresenter
-    // interno de cada Win95Bevel/ScrollViewer/Boton de la columna. Enlazando directo sobre el
-    // contenedor que entrega el evento no hay ambiguedad posible.
+    // IsVisible atado a mano: un Style sobre ContentPresenter cascadea a todos los ContentPresenter internos
     void Columnas_ContainerPrepared(object? sender, ContainerPreparedEventArgs e) =>
         e.Container.Bind(Visual.IsVisibleProperty, new Binding(nameof(TerminalInstanceViewModel.EnColumna)));
 
     void SeguirErroresAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // un comando ruidoso agrega cientos de lineas por tick: un solo ScrollToEnd alcanza
         if (!_erroresAncladoAlFinal || _scrollErroresPendiente) return;
         _scrollErroresPendiente = true;
         Dispatcher.UIThread.Post(() => { _scrollErroresPendiente = false; _scrollErrores.ScrollToEnd(); }, DispatcherPriority.Background);
@@ -86,14 +77,7 @@ public partial class TerminalView : UserControl
         if (ViewModel is { } vm) vm.TabActiva = 2;
     }
 
-    // click simple en un chip oculto REEMPLAZA a la activa (ver MostrarEnColumna); arrastrarlo en
-    // vez de solo clickear lo suelta justo donde se quiera (ver Pestana_PointerMoved/Columnas_Drop) -
-    // mismo patron "click reemplaza, arrastrar agrupa/reubica" que las pestañas de columna.
-    // OJO: a diferencia de Pestana_PointerPressed, el comando de este chip (MostrarEnColumnaCommand)
-    // lo saca de InstanciasOcultas - ejecutarlo en PointerPressed destruiria el control bajo el
-    // puntero antes de capturarlo, y el arrastre nunca llegaria a empezar. Por eso se difiere a
-    // PointerReleased: si nunca se convierte en arrastre real (ver PointerMoved), ahi se trata como
-    // el click simple que fue.
+    // El click se difiere a PointerReleased: el comando saca el chip de la lista y destruiria el control antes del arrastre
     void InstanciaOculta_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not Control { DataContext: TerminalInstanceViewModel instancia }) return;
@@ -105,24 +89,18 @@ public partial class TerminalView : UserControl
 
     void InstanciaOculta_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        var candidato = _candidatoArrastre; // sigue seteado solo si no se convirtio en arrastre real
+        var candidato = _candidatoArrastre;
         _candidatoArrastre = null;
         e.Pointer.Capture(null);
         if (candidato is { } c && ViewModel is { } vm) vm.MostrarEnColumnaCommand.Execute(c.Instancia);
     }
 
-    // ─────────────────────────── pestaña de columna: click / arrastre para reordenar o reubicar ───────────────────────────
-
-    // click simple ya la activa (igual que clickear un tab de archivo cambia la pestaña activa);
-    // recien al moverse mas de UmbralArrastre con el boton apretado se considera un arrastre real
     void Pestana_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not Control { DataContext: TerminalInstanceViewModel instancia } || ViewModel is not { } vm) return;
         vm.EnfocarInstanciaCommand.Execute(instancia);
         _candidatoArrastre = (instancia, e.GetPosition(this), e);
-        // captura explicita: sin esto, en algunas plataformas (Wayland/XWayland) el estado del
-        // boton que reporta PointerMoved despues de moverse un poco deja de ser confiable, y el
-        // arrastre se cancelaba solo antes de cruzar el umbral
+        // Captura explicita: en Wayland/XWayland PointerMoved deja de reportar bien el boton y el arrastre se cancelaba
         e.Pointer.Capture((IInputElement)sender);
     }
 
@@ -133,7 +111,7 @@ public partial class TerminalView : UserControl
         if (distancia < UmbralArrastre) return;
 
         _candidatoArrastre = null;
-        e.Pointer.Capture(null); // DoDragDropAsync toma el control del puntero de aca en adelante
+        e.Pointer.Capture(null);
         _ = IniciarArrastreAsync(candidato.Instancia, candidato.Disparador);
     }
 
@@ -157,7 +135,7 @@ public partial class TerminalView : UserControl
     {
         if (sender is Control { DataContext: TerminalInstanceViewModel instancia } && ViewModel is { } vm)
             vm.CerrarDeVistaCommand.Execute(instancia);
-        e.Handled = true; // no dejar que el click tambien active/arrastre la pestaña
+        e.Handled = true;
     }
 
     void EliminarInstancia_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -167,13 +145,9 @@ public partial class TerminalView : UserControl
         e.Handled = true;
     }
 
-    // ─────────────────────────── soltar: reordena, nunca apila ───────────────────────────
-
     void Columnas_DragOver(object? sender, DragEventArgs e)
     {
-        // ViewModel is not null alcanza para aceptar el drop: si no hay NINGUNA columna visible
-        // todavia (recien se creo la primera terminal extra con "+"), soltar ahi debe poder
-        // mostrarla igual, como la primera columna
+        // Se acepta el drop aunque no haya ninguna columna visible todavia
         if (ObtenerPayload(e) == null || ViewModel is not { } vm)
         {
             e.DragEffects = DragDropEffects.None;
@@ -199,8 +173,6 @@ public partial class TerminalView : UserControl
     static PayloadArrastreTerminal? ObtenerPayload(DragEventArgs e) =>
         e.DataTransfer.Items.Select(i => i.TryGetValue(FormatoArrastreTerminal)).FirstOrDefault(p => p != null);
 
-    // en que posicion de la lista quedaria si se soltara ahi: columna bajo el mouse (por X, ya que
-    // UniformGrid les da a todas el mismo ancho) + si esta en su mitad izquierda o derecha
     int CalcularIndiceDestino(Point puntoEnColumnas, int cantidadColumnas)
     {
         if (cantidadColumnas == 0) return 0;

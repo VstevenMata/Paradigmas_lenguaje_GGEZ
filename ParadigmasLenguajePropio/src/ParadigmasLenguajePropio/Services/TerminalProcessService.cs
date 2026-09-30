@@ -6,9 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace ParadigmasLenguajePropio.Services;
 
-// Extraido casi textual de PanelTerminal.cs: proceso hijo real por comando, lectura async de
-// stdout/stderr byte a byte, decodificacion UTF-8-con-fallback-a-pagina-OEM, y stripping de ANSI.
-// Nada de esto depende de Avalonia (ni dependia de Raylib en el original) - es logica de proceso pura.
+// Proceso hijo por comando: lectura async de stdout/stderr por bytes, decodificacion y limpieza de ANSI
 public class TerminalProcessService
 {
     const int EsperaLineaParcial = 150; // ms sin datos tras los cuales se muestra una linea a medio escribir
@@ -26,7 +24,6 @@ public class TerminalProcessService
     public bool ProcesoActivo => _proceso != null;
     public bool HayPendientes => !_salidaPendiente.IsEmpty;
 
-    // devuelve null si el proceso arrancó bien, o el mensaje de error si no se pudo ejecutar
     public string? Lanzar(string comando, string directorioActual)
     {
         var info = new ProcessStartInfo
@@ -39,8 +36,7 @@ public class TerminalProcessService
             CreateNoWindow = true,
         };
 
-        // a proposito no se fija StandardOutputEncoding: los streams se leen en bytes y cada
-        // linea se decodifica por su cuenta, porque no todas vienen en la misma codificacion
+        // No se fija StandardOutputEncoding: cada linea se decodifica por su cuenta porque no todas vienen igual
         if (OperatingSystem.IsWindows())
         {
             info.FileName = "cmd.exe";
@@ -70,7 +66,6 @@ public class TerminalProcessService
         }
     }
 
-    // corre fuera del hilo de la UI: por eso la cola es concurrente
     void LeerStream(Stream stream, bool esError)
     {
         _ = Task.Run(async () =>
@@ -83,8 +78,7 @@ public class TerminalProcessService
                 var lectura = stream.ReadAsync(buffer, 0, buffer.Length);
                 while (true)
                 {
-                    // si el proceso se queda callado a mitad de linea suele ser un prompt esperando
-                    // respuesta: se muestra igual, en vez de quedar invisible hasta que el comando termine
+                    // Un proceso callado a mitad de linea suele ser un prompt esperando respuesta: se muestra igual
                     if (await Task.WhenAny(lectura, Task.Delay(EsperaLineaParcial)) != lectura)
                     {
                         if (linea.Count > 0)
@@ -116,7 +110,7 @@ public class TerminalProcessService
             }
             catch
             {
-                // el stream se corta solo cuando se mata el proceso: no es un error que valga mostrar
+                // El stream se corta al matar el proceso; no es un error
             }
 
             if (linea.Count > 0) _salidaPendiente.Enqueue((Decodificar(linea), esError));
@@ -124,9 +118,7 @@ public class TerminalProcessService
         });
     }
 
-    // en Windows conviven dos codificaciones: cmd.exe escribe sus propios mensajes en la pagina OEM
-    // (850/437) mientras que casi todo lo demas ya emite UTF-8. Se prueba UTF-8 estricto primero
-    // porque una secuencia UTF-8 valida practicamente no aparece por casualidad en texto OEM.
+    // cmd.exe escribe en OEM (850/437) y casi todo lo demas en UTF-8; UTF-8 estricto primero porque no aparece por casualidad en OEM
     static string Decodificar(List<byte> bytes)
     {
         var crudos = bytes.ToArray();
@@ -143,13 +135,12 @@ public class TerminalProcessService
         }
         catch
         {
-            return Encoding.Latin1; // no deberia pasar, pero mejor texto raro que una excepcion
+            return Encoding.Latin1;
         }
     }
 
     public bool TryDequeue(out (string Texto, bool EsError) salida) => _salidaPendiente.TryDequeue(out salida);
 
-    // saca los codigos de color ANSI y los caracteres de control, que aca no significan nada
     public static string Limpiar(string texto)
     {
         texto = SecuenciasAnsi.Replace(texto, "");
@@ -163,8 +154,7 @@ public class TerminalProcessService
         return limpio.ToString();
     }
 
-    // el proceso recien termino cuando salio Y ademas cerro sus dos streams: si no, todavia
-    // pueden estar viajando lineas de salida por los eventos asincronos
+    // Termino solo si salio Y cerro sus dos streams; si no, aun pueden venir lineas en camino
     public bool RevisarProcesoTerminado(out int codigoSalida, out bool cortadoPorUsuario)
     {
         codigoSalida = 0;
@@ -188,7 +178,7 @@ public class TerminalProcessService
         catch (Exception ex) { return $"No se pudo enviar la entrada al proceso: {ex.Message}"; }
     }
 
-    // sin esto, un programa que lee hasta el fin de la entrada (cat, findstr, sort) no terminaria nunca
+    // Sin esto, programas que leen hasta EOF (cat, sort) no terminarian nunca
     public string? CerrarEntradaEstandar()
     {
         if (_proceso == null) return null;
@@ -196,7 +186,6 @@ public class TerminalProcessService
         catch (Exception ex) { return $"No se pudo cerrar la entrada: {ex.Message}"; }
     }
 
-    // el arbol entero: el shell suele lanzar a su vez el programa real
     public string? Interrumpir()
     {
         if (_proceso == null) return null;
@@ -205,7 +194,6 @@ public class TerminalProcessService
         catch (Exception ex) { return $"No se pudo cortar el proceso: {ex.Message}"; }
     }
 
-    // corta el proceso que haya quedado vivo al cerrar la app, para no dejarlo huerfano
     public void Cerrar()
     {
         if (_proceso == null) return;

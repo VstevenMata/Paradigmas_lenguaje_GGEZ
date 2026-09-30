@@ -14,7 +14,7 @@ public partial class TerminalInstanceView : UserControl
 
     ScrollViewer _scroll = null!;
     TextBox _entrada = null!;
-    bool _ancladoAlFinal = true; // false mientras el usuario se fue a mirar salida vieja
+    bool _ancladoAlFinal = true;
     bool _scrollPendiente;
 
     public TerminalInstanceView()
@@ -36,16 +36,13 @@ public partial class TerminalInstanceView : UserControl
 
     void SeguirAlFinalSiCorresponde(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // un comando ruidoso agrega cientos de lineas por tick: un solo ScrollToEnd alcanza
+        // Un comando ruidoso agrega cientos de lineas por tick: un solo ScrollToEnd alcanza
         if (!_ancladoAlFinal || _scrollPendiente) return;
         _scrollPendiente = true;
         Dispatcher.UIThread.Post(() => { _scrollPendiente = false; _scroll.ScrollToEnd(); }, DispatcherPriority.Background);
     }
 
-    // clickear en cualquier parte del fondo negro enfoca la linea viva: la caja de texto real
-    // mide unos pocos pixeles cuando esta vacia, asi que sin esto casi nunca se le acierta al clickear.
-    // Tambien marca esta instancia como la activa del panel (ver TerminalInstanceViewModel.OnActivar) -
-    // "solo la que se clickeo es la activa", aunque todas las columnas se vean a la vez.
+    // La caja de texto real mide pocos pixeles vacia: clickear el fondo la enfoca y activa la instancia
     void Fondo_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         ViewModel?.OnActivar?.Invoke();
@@ -71,10 +68,9 @@ public partial class TerminalInstanceView : UserControl
         bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
-        // Ctrl+Shift+C copia; se revisa antes que Ctrl+C, que corta el proceso
+        // Ctrl+Shift+C antes que Ctrl+C, que corta el proceso
         if (ctrl && shift && e.Key == Key.C) { _ = CopiarAsync(vm.TextoCompleto()); e.Handled = true; return; }
         if (ctrl && e.Key == Key.C) { vm.Interrumpir(); e.Handled = true; return; }
-        // Ctrl+D en Linux, Ctrl+Z en Windows: los dos sirven, para no tener que acordarse de cual va
         if (ctrl && (e.Key == Key.D || e.Key == Key.Z)) { vm.CerrarEntradaEstandar(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.L) { vm.LimpiarPantalla(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.V) { _ = PegarAsync(vm); e.Handled = true; return; }
@@ -94,8 +90,6 @@ public partial class TerminalInstanceView : UserControl
         if (ctrl && e.Key == Key.Home) { _scroll.ScrollToHome(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.End) { _scroll.ScrollToEnd(); e.Handled = true; return; }
 
-        // el resto (flechas sin Ctrl, Ctrl+flechas de salto de palabra, Backspace/Delete, Inicio/Fin
-        // sin Ctrl) lo resuelve el TextBox nativo: no hace falta reimplementar el cursor a mano.
     }
 
     void Aplicar((string Texto, int Caret) resultado)

@@ -8,9 +8,6 @@
              Focusable="True"
              KeyDown="Overlay_KeyDown">
 
-    <!-- Reemplaza DialogoModal.cs: fondo oscurecido + ventana con bisel y remaches, ahora como Task async
-         en vez de Action<int> alElegir. Sirve tanto para el modal de N botones como para el prompt de texto
-         (PedirTexto original), alternando con EsPrompt en vez de ser dos vistas separadas. -->
     <Grid Background="#5A000000">
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
             <controls:Win95Bevel BevelThickness="4" Padding="4" Background="{DynamicResource TemaBackgroundBrush}">
@@ -43,7 +40,6 @@
                 </StackPanel>
             </controls:Win95Bevel>
 
-            <!-- remaches en las 4 esquinas, como el marco de ventana original -->
             <Border Width="6" Height="6" Background="{DynamicResource TemaBevelDarkBrush}"
                     HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3">
                 <Border Width="4" Height="4" Background="{DynamicResource TemaBevelLightBrush}"

@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ParadigmasLenguajePropio.Models;
 
-// una fila del menu que abre un segmento del breadcrumb
 public partial class NodoBreadcrumb : ObservableObject
 {
     public string Nombre { get; }

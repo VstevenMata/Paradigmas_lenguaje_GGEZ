@@ -4,9 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace ParadigmasLenguajePropio.Services;
 
-// Reemplaza DialogoModal.cs: en vez de Action<int> alElegir (fire-and-forget), expone Task async.
-// Se muestra como overlay dentro de la misma ventana (no una Window hija) para conservar el look
-// original de "fondo oscurecido con remaches sobre la misma ventana".
+// Dialogo modal como overlay dentro de la misma ventana, con API async
 public partial class DialogService : ObservableObject
 {
     [ObservableProperty]
@@ -49,8 +47,7 @@ public partial class DialogService : ObservableObject
         EsPrompt = true;
         ValorTexto = valorInicial;
         Botones.Clear();
-        // "Cancelar" al final a propósito: Escape siempre cierra con el último botón (ver Elegir),
-        // así que el orden acá es lo que decide qué hace Escape.
+        // "Cancelar" al final a proposito: Escape elige siempre el ultimo boton
         Botones.Add("Aceptar");
         Botones.Add("Cancelar");
         IsVisible = true;
@@ -62,7 +59,6 @@ public partial class DialogService : ObservableObject
     [RelayCommand]
     private void ElegirBoton(string boton) => Elegir(Botones.IndexOf(boton));
 
-    // llamado por click en un botón o por Escape (índice = Botones.Count - 1, la convención de "cancelar")
     public void Elegir(int indice)
     {
         if (!IsVisible) return;
@@ -70,7 +66,6 @@ public partial class DialogService : ObservableObject
 
         if (EsPrompt)
         {
-            // "Aceptar" es siempre el primer botón (ver PromptTextAsync)
             bool acepto = indice == 0;
             _tcsPrompt?.SetResult(acepto ? ValorTexto : null);
             _tcsPrompt = null;

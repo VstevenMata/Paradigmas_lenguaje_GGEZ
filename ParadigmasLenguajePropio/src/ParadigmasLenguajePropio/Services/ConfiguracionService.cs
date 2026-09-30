@@ -4,7 +4,7 @@ namespace ParadigmasLenguajePropio.Services;
 
 public record ConfiguracionUsuario(double TamanoFuente, int TamanoTab);
 
-// persiste tamaño de fuente y ancho de tab entre sesiones, mismo patron que TemaService
+// Persiste tamaño de fuente y ancho de tab entre sesiones
 public static class ConfiguracionService
 {
     public const double TamanoFuentePorDefecto = 18;

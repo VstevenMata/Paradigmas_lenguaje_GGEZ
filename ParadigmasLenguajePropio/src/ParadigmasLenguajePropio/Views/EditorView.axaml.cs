@@ -14,8 +14,7 @@ using ParadigmasLenguajePropio.ViewModels;
 
 namespace ParadigmasLenguajePropio.Views;
 
-// carga en el DataObject/DataTransfer de un arrastre de pestaña: de que panel salio, ademas de
-// la pestaña en si, para que el que la recibe sepa de donde sacarla si termina en otro panel
+// Payload del arrastre: la pestaña y el panel del que salio
 record PayloadArrastreTab(EditorTabViewModel Tab, EditorViewModel Origen);
 
 public partial class EditorView : UserControl
@@ -23,7 +22,7 @@ public partial class EditorView : UserControl
     static readonly DataFormat<PayloadArrastreTab> FormatoArrastreTab =
         DataFormat.CreateInProcessFormat<PayloadArrastreTab>("ggez/editor-tab");
 
-    const double UmbralArrastre = 5; // pixeles antes de que un click-y-mantener se considere arrastre
+    const double UmbralArrastre = 5;
 
     EditorViewModel? ViewModel => DataContext as EditorViewModel;
 
@@ -42,17 +41,11 @@ public partial class EditorView : UserControl
     EditorTabViewModel? _tabConScrollReiniciado;
     (EditorTabViewModel Tab, Point Inicio, PointerPressedEventArgs Disparador)? _candidatoArrastre;
 
-    // lo fija EditorAreaView al construir esta vista (ver EditorAreaView.Construir): si ya se
-    // llego al tope de paneles, partir mas se muestra bloqueado (el rechazo de verdad, sin
-    // confiar en esto, lo hace EditorAreaViewModel.MoverTab)
     public bool PuedeDividir { get; set; } = true;
 
-    // se dispara al soltar una pestaña (propia o de otro EditorView) sobre este panel; lo escucha
-    // EditorAreaView para pedirle a EditorAreaViewModel que la mueva/parta
     public event Action<EditorTabViewModel, EditorViewModel, EditorViewModel, ZonaDrop>? TabSoltado;
 
-    // la llama EditorAreaView tras reconstruir el arbol de paneles, para que el panel enfocado
-    // reciba el foco de teclado de verdad (una vista nueva no lo tiene por si sola)
+    // Una vista recien reconstruida no tiene foco de teclado por si sola
     public void EnfocarTexto() => _textArea.Focus();
 
     public EditorView()
@@ -75,8 +68,6 @@ public partial class EditorView : UserControl
         _textArea.CursorMovido += AsegurarCursorVisible;
         _textArea.ZoomSolicitado += direccion => ViewModel?.CambiarZoom(direccion);
 
-        // minimapa/scrollbar propios de este panel (ver comentario en el XAML) - se sincronizan
-        // con el ScrollViewer del propio panel, sin depender de cual panel tiene el foco
         _scrollVertical.ScrollChanged += (_, _) => SincronizarMinimapa();
         _minimapa.DesplazamientoSolicitado += y => _scrollVertical.Offset = new Vector(_scrollVertical.Offset.X, y);
         _scrollBarVertical.Scroll += (_, e) => _scrollVertical.Offset = new Vector(_scrollVertical.Offset.X, e.NewValue);
@@ -101,7 +92,6 @@ public partial class EditorView : UserControl
         if (e.PropertyName == nameof(EditorViewModel.TabActiva) && vm.TabActiva != _tabConScrollReiniciado)
         {
             _tabConScrollReiniciado = vm.TabActiva;
-            // cada pestaña arranca mostrando su propio inicio, como CambiarArchivoActivo en el original
             Dispatcher.UIThread.Post(() =>
             {
                 _scrollVertical.Offset = new Vector(0, 0);
@@ -119,8 +109,6 @@ public partial class EditorView : UserControl
         }
     }
 
-    // reemplaza AsegurarCursorVisible: en vez de recalcular scroll.Valor a mano, nudgea el
-    // Offset de los ScrollViewer nativos para que el rect del cursor quede dentro del viewport
     void AsegurarCursorVisible()
     {
         var rectCursor = _textArea.ObtenerRectCursor();
@@ -146,17 +134,12 @@ public partial class EditorView : UserControl
         _minimapa.AltoVisible = _scrollVertical.Viewport.Height;
         _minimapa.Desplazamiento = _scrollVertical.Offset.Y;
 
-        // idem para el area de texto y el gutter: asi Render() sabe que rango de lineas dibujar
-        // en vez de redibujar el archivo entero en cada scroll/resize (ver comentario en
-        // EditorTextArea.DesplazamientoY)
         _textArea.DesplazamientoY = _scrollVertical.Offset.Y;
         _textArea.AltoVisible = _scrollVertical.Viewport.Height;
         _gutter.DesplazamientoY = _scrollVertical.Offset.Y;
         _gutter.AltoVisible = _scrollVertical.Viewport.Height;
 
-        // mismos tres datos, ahora para el ScrollBar propio: asignar Value aca no dispara su
-        // evento Scroll (ese solo sale de interaccion del usuario), asi que no hay vuelta
-        // infinita con el handler que hace lo opuesto (ver constructor)
+        // Asignar Value no dispara Scroll (solo el usuario lo hace), asi que no hay bucle con el handler inverso
         _scrollBarVertical.Maximum = Math.Max(0, _scrollVertical.Extent.Height - _scrollVertical.Viewport.Height);
         _scrollBarVertical.ViewportSize = _scrollVertical.Viewport.Height;
         _scrollBarVertical.Value = _scrollVertical.Offset.Y;
@@ -165,19 +148,18 @@ public partial class EditorView : UserControl
     void Tab_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not Control { DataContext: EditorTabViewModel tab } || ViewModel is not { } vm) return;
-        vm.CambiarArchivoActivo(tab); // el click simple activa de inmediato, arrastre o no
+        vm.CambiarArchivoActivo(tab);
         _candidatoArrastre = (tab, e.GetPosition(this), e);
     }
 
-    // recien al moverse mas de UmbralArrastre con el boton apretado se considera un arrastre real
-    // (si no, cualquier click con el mas minimo temblor de mano dispararia un drag-and-drop)
+    // Solo pasado UmbralArrastre es arrastre real, si no cualquier temblor dispararia drag-and-drop
     void Tab_PointerMoved(object? sender, PointerEventArgs e)
     {
         if (_candidatoArrastre is not { } candidato) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { _candidatoArrastre = null; return; }
         if (Point.Distance(candidato.Inicio, e.GetPosition(this)) < UmbralArrastre) return;
 
-        _candidatoArrastre = null; // una sola vez por gesto
+        _candidatoArrastre = null;
         _ = IniciarArrastreAsync(candidato.Tab, candidato.Disparador);
     }
 
@@ -218,10 +200,7 @@ public partial class EditorView : UserControl
     static PayloadArrastreTab? ObtenerPayload(DragEventArgs e) =>
         e.DataTransfer.Items.Select(i => i.TryGetValue(FormatoArrastreTab)).FirstOrDefault(p => p != null);
 
-    // dentro de la franja de tabs -> Centro (mover sin partir); dentro del area de texto: 25% de
-    // arriba/abajo -> Arriba/Abajo (se chequea primero: una esquina resuelve a arriba/abajo antes
-    // que a izquierda/derecha, arbitrario pero razonable), 25% de izquierda/derecha -> Izquierda/
-    // Derecha, el 50% central -> Centro
+    // Franja de tabs -> Centro; en el texto: 25% arriba/abajo (primero), 25% izq/der, el resto Centro
     ZonaDrop CalcularZona(Point puntoEnGridRaiz)
     {
         double alturaTabs = _scrollTabs.Bounds.Height;
@@ -284,7 +263,7 @@ public partial class EditorView : UserControl
     {
         if (sender is Control { DataContext: EditorTabViewModel tab } && ViewModel is { } vm)
             _ = vm.CerrarArchivoAsync(tab);
-        e.Handled = true; // no dejar que el click tambien seleccione la pestaña
+        e.Handled = true;
     }
 
     void Segmento_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -331,8 +310,7 @@ public partial class EditorView : UserControl
 
     void CerrarIrALinea_Click(object? sender, RoutedEventArgs e) { if (ViewModel is { } vm) vm.IrALineaVisible = false; }
 
-    // atajos de teclado esperables (Ctrl+F/Ctrl+H/Ctrl+G) que el original no tenia (solo menu/toolbar);
-    // se agregan aca a nivel del EditorView entero porque el foco normalmente lo tiene EditorTextArea
+    // A nivel de EditorView porque el foco normalmente lo tiene EditorTextArea
     void Editor_KeyDown(object? sender, KeyEventArgs e)
     {
         if (ViewModel is not { } vm) return;

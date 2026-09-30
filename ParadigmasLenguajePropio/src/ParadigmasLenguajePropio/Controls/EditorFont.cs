@@ -4,20 +4,18 @@ using Avalonia.Media;
 
 namespace ParadigmasLenguajePropio.Controls;
 
-// tipografia compartida entre EditorGutter, EditorTextArea y EditorMinimap, con cache de shaping
+// Tipografia compartida del editor con cache de shaping
 static class EditorFont
 {
     public static readonly Typeface Typeface = new(FontFamily.Parse(
         "avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans"));
 
-    // no hay un .ttf bold separado en Assets/Fonts - misma familia con FontWeight.Bold, Skia lo
-    // emboldece de forma sintetica (usado por EditorMinimap, ver mas abajo)
+    // No hay .ttf bold: Skia emboldece la misma familia de forma sintetica
     public static readonly Typeface TypefaceNegrita = new(FontFamily.Parse(
         "avares://ParadigmasLenguajePropio/Assets/Fonts/LiberationSans-Regular.ttf#Liberation Sans"),
         FontStyle.Normal, FontWeight.Bold);
 
-    // Render() corre en cada tick de scroll: shapear (HarfBuzz) es lo caro, asi que se reusa el
-    // FormattedText mientras la linea no cambie. Tope bajo porque cada entrada guarda glyph runs.
+    // Shapear (HarfBuzz) es lo caro: se reusa el FormattedText mientras la linea no cambie
     static readonly Dictionary<(string, double, IBrush, bool), FormattedText> _cacheTextos = new();
     const int LimiteCacheTextos = 4_000;
 
@@ -30,12 +28,11 @@ static class EditorFont
             negrita ? TypefaceNegrita : Typeface, fontSize, brush);
     }
 
-    // anchos aparte (solo doubles): MeasureOverride recorre TODAS las lineas en cada tecla y no
-    // debe vaciar el cache de textos de arriba
+    // Cache aparte: MeasureOverride recorre todas las lineas en cada tecla y no debe vaciar el de textos
     static readonly Dictionary<(string, double), double> _cacheAnchos = new();
     const int LimiteCacheAnchos = 50_000;
 
-    // incluye blancos finales (Width los recorta: una indentacion sola mediria 0)
+    // Incluye blancos finales (Width los recorta: una indentacion sola mediria 0)
     public static double MedirPrefijo(string texto, double fontSize)
     {
         if (texto.Length == 0) return 0;
@@ -46,8 +43,6 @@ static class EditorFont
             Typeface, fontSize, Brushes.Black).WidthIncludingTrailingWhitespace;
     }
 
-    // alto de linea derivado del tamaño de fuente (antes una constante de 20px fija a los 18px de
-    // fuente originales, ver zoom en EditorTextArea/EditorGutter): un unico lugar para esta cuenta
-    // asi el gutter y el area de texto nunca pueden desalinearse entre si al hacer zoom.
+    // Unico lugar de esta cuenta para que gutter y texto no se desalineen con el zoom
     public static double AltoLinea(double fontSize) => fontSize + 2;
 }

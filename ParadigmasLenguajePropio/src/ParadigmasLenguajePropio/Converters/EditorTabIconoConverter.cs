@@ -5,8 +5,7 @@ using Avalonia.Platform;
 
 namespace ParadigmasLenguajePropio.Converters;
 
-// mismo criterio que NodoIconoConverter/PanelCentral.IconoPara, para que pestaña y árbol
-// muestren el mismo ícono por archivo.
+// Mismo criterio que NodoIconoConverter para que pestaña y arbol muestren el mismo icono
 public class EditorTabIconoConverter : IValueConverter
 {
     public static readonly EditorTabIconoConverter Instance = new();
