@@ -27,6 +27,16 @@ public partial class ExtensionInfo : ObservableObject
     [ObservableProperty]
     private double _progreso;
 
+    // Estrellas de los niveles que hacen falta para instalarla; 0 = libre
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TextoBloqueo))]
+    private int _estrellasRequeridas;
+
+    [ObservableProperty]
+    private bool _bloqueada;
+
+    public string TextoBloqueo => $"Requiere {EstrellasRequeridas} ★";
+
     public ExtensionInfo(string id, string nombre, string autor, string icono, string colorHex, string descripcionCorta,
         IReadOnlyList<string> caracteristicas, bool instalada = false)
     {

@@ -37,9 +37,13 @@
                                         </StackPanel>
 
                                         <Button Grid.Column="2" VerticalAlignment="Center" Width="86" FontSize="9" Padding="2"
+                                                IsVisible="{Binding !Bloqueada}"
                                                 Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
                                                 Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
                                                 CommandParameter="{Binding}" />
+                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Width="86" FontSize="12"
+                                                   TextAlignment="Center" Foreground="Black" TextWrapping="Wrap"
+                                                   IsVisible="{Binding Bloqueada}" Text="{Binding TextoBloqueo}" />
                                     </Grid>
                                 </Button>
                             </DataTemplate>
@@ -62,9 +66,14 @@
                         <TextBlock Text="{Binding Autor}" FontSize="13" Foreground="Gray" Margin="0,2,0,10" />
 
                         <Button Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
-                                IsVisible="{Binding !Instalando}" HorizontalAlignment="Left" Width="110" FontSize="11"
+                                IsVisible="{Binding !Instalando}" IsEnabled="{Binding !Bloqueada}"
+                                HorizontalAlignment="Left" Width="110" FontSize="11"
                                 Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
                                 CommandParameter="{Binding}" />
+
+                        <TextBlock IsVisible="{Binding Bloqueada}" FontSize="13" Foreground="Black" TextWrapping="Wrap" Margin="0,4,0,0">
+                            <Run Text="{Binding TextoBloqueo}" /><Run Text=": gánelas resolviendo niveles (F5 en un .ggez junto a un nivel.json)." />
+                        </TextBlock>
 
                         <StackPanel IsVisible="{Binding Instalando}" Margin="0,2">
                             <TextBlock Text="Instalando..." FontSize="12" Foreground="Gray" Margin="0,0,0,3" />

@@ -119,9 +119,12 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             if (e.PropertyName is nameof(EditorViewModel.LineaCursor) or nameof(EditorViewModel.ColumnaCursor) or nameof(EditorViewModel.HayArchivosAbiertos))
                 ActualizarPosicionCursorEnEstado();
+            if (e.PropertyName is nameof(EditorAreaViewModel.TabActiva) or nameof(EditorViewModel.HayArchivosAbiertos))
+                PanelJuego.EnfocarArchivo(Editor.TabActiva?.RutaCompleta);
         };
 
         RestaurarSesion();
+        PanelJuego.EnfocarArchivo(Editor.TabActiva?.RutaCompleta);
     }
 
     void SincronizarTemasDisponibles()

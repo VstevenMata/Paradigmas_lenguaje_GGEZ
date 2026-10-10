@@ -37,6 +37,10 @@ def leer_nivel(ruta: Path) -> dict:
     if not isinstance(meta, int) or isinstance(meta, bool) or meta < 0:
         raise ErrorNivel("'meta_pasos' debe ser un entero positivo (0 = sin meta)")
 
+    pistas = datos.get("pistas", [])
+    if not isinstance(pistas, list) or not all(isinstance(p, str) for p in pistas):
+        raise ErrorNivel("'pistas' debe ser una lista de textos")
+
     pruebas = datos.get("pruebas")
     if not isinstance(pruebas, list) or not pruebas:
         raise ErrorNivel("necesita una lista 'pruebas' con al menos una prueba")

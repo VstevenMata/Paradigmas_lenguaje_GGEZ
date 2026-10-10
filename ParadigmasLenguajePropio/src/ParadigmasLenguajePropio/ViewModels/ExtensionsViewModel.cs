@@ -47,12 +47,12 @@ public partial class ExtensionsViewModel : ViewModelBase
             new[] { "Cambia colores, biseles y tipografia de toda la app", "Desinstalar vuelve al tema Win95 por defecto" }),
     };
 
-    // Agregar una fila aca alcanza para un tema nuevo
-    static readonly (string Id, Tema Tema, string Nombre)[] TemasDisponibles =
+    // Agregar una fila aca alcanza para un tema nuevo; Estrellas = las que pide para desbloquearse
+    static readonly (string Id, Tema Tema, string Nombre, int Estrellas)[] TemasDisponibles =
     [
-        ("tema-zelda", Tema.Zelda, "Zelda"),
-        ("tema-sonic", Tema.Sonic, "Sonic"),
-        ("tema-megaman", Tema.MegaMan, "Mega Man"),
+        ("tema-zelda", Tema.Zelda, "Zelda", 3),
+        ("tema-sonic", Tema.Sonic, "Sonic", 9),
+        ("tema-megaman", Tema.MegaMan, "Mega Man", 6),
     ];
 
     static readonly IReadOnlyDictionary<string, Tema> TemasPorId =
@@ -78,6 +78,9 @@ public partial class ExtensionsViewModel : ViewModelBase
     public ExtensionsViewModel()
     {
         var instaladas = ExtensionesPersistenciaService.CargarInstaladas();
+        foreach (var tema in TemasDisponibles)
+            Extensiones.First(e => e.Id == tema.Id).EstrellasRequeridas = tema.Estrellas;
+
         foreach (var ext in Extensiones)
         {
             ext.Instalada = instaladas.Contains(ext.Id);
@@ -85,6 +88,7 @@ public partial class ExtensionsViewModel : ViewModelBase
             {
                 if (e.PropertyName != nameof(ExtensionInfo.Instalada)) return;
                 GuardarInstaladas();
+                ActualizarBloqueos();
                 if (!TemasPorId.ContainsKey(ext.Id)) return;
                 AplicarTemaDeExtension(ext);
                 OnPropertyChanged(nameof(TemasInstalados));
@@ -96,6 +100,16 @@ public partial class ExtensionsViewModel : ViewModelBase
         bool sigueDisponible = temaGuardado == Tema.Win95 ||
             Extensiones.Any(e => TemasPorId.TryGetValue(e.Id, out var t) && t == temaGuardado && e.Instalada);
         TemaService.Aplicar(sigueDisponible ? temaGuardado : Tema.Win95);
+
+        ActualizarBloqueos();
+        ProgresoService.Cambio += ActualizarBloqueos;
+    }
+
+    // Lo ya instalado no se quita aunque falten estrellas: solo se bloquea instalar
+    void ActualizarBloqueos()
+    {
+        int estrellas = ProgresoService.EstrellasTotales;
+        foreach (var ext in Extensiones) ext.Bloqueada = !ext.Instalada && ext.EstrellasRequeridas > estrellas;
     }
 
     void GuardarInstaladas() =>
@@ -115,7 +129,7 @@ public partial class ExtensionsViewModel : ViewModelBase
 
         var ext = Extensiones.First(e => TemasPorId.TryGetValue(e.Id, out var t) && t == tema);
         if (ext.Instalada) TemaService.Aplicar(tema);
-        else ext.Instalada = true;
+        else if (!ext.Bloqueada) ext.Instalada = true;
     }
 
     [RelayCommand]
@@ -128,6 +142,7 @@ public partial class ExtensionsViewModel : ViewModelBase
     void AlternarInstalacion(ExtensionInfo ext)
     {
         if (ext.Instalada) { ext.Instalada = false; return; }
+        if (ext.Bloqueada) return;
         InstalarConAnimacion(ext);
     }
 

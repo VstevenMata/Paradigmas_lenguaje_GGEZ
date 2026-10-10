@@ -119,6 +119,7 @@ Formato de `nivel.json`:
 {
   "titulo": "Suma de Gauss",
   "meta_pasos": 5,
+  "pistas": ["Piense en sumar el primero con el ultimo", "n crit {n gain 1} split 2"],
   "pruebas": [
     { "llamada": "sumarHasta{100}", "salida": "5050" },
     { "entrada": "Ana", "salida": "Hola, Ana!" }
@@ -131,6 +132,8 @@ Formato de `nivel.json`:
 - `llamada`: reemplaza el `lobby.launch` por `chat.send{<llamada>}`; sirve para probar un
   `combo` con distintos valores.
 - `meta_pasos`: la tercera estrella exige no pasarse de esos pasos (`0` = sin meta).
+- `pistas` (opcional): el IDE las vende a 1 moneda cada una, en orden. Las monedas salen de
+  las estrellas ganadas (el progreso se guarda en `progreso.json` del perfil del usuario).
 
 ### Condiciones antes de invocarlo (responsabilidad del lado C#)
 

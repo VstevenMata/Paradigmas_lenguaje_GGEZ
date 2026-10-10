@@ -24,6 +24,21 @@
                     <TextBlock Text="{Binding Estrellas}" FontSize="24"
                                ToolTip.Tip="★ pasar todas · ★ al primer intento · ★ sin pasar la meta de pasos" />
                     <TextBlock Text="{Binding DetalleEstrellas}" FontSize="16" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ResumenMonedas}" FontSize="16" Margin="0,4,0,0" />
+
+                    <StackPanel IsVisible="{Binding HayPistas}" Spacing="2" Margin="0,4,0,0">
+                        <ItemsControl ItemsSource="{Binding PistasCompradas}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock FontSize="16" TextWrapping="Wrap" Margin="0,0,0,2">
+                                        <Run Text="Pista: " FontWeight="Bold" /><Run Text="{Binding}" />
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Content="{Binding TextoComprarPista}" Command="{Binding ComprarPistaCommand}"
+                                IsVisible="{Binding QuedanPistas}" HorizontalAlignment="Left" FontSize="14" Padding="6,2" />
+                    </StackPanel>
                 </StackPanel>
 
                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*" Margin="0,8,0,0">
