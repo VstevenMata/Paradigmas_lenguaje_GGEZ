@@ -11,7 +11,7 @@
         </Border>
 
         <controls:Win95Bevel Grid.Row="1" BevelThickness="2" Background="{DynamicResource TemaBackgroundBrush}" Padding="8">
-            <Grid RowDefinitions="*,Auto,Auto,Auto">
+            <Grid RowDefinitions="*,Auto,Auto,Auto,Auto">
                 <controls:Win95Bevel Grid.Row="0" Sunken="True" BevelThickness="2" Background="White">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Personaje64px.png"
                            Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -39,6 +39,22 @@
                         <Button Content="{Binding TextoComprarPista}" Command="{Binding ComprarPistaCommand}"
                                 IsVisible="{Binding QuedanPistas}" HorizontalAlignment="Left" FontSize="14" Padding="6,2" />
                     </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Row="4" Margin="0,8,0,0" Spacing="2">
+                    <TextBlock Text="{Binding LogroNuevo}" IsVisible="{Binding HayLogroNuevo}"
+                               FontSize="16" FontWeight="Bold" TextWrapping="Wrap" />
+                    <Button Command="{Binding AlternarLogrosCommand}" HorizontalAlignment="Left" FontSize="14" Padding="6,2"
+                            Content="{Binding ResumenLogros}" ToolTip.Tip="Mostrar u ocultar la lista de logros" />
+                    <ScrollViewer IsVisible="{Binding MostrarLogros}" MaxHeight="220">
+                        <ItemsControl ItemsSource="{Binding ListaLogros}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{Binding}" FontSize="14" TextWrapping="Wrap" Margin="0,0,0,2" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </StackPanel>
 
                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*" Margin="0,8,0,0">

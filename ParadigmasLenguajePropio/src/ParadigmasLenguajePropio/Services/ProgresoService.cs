@@ -14,6 +14,7 @@ public class Progreso
     // Clave: carpeta absoluta del nivel
     public Dictionary<string, ProgresoNivel> Niveles { get; set; } = new();
     public int MonedasGastadas { get; set; }
+    public HashSet<string> Logros { get; set; } = new();
 }
 
 // Guarda intentos, estrellas y pistas compradas entre sesiones
@@ -40,6 +41,11 @@ public static class ProgresoService
             _actual.Niveles[carpeta] = nivel = new ProgresoNivel();
         return nivel;
     }
+
+    public static bool TieneLogro(string id) => _actual.Logros.Contains(id);
+
+    // true solo la primera vez: para avisar del logro nuevo
+    public static bool GanarLogro(string id) => _actual.Logros.Add(id);
 
     public static bool Gastar(int monedas)
     {
@@ -72,6 +78,7 @@ public static class ProgresoService
             progreso.Niveles = (progreso.Niveles ?? new())
                 .Where(par => par.Value != null)
                 .ToDictionary(par => par.Key, par => par.Value);
+            progreso.Logros ??= new();
             return progreso;
         }
         catch (Exception ex)

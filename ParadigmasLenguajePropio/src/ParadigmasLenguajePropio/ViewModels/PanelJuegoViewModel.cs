@@ -2,11 +2,12 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ParadigmasLenguajePropio.Models;
 using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Panel de juego: barra de mana, resultado del nivel con estrellas, monedas, pistas y pausa
+// Panel de juego: barra de mana, resultado del nivel con estrellas, monedas, pistas, logros y pausa
 public partial class PanelJuegoViewModel : ViewModelBase
 {
     const int CantidadSegmentos = 24;
@@ -49,6 +50,24 @@ public partial class PanelJuegoViewModel : ViewModelBase
 
     public ObservableCollection<string> PistasCompradas { get; } = new();
 
+    // Aviso de los logros ganados en la ultima ejecucion; se limpia al correr otra vez
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HayLogroNuevo))]
+    private string _logroNuevo = "";
+
+    public bool HayLogroNuevo => LogroNuevo.Length > 0;
+
+    [ObservableProperty]
+    private bool _mostrarLogros;
+
+    [ObservableProperty]
+    private string _resumenLogros = "";
+
+    // "[x]" / "[ ]" ademas del texto: no depende del color para saber cual se gano
+    public ObservableCollection<string> ListaLogros { get; } = new();
+
+    readonly List<string> _nuevos = new();
+
     public bool HayPistas => PistasRestantes > 0 || PistasCompradas.Count > 0;
 
     public bool QuedanPistas => PistasRestantes > 0;
@@ -73,11 +92,18 @@ public partial class PanelJuegoViewModel : ViewModelBase
         }
     }
 
+    public PanelJuegoViewModel() => RefrescarLogros();
+
+    [RelayCommand]
+    void AlternarLogros() => MostrarLogros = !MostrarLogros;
+
     // carpetaNivel = null cuando se ejecuta un .ggez que no es nivel
     public void ReiniciarMana(string? carpetaNivel)
     {
         Progreso = 1f;
         ResumenMana = "Ejecutando...";
+        _nuevos.Clear();
+        LogroNuevo = "";
         _carpetaEjecutada = carpetaNivel;
         if (carpetaNivel != null && carpetaNivel == _carpetaNivel) ResumenPruebas = "Corriendo pruebas...";
     }
@@ -113,6 +139,8 @@ public partial class PanelJuegoViewModel : ViewModelBase
         var partes = evento.Split(' ', 6);
         if (partes is ["pasos", var u, var l] && long.TryParse(u, out long usados) && long.TryParse(l, out long limite))
             MostrarMana(usados, limite);
+        else if (partes is ["logro", var id])
+            GanarLogro(id);
         else if (partes is ["nivel", var p, var t, var pa, var m, ..] && int.TryParse(p, out int pasadas) && int.TryParse(t, out int total)
                  && long.TryParse(pa, out long pasos) && long.TryParse(m, out long meta))
             MostrarNivel(pasadas, total, pasos, meta, partes.Length > 5 ? partes[5] : "");
@@ -131,6 +159,7 @@ public partial class PanelJuegoViewModel : ViewModelBase
         ResumenMana = usados > limite
             ? "¡Sin maná! Revise los ciclos"
             : $"{usados:N0} de {limite:N0} pasos";
+        if (usados > limite) GanarLogro("sin-mana");
     }
 
     // Estrellas: 1 por pasar todo, +1 si fue al primer intento, +1 si no paso de la meta de pasos
@@ -144,6 +173,7 @@ public partial class PanelJuegoViewModel : ViewModelBase
             : 1 + (nivel.Intentos == 1 ? 1 : 0) + (meta == 0 || pasos <= meta ? 1 : 0);
         nivel.Record = Math.Max(estrellas, nivel.Record);
         ProgresoService.Guardar();
+        if (estrellas == MaxEstrellas) GanarLogro("nivel-perfecto");
 
         // Si mientras corria se enfoco otro archivo, el resultado se guarda pero no pisa lo que se ve
         if (_carpetaEjecutada != _carpetaNivel)
@@ -173,6 +203,7 @@ public partial class PanelJuegoViewModel : ViewModelBase
         ProgresoService.Nivel(_carpetaNivel).PistasCompradas++;
         ProgresoService.Guardar();
         MostrarPistas();
+        GanarLogro("primera-pista");
     }
 
     void MostrarPistas()
@@ -185,6 +216,23 @@ public partial class PanelJuegoViewModel : ViewModelBase
         OnPropertyChanged(nameof(HayPistas));
         // Las monedas pueden cambiar sin que cambien las pistas restantes
         ComprarPistaCommand.NotifyCanExecuteChanged();
+    }
+
+    void GanarLogro(string id)
+    {
+        if (Logros.Buscar(id) is not { } logro || !ProgresoService.GanarLogro(id)) return;
+        ProgresoService.Guardar();
+        _nuevos.Add(logro.Nombre);
+        LogroNuevo = $"¡Logro desbloqueado: {string.Join(", ", _nuevos)}!";
+        RefrescarLogros();
+    }
+
+    void RefrescarLogros()
+    {
+        ListaLogros.Clear();
+        foreach (var logro in Logros.Todos)
+            ListaLogros.Add($"{(ProgresoService.TieneLogro(logro.Id) ? "[x]" : "[ ]")} {logro.Nombre}: {logro.Descripcion}");
+        ResumenLogros = $"Logros: {Logros.Todos.Count(l => ProgresoService.TieneLogro(l.Id))} de {Logros.Todos.Count}";
     }
 
     // nivel.json puede venir de otra persona: solo se toman "titulo" y los textos de "pistas"

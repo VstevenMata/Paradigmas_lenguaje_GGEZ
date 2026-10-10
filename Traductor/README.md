@@ -112,6 +112,9 @@ ggezc check <archivo.ggez> [--pasos N] [--eventos]
   manda al panel de juego:
   - `@ggez pasos <usados> <limite>`
   - `@ggez nivel <pasadas> <total> <pasos_max> <meta_pasos> <titulo>` (solo `check`)
+  - `@ggez logro <id>`: uno por cada logro que cumple el código (recursion, guild, travel...).
+    Solo si `run` termina sin errores o si `check` pasa todas las pruebas. El catálogo con
+    nombres está en el IDE (`Models/Logro.cs`).
 
 Formato de `nivel.json`:
 

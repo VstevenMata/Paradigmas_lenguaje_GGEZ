@@ -13,6 +13,7 @@ from .cargador import _recorrer, cargar
 from .errores import ErrorGgez
 from .evaluador import Evaluador
 from .lexer import tokenizar
+from .logros import emitir as emitir_logros
 from .sintactico import parsear
 
 ARCHIVO_NIVEL = "nivel.json"
@@ -133,5 +134,7 @@ def comprobar(ruta: Path, limite_pasos: int, eventos: bool) -> bool:
     print(f"Resultado: {pasadas} de {len(pruebas)} pruebas. Pasos de la prueba mas cara: {pasos_max:,}{meta_texto}")
     if eventos:
         print(f"@ggez pasos {pasos_max} {limite_pasos}")
+        if pasadas == len(pruebas):
+            emitir_logros(cargar(ruta))
         print(f"@ggez nivel {pasadas} {len(pruebas)} {pasos_max} {meta} {titulo}", flush=True)
     return pasadas == len(pruebas)

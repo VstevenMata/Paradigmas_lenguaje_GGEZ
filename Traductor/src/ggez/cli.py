@@ -20,6 +20,7 @@ from .cargador import cargar
 from .errores import ErrorGgez
 from .evaluador import Evaluador
 from .lexer import tokenizar
+from .logros import emitir as emitir_logros
 from .nivel import ARCHIVO_NIVEL, ErrorNivel, comprobar
 from .tokens import TipoToken
 
@@ -56,6 +57,9 @@ def _comando_run(ruta: Path, limite_pasos: int, eventos: bool) -> int:
         # Linea para el panel de juego del IDE, que no la muestra en la terminal
         if eventos:
             print(f"@ggez pasos {evaluador.pasos} {limite_pasos}", flush=True)
+    # Solo llega aca si corrio sin errores
+    if eventos:
+        emitir_logros(archivos)
     return EXITO
 
 
