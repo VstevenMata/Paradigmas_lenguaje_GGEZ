@@ -97,6 +97,7 @@ public partial class MainWindowViewModel : ViewModelBase
         };
 
         Terminal.OnCerrar = () => TerminalVisible = false;
+        Terminal.OnEvento = PanelJuego.RecibirEvento;
         Terminal.AbrirProblema = (ruta, linea) =>
         {
             AbrirArchivo(Path.GetFileName(ruta), ruta);
@@ -202,8 +203,13 @@ public partial class MainWindowViewModel : ViewModelBase
         TerminalVisible = true;
         Terminal.TabActiva = 0;
 
-        var terminal = Terminal.InstanciaParaComando;
-        if (terminal == null) return;
+        var terminal = Terminal.InstanciaParaComando();
+        if (terminal == null)
+        {
+            Terminal.AgregarError($"No hay terminal libre para ejecutar: cierre una (maximo {TerminalViewModel.MaxTerminales}).");
+            Terminal.TabActiva = 1;
+            return;
+        }
         Terminal.EnfocarInstancia(terminal);
 
         // El traductor lee del disco, no del buffer
@@ -227,7 +233,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        terminal.EjecutarComando($"python \"{traductor}\" run \"{archivo}\"");
+        // Un .ggez junto a un nivel.json es un nivel: F5 corre sus pruebas en vez de ejecutarlo
+        string carpeta = Path.GetDirectoryName(archivo)!;
+        bool esNivel = File.Exists(Path.Combine(carpeta, "nivel.json"));
+        string comando = esNivel ? "check" : "run";
+        if (terminal.EjecutarComando($"python \"{traductor}\" {comando} \"{archivo}\" --eventos"))
+            PanelJuego.ReiniciarMana(esNivel ? carpeta : null);
     }
 
     // Sube desde la carpeta del ejecutable (bin/Debug/netX/) hasta encontrar Traductor/ggezc.py

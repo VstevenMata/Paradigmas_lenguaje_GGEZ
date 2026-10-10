@@ -96,6 +96,42 @@ falta escribir nada nuevo para eso.
 El panel **Problemas** además parsea ese formato con la expresión regular de
 `TerminalViewModel.cs:89` y arma una fila clickeable que salta a la línea del error.
 
+### Maná, niveles y eventos para el IDE
+
+```
+ggezc run   <archivo.ggez> [--pasos N] [--eventos]
+ggezc check <archivo.ggez> [--pasos N] [--eventos]
+```
+
+- `--pasos N`: maná. Cada sentencia y cada vuelta de ciclo gasta 1. Al pasarse sale
+  `error en ejecucion: sin mana...`, que `revive` no puede atrapar. Por defecto 5.000.000;
+  `0` = sin límite. La recursión se corta a los 5.000 niveles con un error claro.
+- `check`: corre las pruebas del `nivel.json` que está en la misma carpeta del archivo.
+  Código 0 si pasan todas, 1 si alguna falla, 2 si el `nivel.json` está mal.
+- `--eventos`: agrega líneas `@ggez ...` en stdout. La terminal del IDE no las muestra, las
+  manda al panel de juego:
+  - `@ggez pasos <usados> <limite>`
+  - `@ggez nivel <pasadas> <total> <pasos_max> <meta_pasos> <titulo>` (solo `check`)
+
+Formato de `nivel.json`:
+
+```json
+{
+  "titulo": "Suma de Gauss",
+  "meta_pasos": 5,
+  "pruebas": [
+    { "llamada": "sumarHasta{100}", "salida": "5050" },
+    { "entrada": "Ana", "salida": "Hola, Ana!" }
+  ]
+}
+```
+
+- `salida` (obligatoria): lo que debe imprimir; no cuentan espacios al final de línea.
+- `entrada`: texto que leen los `chat.load{}` del programa, una línea por llamada.
+- `llamada`: reemplaza el `lobby.launch` por `chat.send{<llamada>}`; sirve para probar un
+  `combo` con distintos valores.
+- `meta_pasos`: la tercera estrella exige no pasarse de esos pasos (`0` = sin meta).
+
 ### Condiciones antes de invocarlo (responsabilidad del lado C#)
 
 1. **El archivo tiene que estar guardado en disco** — el traductor lee del filesystem, no del

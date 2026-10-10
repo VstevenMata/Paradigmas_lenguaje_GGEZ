@@ -9,7 +9,7 @@ lobby.launch{start THE GAME} glhf
 
     chat.send{"Puntos: " gain puntos}
     chat.send{"Promedio: " gain promedio}
-    chat.send{"Aprobado: " gain {puntos atleast MINIMO}}
+    chat.send{"Arobado: " gain {puntos atleast MINIMO}}
 
     puntos boost 10
     puntos buff

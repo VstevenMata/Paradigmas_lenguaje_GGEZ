@@ -11,15 +11,23 @@
         </Border>
 
         <controls:Win95Bevel Grid.Row="1" BevelThickness="2" Background="{DynamicResource TemaBackgroundBrush}" Padding="8">
-            <Grid RowDefinitions="*,Auto,Auto">
+            <Grid RowDefinitions="*,Auto,Auto,Auto">
                 <controls:Win95Bevel Grid.Row="0" Sunken="True" BevelThickness="2" Background="White">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Personaje64px.png"
                            Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center"
                            RenderOptions.BitmapInterpolationMode="None" />
                 </controls:Win95Bevel>
 
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="0,8,0,0">
-                    <TextBlock Grid.Column="0" Text="Nivel:" FontSize="16" VerticalAlignment="Center" />
+                <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="2" IsVisible="{Binding EnNivel}">
+                    <TextBlock Text="{Binding TituloNivel}" FontSize="17" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding ResumenPruebas}" FontSize="16" />
+                    <TextBlock Text="{Binding Estrellas}" FontSize="24"
+                               ToolTip.Tip="★ pasar todas · ★ al primer intento · ★ sin pasar la meta de pasos" />
+                    <TextBlock Text="{Binding DetalleEstrellas}" FontSize="16" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Grid Grid.Row="2" ColumnDefinitions="Auto,*" Margin="0,8,0,0">
+                    <TextBlock Grid.Column="0" Text="Maná:" FontSize="16" VerticalAlignment="Center" />
                     <controls:Win95Bevel Grid.Column="1" Sunken="True" BevelThickness="1" Background="White"
                                           Height="20" Padding="2" Margin="8,0,0,0">
                         <ItemsControl ItemsSource="{Binding Segmentos}">
@@ -37,8 +45,11 @@
                     </controls:Win95Bevel>
                 </Grid>
 
-                <Grid Grid.Row="2" Margin="0,8,0,0">
-                    <TextBlock Text="En pausa" FontSize="17" VerticalAlignment="Center" IsVisible="{Binding EnPausa}" />
+                <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                    <TextBlock Grid.Column="0" Text="{Binding ResumenMana}" FontSize="16" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ResumenMana}" />
+                    <TextBlock Grid.Column="1" Text="En pausa" FontSize="17" Margin="8,0,0,0" VerticalAlignment="Center"
+                               IsVisible="{Binding EnPausa}" />
                 </Grid>
             </Grid>
         </controls:Win95Bevel>

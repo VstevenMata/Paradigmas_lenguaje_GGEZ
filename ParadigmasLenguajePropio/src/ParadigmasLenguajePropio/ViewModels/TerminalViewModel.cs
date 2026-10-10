@@ -42,10 +42,11 @@ public partial class TerminalViewModel : ViewModelBase
     private TerminalInstanceViewModel? _instanciaActiva;
 
     // Destino de comandos del boton Construir; se saltan las PTY reales porque tienen su propia sesion
-    public TerminalInstanceViewModel? InstanciaParaComando =>
+    // Con la extension Claude todas son PTY: se abre una simulada, si no F5 no haria nada
+    public TerminalInstanceViewModel? InstanciaParaComando() =>
         InstanciaActiva is { EnColumna: true, EsReal: false } activa
             ? activa
-            : InstanciasVisibles.FirstOrDefault(i => !i.EsReal);
+            : InstanciasVisibles.FirstOrDefault(i => !i.EsReal) ?? CrearInstancia(mostrarDeUna: true, esReal: false);
 
     // Decide si cada columna NUEVA es PTY real o simulada; no cambia las ya abiertas
     public ExtensionInfo ClaudeExtension { get; }
@@ -78,6 +79,8 @@ public partial class TerminalViewModel : ViewModelBase
 
     public Action? OnCerrar;
 
+    public Action<string>? OnEvento;
+
     public TerminalViewModel(ExtensionInfo claudeExtension)
     {
         ClaudeExtension = claudeExtension;
@@ -92,17 +95,18 @@ public partial class TerminalViewModel : ViewModelBase
     [RelayCommand]
     void CrearTerminal() => CrearInstancia(mostrarDeUna: false);
 
-    void CrearInstancia(bool mostrarDeUna)
+    TerminalInstanceViewModel? CrearInstancia(bool mostrarDeUna, bool? esReal = null)
     {
-        if (!PuedeCrearTerminal) return;
+        if (!PuedeCrearTerminal) return null;
 
-        var instancia = new TerminalInstanceViewModel(_directorioActual, esReal: ClaudeExtension.Instalada)
+        var instancia = new TerminalInstanceViewModel(_directorioActual, esReal ?? ClaudeExtension.Instalada)
         {
             Nombre = $"Terminal {Instancias.Count + 1}",
             EnColumna = mostrarDeUna,
         };
         instancia.OnCerrar = () => OnCerrar?.Invoke();
         instancia.OnError = AgregarError;
+        instancia.OnEvento = evento => OnEvento?.Invoke(evento);
         instancia.OnActivar = () => EnfocarInstancia(instancia);
         instancia.PropertyChanged += Instancia_PropertyChanged;
 
@@ -119,6 +123,7 @@ public partial class TerminalViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(PuedeCrearTerminal));
         OnPropertyChanged(nameof(MuestraBotonCrear));
+        return instancia;
     }
 
     void Instancia_PropertyChanged(object? sender, PropertyChangedEventArgs e)

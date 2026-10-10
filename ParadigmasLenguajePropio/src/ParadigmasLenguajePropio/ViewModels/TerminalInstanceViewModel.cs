@@ -13,6 +13,7 @@ public partial class TerminalInstanceViewModel : ViewModelBase
     const int LimiteLineas = 2000;
     const int LimiteHistorial = 100;
     const int LineasPorTick = 400; // tope por tick para que un comando ruidoso no trabe la UI
+    const string PrefijoEvento = "@ggez ";
 
     [ObservableProperty]
     private string _nombre = "Terminal";
@@ -35,6 +36,9 @@ public partial class TerminalInstanceViewModel : ViewModelBase
     public Action? OnCerrar;
 
     public Action<string>? OnError;
+
+    // Lineas "@ggez ..." del traductor: van al panel de juego, no a la terminal
+    public Action<string>? OnEvento;
 
     public Action? OnActivar;
 
@@ -69,6 +73,11 @@ public partial class TerminalInstanceViewModel : ViewModelBase
         for (int i = 0; i < LineasPorTick && _proceso.TryDequeue(out var salida); i++)
         {
             string texto = TerminalProcessService.Limpiar(salida.Texto);
+            if (!salida.EsError && texto.StartsWith(PrefijoEvento))
+            {
+                OnEvento?.Invoke(texto[PrefijoEvento.Length..]);
+                continue;
+            }
             Escribir(texto, salida.EsError ? TerminalColorLinea.Error : TerminalColorLinea.Escrito);
             if (salida.EsError) OnError?.Invoke(texto);
         }

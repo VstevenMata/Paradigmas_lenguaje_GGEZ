@@ -6,8 +6,10 @@ import math
 import sys
 
 from . import arbol
-from .errores import ErrorEjecucion
+from .errores import ErrorEjecucion, ErrorLimite
 from .tokens import CONSTRUCTORES_COLECCION
+
+PROFUNDIDAD_MAXIMA = 5000
 
 
 class Entorno:
@@ -139,9 +141,14 @@ class Combo:
 
 
 class Evaluador:
-    def __init__(self, archivo: str = "<entrada>") -> None:
+    def __init__(self, archivo: str = "<entrada>", limite_pasos: int = 0) -> None:
         self.archivo = archivo
         self.entorno = Entorno()
+        # Mana: 0 = sin limite
+        self.limite_pasos = limite_pasos
+        self.pasos = 0
+        self.profundidad = 0
+        self._agotado: ErrorLimite | None = None
         # Estos dos son de todo el programa
         self.registros: dict[str, list[str]] = {}
         self.clases: dict[str, Clase] = {}
@@ -149,6 +156,19 @@ class Evaluador:
 
     def _error(self, mensaje: str, nodo: arbol.Nodo) -> ErrorEjecucion:
         return ErrorEjecucion(mensaje, nodo.linea, nodo.columna, self.archivo)
+
+    def _gastar(self, nodo: arbol.Nodo) -> None:
+        """Un paso por sentencia y por vuelta de ciclo."""
+        self.pasos += 1
+        if self.limite_pasos and self.pasos > self.limite_pasos:
+            # El mismo error siempre: un checkpoint que corre despues no cambia la linea reportada
+            if self._agotado is None:
+                self._agotado = ErrorLimite(
+                    f"sin mana: el programa paso de {self.limite_pasos:,} pasos. "
+                    "Revise si un ciclo nunca cumple su condicion de salida",
+                    nodo.linea, nodo.columna, self.archivo,
+                )
+            raise self._agotado
 
     def _texto(self, valor: object) -> str:
         if valor is None:
@@ -230,6 +250,12 @@ class Evaluador:
     def invocar(self, combo: Combo, argumentos: list[object]) -> object:
         declaracion = combo.declaracion
         lugar = self.lugares[id(declaracion)]
+        if self.profundidad >= PROFUNDIDAD_MAXIMA:
+            raise ErrorLimite(
+                f"recursion demasiado profunda: '{declaracion.nombre}' se llamo {PROFUNDIDAD_MAXIMA:,} veces "
+                "sin volver. Revise que tenga un caso base que haga reward sin llamarse otra vez",
+                declaracion.linea, declaracion.columna, lugar.archivo,
+            )
 
         # OJO: arranca desde el global de SU archivo, no desde quien llamo
         anterior, archivo_anterior = self.entorno, self.archivo
@@ -243,11 +269,13 @@ class Evaluador:
                 valor = float(valor)
             self.entorno.declarar(parametro.nombre, valor)
 
+        self.profundidad += 1
         try:
             self.bloque(declaracion.cuerpo)
         except _SenalReward as senal:
             return senal.valor
         finally:
+            self.profundidad -= 1
             self.entorno, self.archivo = anterior, archivo_anterior
 
         if declaracion.retorno is not None:
@@ -310,6 +338,7 @@ class Evaluador:
             self.entorno = anterior
 
     def sentencia(self, nodo: arbol.Nodo) -> None:
+        self._gastar(nodo)
         if isinstance(nodo, arbol.DeclVariable):
             valor = self.expresion(nodo.valor) if nodo.valor is not None else None
             if str(nodo.tipo) == "aim" and isinstance(valor, int) and not isinstance(valor, bool):
@@ -383,6 +412,8 @@ class Evaluador:
             self.bloque(nodo.sino)
 
     def _vuelta(self, cuerpo: arbol.Bloque) -> bool:
+        # Tambien gasta aunque el cuerpo este vacio, si no "survive hit glhf gg" nunca se cortaria
+        self._gastar(cuerpo)
         try:
             self.bloque(cuerpo)
         except _SenalRespawn:
@@ -692,7 +723,3 @@ class Evaluador:
 
 def ejecutar(programa: arbol.Programa, archivo: str = "<entrada>") -> None:
     Evaluador(archivo).ejecutar(programa)
-
-
-def ejecutar_archivos(archivos: list) -> None:
-    Evaluador().ejecutar_archivos(archivos)

@@ -34,3 +34,8 @@ class ErrorSemantico(ErrorGgez):
 
 class ErrorEjecucion(ErrorGgez):
     etapa = "error en ejecucion"
+
+
+# No hereda de ErrorEjecucion para que revive no lo atrape: un ciclo sin fin no se rescata
+class ErrorLimite(ErrorGgez):
+    etapa = "error en ejecucion"
