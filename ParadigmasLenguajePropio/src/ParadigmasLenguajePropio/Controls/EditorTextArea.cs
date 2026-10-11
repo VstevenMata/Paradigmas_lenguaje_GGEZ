@@ -508,7 +508,7 @@ public class EditorTextArea : Control
             double radio = Math.Min(fontSize * 0.42, (xFin - xInicio) / 2);
             var centro = new Point((xInicio + xFin) / 2, y + altoLinea / 2);
 
-            DibujarPacMan(context, centro, radio, mirandoDerecha: !apertura);
+            DibujarPacMan(context, centro, radio, mirandoDerecha: apertura);
         }
     }
 

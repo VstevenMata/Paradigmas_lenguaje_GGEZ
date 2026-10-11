@@ -169,12 +169,12 @@ public partial class PanelJuegoViewModel : ViewModelBase
     }
 
     // Botones de la consola: A mapa, B volver, X logros, Y pausa; la cruceta recorre las zonas
-    // Con el mensaje final: X reinicia el mundo y A lo cierra
+    // Con el mensaje final: A reinicia el mundo y X lo cierra
     [RelayCommand]
     void AlternarMapa()
     {
-        if (HayMensajeFinal) { MensajeFinal = ""; return; }
-        if (!_enSecuencia) VerMapa = !VerMapa;
+        if (HayMensajeFinal) ReiniciarJuego();
+        else if (!_enSecuencia) VerMapa = !VerMapa;
     }
 
     [RelayCommand]
@@ -214,7 +214,7 @@ public partial class PanelJuegoViewModel : ViewModelBase
     [RelayCommand]
     void AlternarLogros()
     {
-        if (HayMensajeFinal) ReiniciarJuego();
+        if (HayMensajeFinal) MensajeFinal = "";
         else MostrarLogros = !MostrarLogros;
     }
 
@@ -506,7 +506,7 @@ public partial class PanelJuegoViewModel : ViewModelBase
                     _enSecuencia = false;
                     PosicionMapa = Models.Mundo.Zonas.Count - 1;
                     EstadoZona = "¡Mundo completado!";
-                    MensajeFinal = "¡GANASTE EL MUNDO GGEZ!\nX: reiniciar el juego\nA: salir";
+                    MensajeFinal = "¡GANASTE EL MUNDO GGEZ!\nA: reiniciar el juego\nX: salir";
                 });
             });
         });

@@ -11,7 +11,8 @@
     <Grid RowDefinitions="Auto,*" Margin="4,0,0,0">
         <TextBlock Grid.Row="0" Text="Extensiones" FontSize="16" Margin="2,4,0,4" />
 
-        <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="White" Padding="3">
+        <!-- Colores del tema: la lista va sobre botones del tema (TemaTexto) y el detalle sobre un campo (TemaCampo*) -->
+        <controls:Win95Bevel Grid.Row="1" Sunken="True" BevelThickness="3" Background="{DynamicResource TemaCampoFondoBrush}" Padding="3">
             <Grid>
 
                 <ScrollViewer IsVisible="{Binding Seleccionada, Converter={x:Static aconv:ObjectConverters.IsNull}}">
@@ -22,28 +23,27 @@
                                         Margin="0,0,0,4" Padding="6"
                                         Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).VerDetalleCommand}"
                                         CommandParameter="{Binding}">
-                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Grid ColumnDefinitions="Auto,*">
                                         <Border Grid.Column="0" Width="30" Height="30" CornerRadius="4"
-                                                Background="{Binding IconoColor}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                Background="{Binding IconoColor}" VerticalAlignment="Top" Margin="0,2,8,0">
                                             <TextBlock Text="{Binding Icono}" FontSize="11" FontWeight="Bold" Foreground="White"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
 
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                                             <TextBlock Text="{Binding Nombre}" FontSize="15" FontWeight="Bold"
-                                                       Foreground="Black" TextWrapping="Wrap" />
-                                            <TextBlock Text="{Binding Autor}" FontSize="12"
-                                                       Foreground="Gray" Margin="0,1,0,0" />
+                                                       Foreground="{DynamicResource TemaTextoBrush}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Autor}" FontSize="12" Opacity="0.75"
+                                                       Foreground="{DynamicResource TemaTextoBrush}" />
+                                            <Button HorizontalAlignment="Left" MinWidth="86" FontSize="9" Padding="6,2" Margin="0,4,0,0"
+                                                    IsVisible="{Binding !Bloqueada}"
+                                                    Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
+                                                    Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
+                                                    CommandParameter="{Binding}" />
+                                            <TextBlock FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource TemaTextoBrush}"
+                                                       IsVisible="{Binding Bloqueada}" Text="{Binding TextoBloqueo}" />
                                         </StackPanel>
-
-                                        <Button Grid.Column="2" VerticalAlignment="Center" Width="86" FontSize="9" Padding="2"
-                                                IsVisible="{Binding !Bloqueada}"
-                                                Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
-                                                Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
-                                                CommandParameter="{Binding}" />
-                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Width="86" FontSize="12"
-                                                   TextAlignment="Center" Foreground="Black" TextWrapping="Wrap"
-                                                   IsVisible="{Binding Bloqueada}" Text="{Binding TextoBloqueo}" />
                                     </Grid>
                                 </Button>
                             </DataTemplate>
@@ -62,8 +62,8 @@
                             <TextBlock Text="{Binding Icono}" FontSize="18" FontWeight="Bold" Foreground="White"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <TextBlock Text="{Binding Nombre}" FontSize="18" FontWeight="Bold" Foreground="Black" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding Autor}" FontSize="13" Foreground="Gray" Margin="0,2,0,10" />
+                        <TextBlock Text="{Binding Nombre}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TemaCampoTextoBrush}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Autor}" FontSize="13" Foreground="{DynamicResource TemaCampoTextoBrush}" Opacity="0.7" Margin="0,2,0,10" />
 
                         <Button Content="{Binding Instalada, Converter={x:Static conv:BoolToTextoConverter.Instance}, ConverterParameter=Desinstalar|Instalar}"
                                 IsVisible="{Binding !Instalando}" IsEnabled="{Binding !Bloqueada}"
@@ -71,26 +71,26 @@
                                 Command="{Binding $parent[UserControl].((vm:ExtensionsViewModel)DataContext).AlternarInstalacionCommand}"
                                 CommandParameter="{Binding}" />
 
-                        <TextBlock IsVisible="{Binding Bloqueada}" FontSize="13" Foreground="Black" TextWrapping="Wrap" Margin="0,4,0,0">
+                        <TextBlock IsVisible="{Binding Bloqueada}" FontSize="13" Foreground="{DynamicResource TemaCampoTextoBrush}" TextWrapping="Wrap" Margin="0,4,0,0">
                             <Run Text="{Binding TextoBloqueo}" /><Run Text=": gánelas avanzando zonas del mundo (panel de juego) o resolviendo niveles." />
                         </TextBlock>
 
                         <StackPanel IsVisible="{Binding Instalando}" Margin="0,2">
-                            <TextBlock Text="Instalando..." FontSize="12" Foreground="Gray" Margin="0,0,0,3" />
+                            <TextBlock Text="Instalando..." FontSize="12" Foreground="{DynamicResource TemaCampoTextoBrush}" Opacity="0.7" Margin="0,0,0,3" />
                             <controls:Win95Bevel Sunken="True" BevelThickness="2" Height="14" Width="150" HorizontalAlignment="Left">
                                 <Border Background="{DynamicResource TemaTitleBarBrush}" HorizontalAlignment="Left"
                                         Width="{Binding Progreso, Converter={x:Static conv:ProgresoAAnchoConverter.Instance}}" />
                             </controls:Win95Bevel>
                         </StackPanel>
 
-                        <TextBlock Text="{Binding DescripcionCorta}" FontSize="14" Foreground="Black"
+                        <TextBlock Text="{Binding DescripcionCorta}" FontSize="14" Foreground="{DynamicResource TemaCampoTextoBrush}"
                                    TextWrapping="Wrap" Margin="0,14,0,10" />
 
-                        <TextBlock Text="Caracteristicas" FontSize="14" FontWeight="Bold" Foreground="Black" Margin="0,4,0,4" />
+                        <TextBlock Text="Caracteristicas" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TemaCampoTextoBrush}" Margin="0,4,0,4" />
                         <ItemsControl ItemsSource="{Binding Caracteristicas}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
-                                    <TextBlock FontSize="13" Foreground="Black" TextWrapping="Wrap" Margin="0,0,0,3">
+                                    <TextBlock FontSize="13" Foreground="{DynamicResource TemaCampoTextoBrush}" TextWrapping="Wrap" Margin="0,0,0,3">
                                         <Run Text="•  " /><Run Text="{Binding}" />
                                     </TextBlock>
                                 </DataTemplate>

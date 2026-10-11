@@ -31,7 +31,7 @@ public partial class ExtensionsViewModel : ViewModelBase
             "Pasa el fondo del editor a oscuro (Ranked Night) y aclara el texto para que se siga leyendo.",
             new[] { "Fondo oscuro en el editor y los numeros de linea", "El texto sin resaltado pasa de negro a gris claro" }),
         new ExtensionInfo("pacman-bloques", "Pac-Man Blocks", "GGEZ Labs", "PM", "#FFE000",
-            "Muestra los delimitadores de bloque como Pac-Mans: glhf mira a la izquierda y gg a la derecha.",
+            "Muestra los delimitadores de bloque como Pac-Mans: glhf mira a la derecha y gg a la izquierda.",
             new[] { "Solo cambia como se ve, el archivo sigue guardando glhf/gg", "En la linea del cursor se ve el texto real para poder editarlo" }),
         new ExtensionInfo("ggez-formatter", "GGEZ Formatter", "GGEZ Labs", "FM", "#6B7280",
             "Reformatea codigo GGEZ (indentacion, espacios) reutilizando el lexer del traductor.",
