@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
@@ -7,7 +9,7 @@ using ParadigmasLenguajePropio.Services;
 
 namespace ParadigmasLenguajePropio.ViewModels;
 
-// Panel de juego: barra de mana, resultado del nivel con estrellas, monedas, pistas, logros y pausa
+// Panel de juego: mundo de zonas, barra de mana, resultado del nivel con estrellas, monedas, pistas, logros y pausa
 public partial class PanelJuegoViewModel : ViewModelBase
 {
     const int CantidadSegmentos = 24;
@@ -50,12 +52,80 @@ public partial class PanelJuegoViewModel : ViewModelBase
 
     public ObservableCollection<string> PistasCompradas { get; } = new();
 
-    // Aviso de los logros ganados en la ultima ejecucion; se limpia al correr otra vez
+    // Aviso de logros, misiones y zonas ganados en la ultima ejecucion; se limpia al correr otra vez
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HayLogroNuevo))]
-    private string _logroNuevo = "";
+    [NotifyPropertyChangedFor(nameof(HayAviso))]
+    private string _aviso = "";
 
-    public bool HayLogroNuevo => LogroNuevo.Length > 0;
+    public bool HayAviso => Aviso.Length > 0;
+
+    // Mundo: la zona actual y sus misiones; lo dibuja Controls/MundoPixel
+    [ObservableProperty]
+    private int _zonaMundo;
+
+    // Tramos recorridos en la zona (fraccion por mision a medias); TotalZona + 1 = en la puerta
+    [ObservableProperty]
+    private double _avanceZona;
+
+    [ObservableProperty]
+    private int _totalZona;
+
+    // Bit k = mision k completa (su bandera se pinta lograda)
+    [ObservableProperty]
+    private int _banderasLogradas;
+
+    // Nodo del mapa donde esta el heroe
+    [ObservableProperty]
+    private int _posicionMapa;
+
+    [ObservableProperty]
+    private bool _puertaAbierta;
+
+    [ObservableProperty]
+    private bool _jefeVisible;
+
+    [ObservableProperty]
+    private bool _peleaJefe;
+
+    // Cartel que baja en la pantalla de arriba; los avisos se encolan y se muestran de a uno
+    [ObservableProperty]
+    private string _cartel = "";
+
+    // Mensaje fijo al ganar el mundo; mientras esta, X reinicia y A cierra
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HayMensajeFinal))]
+    private string _mensajeFinal = "";
+
+    public bool HayMensajeFinal => MensajeFinal.Length > 0;
+
+    [ObservableProperty]
+    private int _sacudidas;
+
+    [ObservableProperty]
+    private bool _verMapa;
+
+    // false al mirar con la cruceta una zona que no es la actual
+    [ObservableProperty]
+    private bool _mostrarHeroe = true;
+
+    [ObservableProperty]
+    private string _tituloZona = "";
+
+    [ObservableProperty]
+    private string _estadoZona = "";
+
+    // -1 = seguir la zona actual; si no, la que se eligio con la cruceta
+    int _zonaVista = -1;
+
+    public ObservableCollection<string> MisionesZona { get; } = new();
+
+    static readonly Regex HuellaValida = new("^[0-9a-f]{8,64}$", RegexOptions.Compiled);
+    const double SegundosPorCartel = 2.5;
+    // Mientras corre una secuencia (puerta, mapa, pelea) nada la interrumpe
+    bool _enSecuencia;
+    // Pendientes por tipo: los logros de una misma corrida se juntan en un solo cartel
+    readonly List<(string Tipo, List<string> Textos)> _carteles = new();
+    bool _mostrandoCartel;
 
     [ObservableProperty]
     private bool _mostrarLogros;
@@ -66,7 +136,7 @@ public partial class PanelJuegoViewModel : ViewModelBase
     // "[x]" / "[ ]" ademas del texto: no depende del color para saber cual se gano
     public ObservableCollection<string> ListaLogros { get; } = new();
 
-    readonly List<string> _nuevos = new();
+    readonly List<string> _avisos = new();
 
     public bool HayPistas => PistasRestantes > 0 || PistasCompradas.Count > 0;
 
@@ -92,18 +162,80 @@ public partial class PanelJuegoViewModel : ViewModelBase
         }
     }
 
-    public PanelJuegoViewModel() => RefrescarLogros();
+    public PanelJuegoViewModel()
+    {
+        RefrescarLogros();
+        RefrescarMundo();
+    }
+
+    // Botones de la consola: A mapa, B volver, X logros, Y pausa; la cruceta recorre las zonas
+    // Con el mensaje final: X reinicia el mundo y A lo cierra
+    [RelayCommand]
+    void AlternarMapa()
+    {
+        if (HayMensajeFinal) { MensajeFinal = ""; return; }
+        if (!_enSecuencia) VerMapa = !VerMapa;
+    }
 
     [RelayCommand]
-    void AlternarLogros() => MostrarLogros = !MostrarLogros;
+    void VerZona()
+    {
+        if (!_enSecuencia) VerMapa = false;
+    }
+
+    [RelayCommand]
+    void VolverAZonaActual()
+    {
+        if (_enSecuencia) return;
+        VerMapa = false;
+        _zonaVista = -1;
+        RefrescarMundo();
+    }
+
+    [RelayCommand]
+    void AlternarPausa() => EnPausa = !EnPausa;
+
+    [RelayCommand]
+    void ZonaAnterior() => MirarZona(-1);
+
+    [RelayCommand]
+    void ZonaSiguiente() => MirarZona(+1);
+
+    void MirarZona(int paso)
+    {
+        if (_enSecuencia) return;
+        int actual = Math.Min(ProgresoService.ZonaActual, Models.Mundo.Zonas.Count - 1);
+        int vista = Math.Clamp((_zonaVista < 0 ? actual : _zonaVista) + paso, 0, Models.Mundo.Zonas.Count - 1);
+        _zonaVista = vista == actual ? -1 : vista;
+        VerMapa = false;
+        RefrescarMundo();
+    }
+
+    [RelayCommand]
+    void AlternarLogros()
+    {
+        if (HayMensajeFinal) ReiniciarJuego();
+        else MostrarLogros = !MostrarLogros;
+    }
+
+    void ReiniciarJuego()
+    {
+        ProgresoService.ReiniciarMundo();
+        ProgresoService.Guardar();
+        MensajeFinal = "";
+        _zonaVista = -1;
+        VerMapa = false;
+        RefrescarMundo();
+        EncolarCartel("¡Mundo reiniciado! Zona 1: Aldea");
+    }
 
     // carpetaNivel = null cuando se ejecuta un .ggez que no es nivel
     public void ReiniciarMana(string? carpetaNivel)
     {
         Progreso = 1f;
         ResumenMana = "Ejecutando...";
-        _nuevos.Clear();
-        LogroNuevo = "";
+        _avisos.Clear();
+        Aviso = "";
         _carpetaEjecutada = carpetaNivel;
         if (carpetaNivel != null && carpetaNivel == _carpetaNivel) ResumenPruebas = "Corriendo pruebas...";
     }
@@ -136,6 +268,18 @@ public partial class PanelJuegoViewModel : ViewModelBase
     // Eventos del traductor sin el prefijo "@ggez "; los que no conoce se ignoran
     public void RecibirEvento(string evento)
     {
+        if (evento == "fallo")
+        {
+            Sacudidas++;
+            return;
+        }
+        if (evento.StartsWith("programa "))
+        {
+            var datos = evento.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (datos.Length >= 2 && HuellaValida.IsMatch(datos[1])) ProgramaCorrido(datos[1], datos[2..].ToHashSet());
+            return;
+        }
+
         var partes = evento.Split(' ', 6);
         if (partes is ["pasos", var u, var l] && long.TryParse(u, out long usados) && long.TryParse(l, out long limite))
             MostrarMana(usados, limite);
@@ -222,9 +366,190 @@ public partial class PanelJuegoViewModel : ViewModelBase
     {
         if (Logros.Buscar(id) is not { } logro || !ProgresoService.GanarLogro(id)) return;
         ProgresoService.Guardar();
-        _nuevos.Add(logro.Nombre);
-        LogroNuevo = $"¡Logro desbloqueado: {string.Join(", ", _nuevos)}!";
+        Avisar($"Logro: {logro.Nombre}");
+        EncolarCartel(logro.Nombre, "logro");
         RefrescarLogros();
+    }
+
+    // tipo "logro" o "avance": se suma al ultimo pendiente del mismo tipo en vez de hacer cola
+    void EncolarCartel(string texto, string tipo = "")
+    {
+        if (tipo != "" && _carteles.Count > 0 && _carteles[^1].Tipo == tipo) _carteles[^1].Textos.Add(texto);
+        else _carteles.Add((tipo, [texto]));
+        if (!_mostrandoCartel) SiguienteCartel();
+    }
+
+    // Para los momentos de la secuencia (jefe derrotado, final): se muestra ya y lo pendiente se descarta
+    void CartelAhora(string texto)
+    {
+        _carteles.Clear();
+        _carteles.Add(("", [texto]));
+        _versionCartel++;
+        SiguienteCartel();
+    }
+
+    int _versionCartel;
+
+    void SiguienteCartel()
+    {
+        if (_carteles.Count == 0)
+        {
+            _mostrandoCartel = false;
+            return;
+        }
+        var (tipo, textos) = _carteles[0];
+        _carteles.RemoveAt(0);
+        _mostrandoCartel = true;
+        string texto = tipo switch
+        {
+            "logro" => (textos.Count > 1 ? "¡Logros! " : "¡Logro! ") + string.Join(" · ", textos),
+            "avance" => textos.Count > 1 ? $"¡Avance en {textos.Count} misiones!" : textos[0],
+            _ => textos[0],
+        };
+        // Vacio y despues el texto: dos carteles iguales seguidos tambien se vuelven a mostrar
+        Cartel = "";
+        Cartel = texto;
+        int version = _versionCartel;
+        // Si mientras tanto llego un CartelAhora, este temporizador ya no manda
+        Despues(SegundosPorCartel, () => { if (version == _versionCartel) SiguienteCartel(); });
+    }
+
+    static void Despues(double segundos, Action accion) => DispatcherTimer.RunOnce(accion, TimeSpan.FromSeconds(segundos));
+
+    void Avisar(string texto)
+    {
+        _avisos.Add(texto);
+        Aviso = $"¡{string.Join(" · ", _avisos)}!";
+    }
+
+    // Un programa que corrio bien: cuenta para las misiones que cumple y el heroe camina
+    void ProgramaCorrido(string huella, IReadOnlySet<string> usos)
+    {
+        if (_enSecuencia) return;
+        int zonaAntes = ProgresoService.ZonaActual;
+        var avanzadas = ProgresoService.RegistrarPrograma(huella, usos);
+        if (avanzadas.Count == 0) return;
+        ProgresoService.Guardar();
+        // Vuelve a la zona actual para ver caminar al heroe
+        _zonaVista = -1;
+        VerMapa = false;
+        foreach (var mision in avanzadas)
+        {
+            bool completa = ProgresoService.MisionCompleta(mision);
+            if (completa) Avisar($"Misión: {mision.Texto}");
+            if (completa) EncolarCartel($"¡Misión cumplida! {mision.Texto}");
+            else EncolarCartel($"¡Avance! {mision.Texto} ({ProgresoService.Cuenta(mision)}/{mision.Veces})", "avance");
+        }
+
+        var zonas = Models.Mundo.Zonas;
+        if (ProgresoService.ZonaActual == zonaAntes || zonaAntes >= zonas.Count)
+        {
+            RefrescarMundo();
+            return;
+        }
+
+        // Zona ganada: banderas prendidas y el heroe va recto, sin pararse en cada bandera
+        _enSecuencia = true;
+        RefrescarMisiones(zonas[zonaAntes]);
+        BanderasLogradas = (1 << TotalZona) - 1;
+        EncolarCartel($"¡Zona completada! {zonas[zonaAntes].Nombre} (+{Models.Mundo.EstrellasPorZona} ★)");
+        MostrarPistas();
+
+        if (zonaAntes == zonas.Count - 1) PelearConJefe();
+        else CruzarPuerta(() => CaminarEnMapa(zonaAntes + 1));
+    }
+
+    double SegundosHasta(double destino) => Math.Abs(destino - AvanceZona) * 0.45 + 0.4;
+
+    void CruzarPuerta(Action despues)
+    {
+        PuertaAbierta = true;
+        double espera = SegundosHasta(TotalZona + 1);
+        AvanceZona = TotalZona + 1;
+        Despues(espera, despues);
+    }
+
+    // En el mapa camina del nodo de la zona ganada al de la siguiente y recien ahi entra a la zona nueva
+    void CaminarEnMapa(int zonaNueva)
+    {
+        VerMapa = true;
+        PosicionMapa = zonaNueva;
+        Despues(1.4, () =>
+        {
+            _enSecuencia = false;
+            VerMapa = false;
+            RefrescarMundo();
+        });
+    }
+
+    // Ultima zona: el heroe llega frente al jefe, pelea, la puerta se abre, la cruza y sale el mensaje final
+    void PelearConJefe()
+    {
+        double espera = SegundosHasta(TotalZona);
+        AvanceZona = TotalZona;
+        Despues(espera, () =>
+        {
+            PeleaJefe = true;
+            Despues(Controls.MundoPixel.DuracionPelea + 0.2, () =>
+            {
+                PeleaJefe = false;
+                JefeVisible = false;
+                CartelAhora("¡Jefe derrotado!");
+                CruzarPuerta(() =>
+                {
+                    // Entro por la puerta: ya no se ve; el cartel que quede se apaga para no tapar el mensaje
+                    MostrarHeroe = false;
+                    _carteles.Clear();
+                    _versionCartel++;
+                    _mostrandoCartel = false;
+                    Cartel = "";
+                    _enSecuencia = false;
+                    PosicionMapa = Models.Mundo.Zonas.Count - 1;
+                    EstadoZona = "¡Mundo completado!";
+                    MensajeFinal = "¡GANASTE EL MUNDO GGEZ!\nX: reiniciar el juego\nA: salir";
+                });
+            });
+        });
+    }
+
+    void RefrescarMundo()
+    {
+        if (_enSecuencia) return;
+        var zonas = Models.Mundo.Zonas;
+        int actual = ProgresoService.ZonaActual;
+        int indiceActual = Math.Min(actual, zonas.Count - 1);
+        int indice = _zonaVista < 0 ? indiceActual : _zonaVista;
+        var zona = zonas[indice];
+        bool hecha = ProgresoService.ZonaCompleta(zona);
+
+        PosicionMapa = indiceActual;
+        TotalZona = zona.Misiones.Count;
+        MostrarHeroe = indice == indiceActual;
+        PuertaAbierta = hecha;
+        JefeVisible = indice == zonas.Count - 1 && !hecha;
+        BanderasLogradas = zona.Misiones.Select((m, i) => ProgresoService.MisionCompleta(m) ? 1 << i : 0).Sum();
+        // Antes que la zona: si la zona cambia, el heroe aparece en su lugar en vez de caminar
+        AvanceZona = hecha ? TotalZona + 1 : ProgresoService.Avance(zona);
+        ZonaMundo = indice;
+        TituloZona = $"Zona {indice + 1}/{zonas.Count} · {zona.Nombre}";
+        EstadoZona = actual >= zonas.Count ? "¡Mundo completado!"
+            : indice < actual ? $"Completada (+{Models.Mundo.EstrellasPorZona} ★)"
+            : indice == actual ? $"Zona actual · {ProgresoService.EstrellasTotales} ★"
+            : "Más adelante: lo que hagas ya cuenta";
+
+        RefrescarMisiones(zona);
+        MostrarPistas();
+    }
+
+    void RefrescarMisiones(Zona zona)
+    {
+        MisionesZona.Clear();
+        foreach (var mision in zona.Misiones)
+        {
+            int cuenta = ProgresoService.Cuenta(mision);
+            string veces = mision.Veces > 1 ? $" ({cuenta}/{mision.Veces})" : "";
+            MisionesZona.Add($"{(cuenta >= mision.Veces ? "[x]" : "[ ]")} {mision.Texto}{veces}");
+        }
     }
 
     void RefrescarLogros()

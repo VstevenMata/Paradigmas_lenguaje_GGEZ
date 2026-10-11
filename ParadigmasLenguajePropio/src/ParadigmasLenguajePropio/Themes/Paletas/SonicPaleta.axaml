@@ -55,6 +55,23 @@
             <Thickness x:Key="TemaBevelGrosorExterior">3</Thickness>
             <Thickness x:Key="TemaBevelGrosorInterior">2</Thickness>
             <Thickness x:Key="TemaBevelMargenInterior">2</Thickness>
+
+            <!-- Mundo del panel de juego (Controls/MundoPixel): un color por letra de SpritesMundo -->
+            <SolidColorBrush x:Key="TemaJuegoContorno" Color="#10103A" />
+            <SolidColorBrush x:Key="TemaJuegoPrincipal" Color="#1E50D2" />
+            <SolidColorBrush x:Key="TemaJuegoPiel" Color="#F5C27A" />
+            <SolidColorBrush x:Key="TemaJuegoDetalle" Color="#C1272D" />
+            <SolidColorBrush x:Key="TemaJuegoBrillo" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="TemaJuegoDecoracion" Color="#FFD700" />
+            <SolidColorBrush x:Key="TemaJuegoPuerta" Color="#E8E8E8" />
+            <SolidColorBrush x:Key="TemaJuegoSuelo" Color="#3DAA3D" />
+            <SolidColorBrush x:Key="TemaJuegoCamino" Color="#B5651D" />
+            <SolidColorBrush x:Key="TemaJuegoLogro" Color="#FFD700" />
+            <SolidColorBrush x:Key="TemaJuegoAgua" Color="#2F80ED" />
+            <SolidColorBrush x:Key="TemaJuegoCielo" Color="#4FB4F5" />
+            <SolidColorBrush x:Key="TemaJuegoCarcasa" Color="#C1272D" />
+            <SolidColorBrush x:Key="TemaJuegoCarcasaOscura" Color="#7A1115" />
+            <SolidColorBrush x:Key="TemaJuegoBoton" Color="#FFD700" />
         </ResourceDictionary>
     </Styles.Resources>
 

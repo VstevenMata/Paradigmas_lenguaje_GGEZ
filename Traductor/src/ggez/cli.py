@@ -11,6 +11,7 @@ Contrato completo en Traductor/README.md.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 import threading
 from pathlib import Path
@@ -60,7 +61,14 @@ def _comando_run(ruta: Path, limite_pasos: int, eventos: bool) -> int:
     # Solo llega aca si corrio sin errores
     if eventos:
         emitir_logros(archivos)
+        print(f"@ggez programa {_huella(ruta)} {' '.join(sorted(evaluador.usos))}".rstrip(), flush=True)
     return EXITO
+
+
+def _huella(ruta: Path) -> str:
+    """Igual para el mismo programa aunque cambien espacios o comentarios: 'programas distintos' no se infla re-corriendo."""
+    tokens = [(t.tipo.name, t.lexema) for t in tokenizar(_leer(ruta), ruta.name)]
+    return hashlib.sha1(repr(tokens).encode()).hexdigest()[:16]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -118,6 +126,8 @@ def _main(argv: list[str] | None) -> int:
     except ErrorGgez as err:
         # Formato que parsea el panel Problemas del IDE; el archivo puede ser uno importado
         print(err.formatear(err.archivo or ruta.name), file=sys.stderr)
+        if getattr(args, "eventos", False):
+            print("@ggez fallo", flush=True)
         return FALLO_TRADUCCION
     except RecursionError:
         # Red de seguridad: expresiones anidadas a lo bestia, nunca un traceback de Python

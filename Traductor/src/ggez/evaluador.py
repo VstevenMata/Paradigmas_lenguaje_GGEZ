@@ -149,6 +149,11 @@ class Evaluador:
         self.pasos = 0
         self.profundidad = 0
         self._agotado: ErrorLimite | None = None
+        # Lo que de verdad se ejecuto (un farm que dio vueltas, un revive que atrapo): el mundo del IDE avanza con esto
+        self.usos: set[str] = set()
+        self._activos: dict[int, int] = {}      # combos en curso, para ver recursion
+        self._farms = 0                         # farms abiertos, para ver anidados
+        self._principal: str | None = None
         # Estos dos son de todo el programa
         self.registros: dict[str, list[str]] = {}
         self.clases: dict[str, Clase] = {}
@@ -242,6 +247,7 @@ class Evaluador:
             self._armar_herencia(clase)
 
         self.archivo = lugar.archivo
+        self._principal = lugar.archivo
         self.entorno = lugar.global_
         for declaracion in programa.declaraciones:
             if isinstance(declaracion, arbol.PuntoEntrada):
@@ -269,14 +275,30 @@ class Evaluador:
                 valor = float(valor)
             self.entorno.declarar(parametro.nombre, valor)
 
+        clave = id(declaracion)
+        recursiva = clave in self._activos
+        self._activos[clave] = self._activos.get(clave, 0) + 1
+        self.usos.add("combo")
+        if lugar.archivo != self._principal:
+            self.usos.add("travel")
+
         self.profundidad += 1
         try:
             self.bloque(declaracion.cuerpo)
         except _SenalReward as senal:
+            # Recursion que vuelve: la que nunca vuelve no llega aca
+            if recursiva:
+                self.usos.add("recursion")
             return senal.valor
         finally:
             self.profundidad -= 1
+            self._activos[clave] -= 1
+            if not self._activos[clave]:
+                del self._activos[clave]
             self.entorno, self.archivo = anterior, archivo_anterior
+
+        if recursiva and declaracion.retorno is None:
+            self.usos.add("recursion")
 
         if declaracion.retorno is not None:
             # El paso 3 lo revisa, pero un ciclo sin vueltas se le puede escapar
@@ -320,6 +342,9 @@ class Evaluador:
             self.entorno, self.archivo = anterior, archivo_anterior
 
         objeto = Objeto(clase, campos)
+        self.usos.add("guild")
+        if clase.padre is not None:
+            self.usos.add("herencia")
         if clase.constructor is not None:
             self.invocar(Combo(clase.constructor, self, objeto), argumentos)
         return objeto
@@ -404,45 +429,58 @@ class Evaluador:
             raise self._error("sentencia no soportada todavia", nodo)
 
     def sent_scan(self, nodo: arbol.Scan) -> None:
+        self.usos.add("scan")
         if self.expresion(nodo.condicion):
             self.bloque(nodo.entonces)
-        elif isinstance(nodo.sino, arbol.Scan):
+            return
+        if nodo.sino is not None:
+            self.usos.add("fallback")
+        if isinstance(nodo.sino, arbol.Scan):
             self.sent_scan(nodo.sino)
         elif nodo.sino is not None:
             self.bloque(nodo.sino)
 
-    def _vuelta(self, cuerpo: arbol.Bloque) -> bool:
+    def _vuelta(self, cuerpo: arbol.Bloque, ciclo: str) -> bool:
         # Tambien gasta aunque el cuerpo este vacio, si no "survive hit glhf gg" nunca se cortaria
         self._gastar(cuerpo)
+        self.usos.add(ciclo)
         try:
             self.bloque(cuerpo)
         except _SenalRespawn:
             pass
         except _SenalRagequit:
+            self.usos.add("ragequit")
             return False
         return True
 
     def sent_farm(self, nodo: arbol.Farm) -> None:
         self.sentencia(nodo.inicio)
-        while self.expresion(nodo.condicion):
-            if not self._vuelta(nodo.cuerpo):
-                break
-            # El paso corre igual tras un respawn, si no el farm se quedaria colgado
-            self.sentencia(nodo.paso)
+        self._farms += 1
+        try:
+            while self.expresion(nodo.condicion):
+                if self._farms > 1:
+                    self.usos.add("farm-anidado")
+                if not self._vuelta(nodo.cuerpo, "farm"):
+                    break
+                # El paso corre igual tras un respawn, si no el farm se quedaria colgado
+                self.sentencia(nodo.paso)
+        finally:
+            self._farms -= 1
 
     def sent_survive(self, nodo: arbol.Survive) -> None:
         while self.expresion(nodo.condicion):
-            if not self._vuelta(nodo.cuerpo):
+            if not self._vuelta(nodo.cuerpo, "survive"):
                 break
 
     def sent_grind(self, nodo: arbol.Grind) -> None:
         while True:
-            if not self._vuelta(nodo.cuerpo):
+            if not self._vuelta(nodo.cuerpo, "grind"):
                 break
             if not self.expresion(nodo.condicion):
                 break
 
     def sent_loadout(self, nodo: arbol.Loadout) -> None:
+        self.usos.add("loadout")
         seleccion = self.expresion(nodo.expresion)
 
         for rama in nodo.ramas:
@@ -465,6 +503,7 @@ class Evaluador:
                 self.bloque(nodo.final)
 
     def _revive(self, nodo: arbol.Clutch, error: ErrorEjecucion) -> None:
+        self.usos.add("revive")
 
         falla = Registro("error de revive", {"reason": error.mensaje, "line": error.linea})
         anterior = self.entorno
@@ -593,6 +632,7 @@ class Evaluador:
                     f"{len(objeto.elementos)} elemento(s))",
                     nodo,
                 )
+            self.usos.add("squad-indice")
             return objeto.elementos[indice]
 
         if isinstance(nodo, arbol.Llamada):
@@ -642,7 +682,7 @@ class Evaluador:
 
     def _metodo_coleccion(self, coleccion: Coleccion, nombre: str, nodo: arbol.Nodo):
         metodos = {
-            "recruit": lambda args: coleccion.elementos.append(args[0]),
+            "recruit": lambda args: self._recruit(coleccion, args[0]),
             "kick":    lambda args: self._kick(coleccion, args[0], nodo),
         }
 
@@ -650,6 +690,10 @@ class Evaluador:
             disponibles = ", ".join(["size"] + sorted(metodos))
             raise self._error(f"squad no tiene '{nombre}'. Tiene: {disponibles}", nodo)
         return metodos[nombre]
+
+    def _recruit(self, coleccion: Coleccion, valor: object) -> None:
+        self.usos.add("squad-recruit")
+        coleccion.elementos.append(valor)
 
     def _kick(self, coleccion: Coleccion, indice: object, nodo: arbol.Nodo) -> None:
         if not isinstance(indice, int) or isinstance(indice, bool):

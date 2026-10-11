@@ -10,7 +10,7 @@ adentro.
 
 > **Nota:** el traductor se iba a escribir en Pascal, pero el equipo decidió hacerlo en
 > Python. El contrato de más abajo **no cambió** — es agnóstico del lenguaje de
-> implementación. `src/traductor.pas` quedó vacío del plan anterior y se puede borrar.
+> implementación.
 
 ## Estructura
 
@@ -20,17 +20,19 @@ Traductor/
 ├── GRAMATICA.md         ← definición formal del lenguaje (BNF/EBNF)
 ├── Makefile             ← atajos para correr desde terminal
 ├── ggezc.py             ← punto de entrada: el "binario" que invoca el IDE
-├── ejemplos/
-│   ├── clasificador.ggez  ← ejemplo imperativo del documento
-│   └── poo.ggez           ← ejemplo de POO del documento
+├── ejemplos/            ← programas .ggez de cada parte del lenguaje
 └── src/ggez/
-    ├── tokens.py        ← tipos de token + las 60 palabras reservadas
-    ├── lexer.py         ← análisis léxico             [LISTO]
+    ├── tokens.py        ← tipos de token + las palabras reservadas
+    ├── lexer.py         ← análisis léxico
+    ├── sintactico.py    ← análisis sintáctico
+    ├── arbol.py         ← nodos del árbol que arma el sintáctico
+    ├── cargador.py      ← carga el archivo principal y sus travel
+    ├── semantico.py     ← análisis semántico
+    ├── evaluador.py     ← ejecución, maná y usos para el mundo del IDE
+    ├── nivel.py         ← ggezc check: pruebas de nivel.json
+    ├── logros.py        ← logros que se ganan por lo que usa el código
     ├── errores.py       ← errores con archivo:línea:columna
-    ├── cli.py           ← argumentos y códigos de salida
-    ├── parser.py        ← análisis sintáctico         [pendiente]
-    ├── semantico.py     ← análisis semántico          [pendiente]
-    └── evaluador.py     ← ejecución                   [pendiente]
+    └── cli.py           ← argumentos y códigos de salida
 ```
 
 No hace falta compilar nada ni instalar dependencias: solo Python 3.10 o superior.
@@ -50,9 +52,7 @@ make run ARCHIVO=ejemplos/clasificador.ggez
 make test                                    # pasa los dos ejemplos
 ```
 
-**Estado actual:** el analizador léxico está terminado y pasa los dos ejemplos del
-documento (190 y 121 tokens). El analizador sintáctico todavía no existe, así que `run`
-reporta cuántos tokens reconoció y sale con código 1.
+**Estado actual:** léxico, sintáctico, semántico y ejecución terminados.
 
 ## El contrato (esto es lo que no puede cambiar sin avisar del otro lado)
 
@@ -115,6 +115,11 @@ ggezc check <archivo.ggez> [--pasos N] [--eventos]
   - `@ggez logro <id>`: uno por cada logro que cumple el código (recursion, guild, travel...).
     Solo si `run` termina sin errores o si `check` pasa todas las pruebas. El catálogo con
     nombres está en el IDE (`Models/Logro.cs`).
+  - `@ggez programa <huella> <usos...>` (solo `run` sin errores): qué se ejecutó de verdad
+    (`farm` que dio vueltas, `revive` que atrapó, `recursion` que volvió, `travel`...). La
+    huella identifica el programa sin contar espacios ni comentarios. Con esto avanzan las
+    misiones del mundo (`Models/Mundo.cs`).
+  - `@ggez fallo`: el programa terminó con error (el personaje del mundo se sacude).
 
 Formato de `nivel.json`:
 

@@ -72,7 +72,7 @@
                                 CommandParameter="{Binding}" />
 
                         <TextBlock IsVisible="{Binding Bloqueada}" FontSize="13" Foreground="Black" TextWrapping="Wrap" Margin="0,4,0,0">
-                            <Run Text="{Binding TextoBloqueo}" /><Run Text=": gánelas resolviendo niveles (F5 en un .ggez junto a un nivel.json)." />
+                            <Run Text="{Binding TextoBloqueo}" /><Run Text=": gánelas avanzando zonas del mundo (panel de juego) o resolviendo niveles." />
                         </TextBlock>
 
                         <StackPanel IsVisible="{Binding Instalando}" Margin="0,2">

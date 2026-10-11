@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ParadigmasLenguajePropio.Models;
 
 namespace ParadigmasLenguajePropio.Services;
 
@@ -15,6 +16,8 @@ public class Progreso
     public Dictionary<string, ProgresoNivel> Niveles { get; set; } = new();
     public int MonedasGastadas { get; set; }
     public HashSet<string> Logros { get; set; } = new();
+    // Mision -> huellas de los programas distintos que la cumplieron
+    public Dictionary<string, HashSet<string>> Misiones { get; set; } = new();
 }
 
 // Guarda intentos, estrellas y pistas compradas entre sesiones
@@ -30,7 +33,8 @@ public static class ProgresoService
     // Lo escuchan las extensiones para desbloquear temas
     public static event Action? Cambio;
 
-    public static int EstrellasTotales => _actual.Niveles.Values.Sum(n => n.Record);
+    public static int EstrellasTotales =>
+        _actual.Niveles.Values.Sum(n => n.Record) + Mundo.Zonas.Count(ZonaCompleta) * Mundo.EstrellasPorZona;
 
     // Se derivan de los records: repetir un nivel no da monedas de mas
     public static int Monedas => EstrellasTotales - _actual.MonedasGastadas;
@@ -41,6 +45,44 @@ public static class ProgresoService
             _actual.Niveles[carpeta] = nivel = new ProgresoNivel();
         return nivel;
     }
+
+    public static int Cuenta(Mision mision) =>
+        _actual.Misiones.TryGetValue(mision.Id, out var huellas) ? Math.Min(huellas.Count, mision.Veces) : 0;
+
+    public static bool MisionCompleta(Mision mision) => Cuenta(mision) >= mision.Veces;
+
+    public static bool ZonaCompleta(Zona zona) => zona.Misiones.All(MisionCompleta);
+
+    // Primera zona sin completar; == Zonas.Count cuando ya se gano todo
+    public static int ZonaActual
+    {
+        get
+        {
+            int i = 0;
+            while (i < Mundo.Zonas.Count && ZonaCompleta(Mundo.Zonas[i])) i++;
+            return i;
+        }
+    }
+
+    // Cuenta el programa en todas las misiones que cumple, aunque sean de zonas mas adelante; devuelve las que avanzaron
+    public static List<Mision> RegistrarPrograma(string huella, IReadOnlySet<string> usos)
+    {
+        var avanzadas = new List<Mision>();
+        foreach (var mision in Mundo.Zonas.SelectMany(z => z.Misiones))
+        {
+            if (MisionCompleta(mision) || !mision.LaCumple(usos)) continue;
+            if (!_actual.Misiones.TryGetValue(mision.Id, out var huellas))
+                _actual.Misiones[mision.Id] = huellas = new();
+            if (huellas.Add(huella)) avanzadas.Add(mision);
+        }
+        return avanzadas;
+    }
+
+    // Tramos recorridos en la zona: una mision de 2 programas con 1 hecho suma medio tramo
+    public static double Avance(Zona zona) => zona.Misiones.Sum(m => (double)Cuenta(m) / m.Veces);
+
+    // Reinicia solo el mundo; logros, niveles y monedas gastadas quedan
+    public static void ReiniciarMundo() => _actual.Misiones.Clear();
 
     public static bool TieneLogro(string id) => _actual.Logros.Contains(id);
 
@@ -79,6 +121,9 @@ public static class ProgresoService
                 .Where(par => par.Value != null)
                 .ToDictionary(par => par.Key, par => par.Value);
             progreso.Logros ??= new();
+            progreso.Misiones = (progreso.Misiones ?? new())
+                .Where(par => par.Value != null)
+                .ToDictionary(par => par.Key, par => par.Value);
             return progreso;
         }
         catch (Exception ex)

@@ -5,84 +5,217 @@
              x:Class="ParadigmasLenguajePropio.Views.PanelJuegoView"
              x:DataType="vm:PanelJuegoViewModel">
 
+    <UserControl.Styles>
+        <!-- Botones de la consola: redondos (A B X Y) o cuadrados (cruceta), con el color del tema -->
+        <Style Selector="Button.consola">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource TemaJuegoBoton}" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Fondo" Background="{TemplateBinding Background}" BorderBrush="Black" BorderThickness="2"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                          FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <!-- El tema pinta todos los TextBlock: sin esto la letra queda clara sobre el boton claro -->
+        <Style Selector="Button.consola TextBlock">
+            <Setter Property="Foreground" Value="Black" />
+        </Style>
+        <Style Selector="Button.consola:pointerover /template/ Border#Fondo">
+            <Setter Property="Opacity" Value="0.85" />
+        </Style>
+        <Style Selector="Button.consola:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.9)" />
+        </Style>
+        <Style Selector="Button.cruz">
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Background" Value="{DynamicResource TemaJuegoContorno}" />
+        </Style>
+        <Style Selector="Button.cruz Path">
+            <Setter Property="Fill" Value="White" />
+        </Style>
+        <Style Selector="Ellipse.parlante">
+            <Setter Property="Width" Value="4" />
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="Fill" Value="{DynamicResource TemaJuegoCarcasaOscura}" />
+        </Style>
+    </UserControl.Styles>
+
     <Grid RowDefinitions="Auto,*">
         <Border Grid.Row="0" Height="26" Background="{DynamicResource TemaTitleBarBrush}">
             <TextBlock Text="Juego" Foreground="White" FontSize="18" Margin="8,0,0,0" VerticalAlignment="Center" />
         </Border>
 
         <controls:Win95Bevel Grid.Row="1" BevelThickness="2" Background="{DynamicResource TemaBackgroundBrush}" Padding="8">
-            <Grid RowDefinitions="*,Auto,Auto,Auto,Auto">
-                <controls:Win95Bevel Grid.Row="0" Sunken="True" BevelThickness="2" Background="White">
-                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Personaje64px.png"
-                           Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center"
-                           RenderOptions.BitmapInterpolationMode="None" />
-                </controls:Win95Bevel>
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="8">
 
-                <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="2" IsVisible="{Binding EnNivel}">
-                    <TextBlock Text="{Binding TituloNivel}" FontSize="17" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding ResumenPruebas}" FontSize="16" />
-                    <TextBlock Text="{Binding Estrellas}" FontSize="24"
-                               ToolTip.Tip="★ pasar todas · ★ al primer intento · ★ sin pasar la meta de pasos" />
-                    <TextBlock Text="{Binding DetalleEstrellas}" FontSize="16" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding ResumenMonedas}" FontSize="16" Margin="0,4,0,0" />
+                    <!-- Consola de dos pantallas: arriba el mundo, abajo las misiones -->
+                    <Border CornerRadius="16" Padding="10" BorderThickness="2"
+                            Background="{DynamicResource TemaJuegoCarcasa}" BorderBrush="{DynamicResource TemaJuegoCarcasaOscura}">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0">
+                                    <Ellipse Classes="parlante" /><Ellipse Classes="parlante" /><Ellipse Classes="parlante" />
+                                </StackPanel>
+                                <Border Grid.Column="1" Background="Black" CornerRadius="6" Padding="5">
+                                    <controls:MundoPixel Zona="{Binding ZonaMundo}" Avance="{Binding AvanceZona}" Total="{Binding TotalZona}"
+                                                         BanderasLogradas="{Binding BanderasLogradas}" PosicionMapa="{Binding PosicionMapa}"
+                                                         VerMapa="{Binding VerMapa}" MostrarHeroe="{Binding MostrarHeroe}"
+                                                         PuertaAbierta="{Binding PuertaAbierta}" JefeVisible="{Binding JefeVisible}"
+                                                         PeleaJefe="{Binding PeleaJefe}" Sacudidas="{Binding Sacudidas}"
+                                                         Cartel="{Binding Cartel}" MensajeFinal="{Binding MensajeFinal}"
+                                                         AutomationProperties.Name="{Binding TituloZona}" />
+                                </Border>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="6,0,0,0">
+                                    <Ellipse Classes="parlante" /><Ellipse Classes="parlante" /><Ellipse Classes="parlante" />
+                                </StackPanel>
+                            </Grid>
 
-                    <StackPanel IsVisible="{Binding HayPistas}" Spacing="2" Margin="0,4,0,0">
-                        <ItemsControl ItemsSource="{Binding PistasCompradas}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <TextBlock FontSize="16" TextWrapping="Wrap" Margin="0,0,0,2">
-                                        <Run Text="Pista: " FontWeight="Bold" /><Run Text="{Binding}" />
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <Button Content="{Binding TextoComprarPista}" Command="{Binding ComprarPistaCommand}"
-                                IsVisible="{Binding QuedanPistas}" HorizontalAlignment="Left" FontSize="14" Padding="6,2" />
+                            <!-- Bisagra -->
+                            <Border Height="8" Margin="-10,10" Background="{DynamicResource TemaJuegoCarcasaOscura}" />
+
+                            <!-- Pantalla de abajo a todo el ancho para que las misiones se lean; los controles debajo -->
+                            <Border Background="Black" CornerRadius="4" Padding="4" Margin="12,0">
+                                <Border Background="{DynamicResource TemaJuegoBrillo}" Padding="6,4" MinHeight="110">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding TituloZona}" FontSize="14" FontWeight="Bold" Foreground="Black"
+                                                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding TituloZona}" />
+                                        <TextBlock Text="{Binding EstadoZona}" FontSize="12" Foreground="#333333" TextWrapping="Wrap" />
+                                        <ItemsControl ItemsSource="{Binding MisionesZona}" Margin="0,2,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="x:String">
+                                                    <TextBlock Text="{Binding}" FontSize="13" Foreground="Black" TextWrapping="Wrap" Margin="0,0,0,2" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding Aviso}" IsVisible="{Binding HayAviso}" Foreground="Black"
+                                                   FontSize="13" FontWeight="Bold" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Border>
+                            </Border>
+
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+                                <!-- Cruceta: izquierda/derecha recorren zonas, arriba mapa, abajo zona -->
+                                <Grid Grid.Column="0" RowDefinitions="28,28,28" ColumnDefinitions="28,28,28" VerticalAlignment="Center">
+                                    <Button Grid.Row="0" Grid.Column="1" Classes="consola cruz" Command="{Binding AlternarMapaCommand}"
+                                            ToolTip.Tip="Mapa del mundo" AutomationProperties.Name="Mapa del mundo">
+                                        <Path Data="M0,8 L6,0 L12,8 Z" />
+                                    </Button>
+                                    <Button Grid.Row="1" Grid.Column="0" Classes="consola cruz" Command="{Binding ZonaAnteriorCommand}"
+                                            ToolTip.Tip="Zona anterior" AutomationProperties.Name="Zona anterior">
+                                        <Path Data="M8,0 L0,6 L8,12 Z" />
+                                    </Button>
+                                    <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource TemaJuegoContorno}" />
+                                    <Button Grid.Row="1" Grid.Column="2" Classes="consola cruz" Command="{Binding ZonaSiguienteCommand}"
+                                            ToolTip.Tip="Zona siguiente" AutomationProperties.Name="Zona siguiente">
+                                        <Path Data="M0,0 L8,6 L0,12 Z" />
+                                    </Button>
+                                    <Button Grid.Row="2" Grid.Column="1" Classes="consola cruz" Command="{Binding VerZonaCommand}"
+                                            ToolTip.Tip="Ver la zona" AutomationProperties.Name="Ver la zona">
+                                        <Path Data="M0,0 L12,0 L6,8 Z" />
+                                    </Button>
+                                </Grid>
+
+                                <TextBlock Grid.Column="1" Text="GGEZ" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" Foreground="{DynamicResource TemaJuegoCarcasaOscura}" />
+
+                                <!-- A mapa, B volver a la zona actual, X logros, Y pausa -->
+                                <Grid Grid.Column="2" RowDefinitions="28,28,28" ColumnDefinitions="28,28,28" VerticalAlignment="Center">
+                                    <Button Grid.Row="0" Grid.Column="1" Classes="consola" Content="X" Command="{Binding AlternarLogrosCommand}"
+                                            ToolTip.Tip="X: logros" AutomationProperties.Name="Logros" />
+                                    <Button Grid.Row="1" Grid.Column="0" Classes="consola" Content="Y" Command="{Binding AlternarPausaCommand}"
+                                            ToolTip.Tip="Y: pausa" AutomationProperties.Name="Pausa" />
+                                    <Button Grid.Row="1" Grid.Column="2" Classes="consola" Content="A" Command="{Binding AlternarMapaCommand}"
+                                            ToolTip.Tip="A: mapa del mundo" AutomationProperties.Name="Mapa del mundo" />
+                                    <Button Grid.Row="2" Grid.Column="1" Classes="consola" Content="B" Command="{Binding VolverAZonaActualCommand}"
+                                            ToolTip.Tip="B: volver a la zona actual" AutomationProperties.Name="Volver a la zona actual" />
+                                </Grid>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="2" IsVisible="{Binding EnNivel}">
+                        <TextBlock Text="{Binding TituloNivel}" FontSize="17" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding ResumenPruebas}" FontSize="16" />
+                        <TextBlock Text="{Binding Estrellas}" FontSize="24"
+                                   ToolTip.Tip="★ pasar todas · ★ al primer intento · ★ sin pasar la meta de pasos" />
+                        <TextBlock Text="{Binding DetalleEstrellas}" FontSize="16" TextWrapping="Wrap" />
+
+                        <StackPanel IsVisible="{Binding HayPistas}" Spacing="2" Margin="0,4,0,0">
+                            <ItemsControl ItemsSource="{Binding PistasCompradas}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock FontSize="16" TextWrapping="Wrap" Margin="0,0,0,2">
+                                            <Run Text="Pista: " FontWeight="Bold" /><Run Text="{Binding}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="{Binding TextoComprarPista}" Command="{Binding ComprarPistaCommand}"
+                                    IsVisible="{Binding QuedanPistas}" HorizontalAlignment="Left" FontSize="14" Padding="6,2" />
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
 
-                <StackPanel Grid.Row="4" Margin="0,8,0,0" Spacing="2">
-                    <TextBlock Text="{Binding LogroNuevo}" IsVisible="{Binding HayLogroNuevo}"
-                               FontSize="16" FontWeight="Bold" TextWrapping="Wrap" />
-                    <Button Command="{Binding AlternarLogrosCommand}" HorizontalAlignment="Left" FontSize="14" Padding="6,2"
-                            Content="{Binding ResumenLogros}" ToolTip.Tip="Mostrar u ocultar la lista de logros" />
-                    <ScrollViewer IsVisible="{Binding MostrarLogros}" MaxHeight="220">
-                        <ItemsControl ItemsSource="{Binding ListaLogros}">
+                    <TextBlock Text="{Binding ResumenMonedas}" FontSize="16" />
+
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="Maná:" FontSize="16" VerticalAlignment="Center" />
+                        <controls:Win95Bevel Grid.Column="1" Sunken="True" BevelThickness="1" Background="White"
+                                              Height="20" Padding="2" Margin="8,0,0,0">
+                            <ItemsControl ItemsSource="{Binding Segmentos}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:Boolean">
+                                        <Rectangle Margin="0.5,0" Fill="#0000A0" IsVisible="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </controls:Win95Bevel>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="{Binding ResumenMana}" FontSize="16" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ResumenMana}" />
+                        <TextBlock Grid.Column="1" Text="En pausa" FontSize="17" Margin="8,0,0,0" VerticalAlignment="Center"
+                                   IsVisible="{Binding EnPausa}" />
+                    </Grid>
+
+                    <StackPanel Spacing="2">
+                        <Button Command="{Binding AlternarLogrosCommand}" HorizontalAlignment="Left" FontSize="14" Padding="6,2"
+                                Content="{Binding ResumenLogros}" ToolTip.Tip="Mostrar u ocultar la lista de logros (X)" />
+                        <ItemsControl IsVisible="{Binding MostrarLogros}" ItemsSource="{Binding ListaLogros}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
                                     <TextBlock Text="{Binding}" FontSize="14" TextWrapping="Wrap" Margin="0,0,0,2" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </ScrollViewer>
+                    </StackPanel>
                 </StackPanel>
-
-                <Grid Grid.Row="2" ColumnDefinitions="Auto,*" Margin="0,8,0,0">
-                    <TextBlock Grid.Column="0" Text="Maná:" FontSize="16" VerticalAlignment="Center" />
-                    <controls:Win95Bevel Grid.Column="1" Sunken="True" BevelThickness="1" Background="White"
-                                          Height="20" Padding="2" Margin="8,0,0,0">
-                        <ItemsControl ItemsSource="{Binding Segmentos}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <UniformGrid Rows="1" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="x:Boolean">
-                                    <Rectangle Margin="0.5,0" Fill="#0000A0" IsVisible="{Binding}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </controls:Win95Bevel>
-                </Grid>
-
-                <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-                    <TextBlock Grid.Column="0" Text="{Binding ResumenMana}" FontSize="16" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ResumenMana}" />
-                    <TextBlock Grid.Column="1" Text="En pausa" FontSize="17" Margin="8,0,0,0" VerticalAlignment="Center"
-                               IsVisible="{Binding EnPausa}" />
-                </Grid>
-            </Grid>
+            </ScrollViewer>
         </controls:Win95Bevel>
     </Grid>
 

@@ -18,6 +18,9 @@ public static class TemaService
 
     public static Tema Actual { get; private set; } = Tema.Win95;
 
+    // Los controles dibujados a mano (el mundo del panel de juego) no se repintan solos con la paleta nueva
+    public static event Action? Cambio;
+
     public static void Aplicar(Tema tema)
     {
         if (Application.Current is { } app)
@@ -39,6 +42,7 @@ public static class TemaService
 
         Actual = tema;
         Guardar(tema);
+        Cambio?.Invoke();
     }
 
     // El tema activo se guarda aparte de las extensiones instaladas: instalado != activo

@@ -50,9 +50,9 @@ public partial class ExtensionsViewModel : ViewModelBase
     // Agregar una fila aca alcanza para un tema nuevo; Estrellas = las que pide para desbloquearse
     static readonly (string Id, Tema Tema, string Nombre, int Estrellas)[] TemasDisponibles =
     [
-        ("tema-zelda", Tema.Zelda, "Zelda", 3),
-        ("tema-sonic", Tema.Sonic, "Sonic", 9),
-        ("tema-megaman", Tema.MegaMan, "Mega Man", 6),
+        ("tema-zelda", Tema.Zelda, "Zelda", 6),
+        ("tema-sonic", Tema.Sonic, "Sonic", 25),
+        ("tema-megaman", Tema.MegaMan, "Mega Man", 15),
     ];
 
     static readonly IReadOnlyDictionary<string, Tema> TemasPorId =
