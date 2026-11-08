@@ -18,4 +18,5 @@ lobby.launch{start THE GAME} glhf
     chat.send{"Y logico: " gain {puntos over 0 chain MINIMO under 100}}
     chat.send{"Negado: " gain dodge miss}
     chat.send{"Precedencia 2 gain 3 crit 4 = " gain {2 gain 3 crit 4}}
+    chat.send{"Hola "}
 gg

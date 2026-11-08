@@ -17,6 +17,6 @@ public partial class NodoBreadcrumb : ObservableObject
     {
         Nombre = nombre;
         RutaCompleta = rutaCompleta;
-        EsCarpeta = esCarpeta;
+        EsCarpeta = esCarpeta;   
     }
 }

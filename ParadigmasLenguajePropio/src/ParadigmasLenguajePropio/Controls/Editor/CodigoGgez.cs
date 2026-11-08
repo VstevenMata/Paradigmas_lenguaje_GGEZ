@@ -40,7 +40,7 @@ public class CodigoGgez : TextBlock
 
             // Cada caracter toma el color de su palabra clave o comentario; el resto queda con el texto base
             var colores = new IBrush?[linea.Length];
-            foreach (var (inicio, palabra, color) in EditorTextArea.PalabrasColoreadas(linea, comentarios))
+            foreach (var (inicio, palabra, color) in EditorTextArea.PalabrasColoreadas(linea, comentarios, oscuro: true))
                 for (int k = 0; k < palabra.Length; k++) colores[inicio + k] = color;
             foreach (var (inicio, fin) in comentarios)
                 for (int k = inicio; k < fin; k++) colores[k] = EditorTextArea.ComentarioOscuro;

@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
@@ -92,116 +94,34 @@ public class EditorTextArea : Control
         ("HACK", new SolidColorBrush(Color.FromArgb(90, 245, 158, 11))),
     };
 
-    /*Los colores de las variables estan basados en los tipos de rarezas que 
-    tienen los items en los videojuegos*/
-    static readonly IBrush ColorTipoDato = new SolidColorBrush(Color.Parse("#4FA3FF"));
-    static readonly IBrush EstructuraDelPrograma = new SolidColorBrush(Color.Parse("#2EC4B6"));
-    static readonly IBrush Declaraciones = new SolidColorBrush(Color.Parse("#C792EA"));
-    static readonly IBrush Modificadores = new SolidColorBrush(Color.Parse("#F07178"));
-    static readonly IBrush FlujoDeControl = new SolidColorBrush(Color.Parse("#5C7CFA"));
-    static readonly IBrush ManejoDeErrores = new SolidColorBrush(Color.Parse("#FFD23F"));
-    static readonly IBrush RojoDano = new SolidColorBrush(Color.Parse("#FF4D4D"));
-    static readonly IBrush VerdeVida = new SolidColorBrush(Color.Parse("#3DDC84"));
-    static readonly IBrush Nulo = new SolidColorBrush(Color.FromArgb(179, 0x6B, 0x6B, 0x6B));
-    static readonly IBrush Instancia = new SolidColorBrush(Color.Parse("#7FDBFF"));
-    static readonly IBrush Entrada = new SolidColorBrush(Color.Parse("#00E5FF"));
-    static readonly IBrush Suma = new SolidColorBrush(Color.Parse("#7EE787"));
-    static readonly IBrush Resta = new SolidColorBrush(Color.Parse("#FF7B72"));
-    static readonly IBrush Critico = new SolidColorBrush(Color.Parse("#FFE66D"));
-    static readonly IBrush Reparto = new SolidColorBrush(Color.Parse("#98C1D9"));
-    static readonly IBrush Relacionales = new SolidColorBrush(Color.Parse("#E5C07B"));
-    static readonly IBrush Delimitadores = new SolidColorBrush(Color.Parse("#5C6370"));
-    static readonly IBrush Asignacion = new SolidColorBrush(Color.Parse("#ABB2BF"));
-    static readonly Dictionary<string, IBrush> ColoresSintaxis = new()
+    // Mismos colores que C++ en Visual Studio 2022: Claro con el tema claro, Oscuro con Modo Oscuro
+    static IBrush Pincel(string hex) => new SolidColorBrush(Color.Parse(hex));
+    static readonly (IBrush Claro, IBrush Oscuro) PalabraClave = (Pincel("#0000FF"), Pincel("#569CD6"));
+    static readonly (IBrush Claro, IBrush Oscuro) PalabraControl = (Pincel("#8F08C4"), Pincel("#D8A0DF"));
+    static readonly (IBrush Claro, IBrush Oscuro) Funcion = (Pincel("#74531F"), Pincel("#DCDCAA"));
+    static readonly (IBrush Claro, IBrush Oscuro) Tipo = (Pincel("#2B91AF"), Pincel("#4EC9B0"));
+    static readonly (IBrush Claro, IBrush Oscuro) Texto = (Pincel("#A31515"), Pincel("#D69D85"));
+    static readonly (IBrush Claro, IBrush Oscuro) Numero = (Brushes.Black, Pincel("#B5CEA8"));
+
+    // Cada palabra toma el color de su equivalente en C++: if/for/return/try son de control; int, class, and, true... son clave
+    static readonly Dictionary<string, (IBrush Claro, IBrush Oscuro)> ColoresSintaxis = new[]
     {
-        ["lobby"] = EstructuraDelPrograma,  
-        ["launch"] = EstructuraDelPrograma,
-        ["start"] = EstructuraDelPrograma,  
-        ["THE"] = EstructuraDelPrograma,
-        ["GAME"] = EstructuraDelPrograma,
-        ["travel"] = EstructuraDelPrograma, 
-        ["from"] = EstructuraDelPrograma,   
-        ["server"] = EstructuraDelPrograma, 
-        ["region"] = EstructuraDelPrograma, 
-        ["quit"] = RojoDano,                
+        (Color: PalabraClave, Palabras: "lobby start THE GAME travel from server region quit stash hardcoded noloot afk " +
+            "score aim lore win pixel squad stack queue inventory hit miss combo drops guild questline evolves spawn me " +
+            "open party solo glhf gg gain drain crit split scrap matches mismatch over under atleast atmost " +
+            "set boost sap buff nerf chain swap dodge"),
+        (Color: PalabraControl, Palabras: "scan fallback farm survive grind loadout pick noob ragequit respawn reward clutch revive checkpoint wipe"),
+        (Color: Tipo, Palabras: "chat arsenal physics rng clock save"),
+    }.SelectMany(g => g.Palabras.Split(' ').Select(p => (Palabra: p, g.Color))).ToDictionary(x => x.Palabra, x => x.Color);
 
-        ["stash"] = Declaraciones,     
-        ["hardcoded"] = Declaraciones, 
-        ["noloot"] = ColorTipoDato,    
-        ["afk"] = Nulo,                
+    static readonly string[] PalabrasGgez = ColoresSintaxis.Keys.ToArray();
 
-        ["score"] = ColorTipoDato,
-        ["aim"] = ColorTipoDato, 
-        ["lore"] = ColorTipoDato,
-        ["win"] = ColorTipoDato, 
-        ["pixel"] = ColorTipoDato, 
-        ["squad"] = ColorTipoDato,
-        ["stack"] = ColorTipoDato, 
-        ["matchmaking"] = ColorTipoDato,
-        ["inventory"] = ColorTipoDato, 
-
-        ["hit"] = VerdeVida, 
-        ["miss"] = RojoDano, 
-
-        ["scan"] = FlujoDeControl,
-        ["fallback"] = FlujoDeControl, 
-        ["farm"] = FlujoDeControl,
-        ["survive"] = FlujoDeControl,
-        ["grind"] = FlujoDeControl, 
-        ["loadout"] = FlujoDeControl,
-        ["pick"] = FlujoDeControl,
-        ["noob"] = FlujoDeControl, 
-        ["ragequit"] = FlujoDeControl,
-        ["respawn"] = FlujoDeControl,
-
-        ["combo"] = Declaraciones,
-        ["drops"] = Declaraciones, 
-        ["reward"] = Declaraciones, 
-
-        ["clutch"] = ManejoDeErrores,
-        ["revive"] = ManejoDeErrores, 
-        ["checkpoint"] = ManejoDeErrores, 
-        ["wipe"] = RojoDano, 
-
-        ["guild"] = Declaraciones,
-        ["questline"] = Declaraciones, 
-        ["evolves"] = Declaraciones,
-        ["spawn"] = Declaraciones,
-        ["me"] = Instancia, 
-        ["open"] = Modificadores,
-        ["party"] = Modificadores, 
-        ["solo"] = Modificadores, 
-
-        ["load"] = Entrada,
-        ["rage"] = RojoDano,
-        ["physics"] = EstructuraDelPrograma, 
-        ["rng"] = EstructuraDelPrograma,
-        ["clock"] = EstructuraDelPrograma, 
-        ["save"] = EstructuraDelPrograma,
-
-        ["buff"] = Suma,
-        ["nerf"] = Resta,
-
-        ["glhf"] = Delimitadores, 
-        ["gg"] = Delimitadores,
-
-        ["gain"] = Suma, 
-        ["drain"] = Resta, 
-        ["crit"] = Critico, 
-        ["split"] = Reparto,
-        ["scrap"] = Reparto,
-
-        ["matches"] = Relacionales, 
-        ["mismatch"] = Relacionales,
-        ["over"] = Relacionales, 
-        ["under"] = Relacionales, 
-        ["atleast"] = Relacionales, 
-        ["atmost"] = Relacionales, 
-
-        ["set"] = Asignacion, 
-        ["boost"] = Suma, 
-        ["sap"] = Resta,
+    static readonly Dictionary<string, string[]> MiembrosConocidos = new()
+    {
+        ["chat"] = ["send", "rage", "load"],
+        ["lobby"] = ["launch"],
     };
+    static readonly string[] MetodosSquad = ["recruit", "kick", "size"];
 
     public static readonly StyledProperty<EditorTabViewModel?> TabProperty =
         AvaloniaProperty.Register<EditorTextArea, EditorTabViewModel?>(nameof(Tab));
@@ -229,6 +149,8 @@ public class EditorTextArea : Control
     bool _arrastrandoSeleccion;
     bool _caretVisible = true;
     readonly DispatcherTimer _parpadeo;
+    readonly Popup _popupSugerencias;
+    readonly ListBox _listaSugerencias;
 
     public EditorTextArea()
     {
@@ -238,6 +160,17 @@ public class EditorTextArea : Control
 
         GotFocus += (_, _) => { _caretVisible = true; _parpadeo.Start(); InvalidateVisual(); };
         LostFocus += (_, _) => { _parpadeo.Stop(); InvalidateVisual(); };
+
+        _listaSugerencias = new ListBox { MaxHeight = 200, MinWidth = 160, Focusable = false };
+        _listaSugerencias.Tapped += (_, _) => { AceptarSugerencia(); Focus(); };
+        _popupSugerencias = new Popup
+        {
+            PlacementTarget = this,
+            Placement = PlacementMode.BottomEdgeAlignedLeft,
+            Child = new Border { Background = Brushes.White, BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Child = _listaSugerencias },
+        };
+        // Sin estar en el arbol logico el Popup no hereda estilos ni se puede abrir
+        LogicalChildren.Add(_popupSugerencias);
     }
 
     static EditorTextArea()
@@ -246,6 +179,7 @@ public class EditorTextArea : Control
         {
             if (e.OldValue is EditorTabViewModel viejo) { viejo.ContenidoCambiado -= c.Refrescar; viejo.CursorCambiado -= c.RefrescarCursor; }
             if (e.NewValue is EditorTabViewModel nuevo) { nuevo.ContenidoCambiado += c.Refrescar; nuevo.CursorCambiado += c.RefrescarCursor; }
+            c.CerrarSugerencias();
             c.Refrescar();
         });
 
@@ -361,7 +295,7 @@ public class EditorTextArea : Control
                 if (ocultarDelimitadores)
                     foreach (var d in delimitadores!) formateado.SetForegroundBrush(Brushes.Transparent, d.Inicio, d.Largo);
                 context.DrawText(formateado, new Point(MargenIzquierdo, y));
-                DibujarSintaxis(context, texto, y, fontSize, comentarios, ocultarDelimitadores);
+                DibujarSintaxis(context, texto, y, fontSize, comentarios, modoOscuro, ocultarDelimitadores);
             }
 
             nivelBrackets = ProcesarBrackets(context, texto, y, nivelBrackets, fontSize, dibujar: bracketColorizer, ocultarPalabras: ocultarDelimitadores, comentarios: comentarios);
@@ -424,9 +358,12 @@ public class EditorTextArea : Control
         return -1;
     }
 
-    // Palabras clave con color de una linea, saltando strings y comentarios
-    public static IEnumerable<(int Inicio, string Palabra, IBrush Color)> PalabrasColoreadas(string texto, List<(int Inicio, int Fin)> comentarios)
+    // Tramos con color de una linea (palabras, funciones, tipos, textos y numeros), saltando comentarios
+    public static IEnumerable<(int Inicio, string Palabra, IBrush Color)> PalabrasColoreadas(string texto, List<(int Inicio, int Fin)> comentarios, bool oscuro)
     {
+        IBrush De((IBrush Claro, IBrush Oscuro) color) => oscuro ? color.Oscuro : color.Claro;
+
+        string anterior = "";
         int c = 0;
         while (c < texto.Length)
         {
@@ -435,10 +372,24 @@ public class EditorTextArea : Control
             int finComentario = FinDeComentarioEn(comentarios, c);
             if (finComentario >= 0) { c = finComentario; continue; }
 
-            if (ch == '"')
+            if (ch is '"' or '\'')
             {
-                int cierre = texto.IndexOf('"', c + 1);
-                c = cierre < 0 ? texto.Length : cierre + 1;
+                int fin = c + 1;
+                while (fin < texto.Length && texto[fin] != ch) fin += texto[fin] == '\\' ? 2 : 1;
+                fin = Math.Min(fin + 1, texto.Length);
+                yield return (c, texto[c..fin], De(Texto));
+                c = fin;
+                continue;
+            }
+
+            // Igual que el lexer: el punto es decimal solo si le sigue un digito
+            if (char.IsDigit(ch))
+            {
+                int inicioNumero = c;
+                while (c < texto.Length && char.IsDigit(texto[c])) c++;
+                if (c + 1 < texto.Length && texto[c] == '.' && char.IsDigit(texto[c + 1]))
+                    for (c++; c < texto.Length && char.IsDigit(texto[c]); c++) { }
+                yield return (inicioNumero, texto[inicioNumero..c], De(Numero));
                 continue;
             }
 
@@ -448,14 +399,19 @@ public class EditorTextArea : Control
             while (c < texto.Length && (char.IsLetterOrDigit(texto[c]) || texto[c] == '_')) c++;
 
             string palabra = texto[inicio..c];
-            if (ColoresSintaxis.TryGetValue(palabra, out var brush)) yield return (inicio, palabra, brush);
+            // Como en C++: el nombre tras guild/stash/spawn... es un tipo y nombre{...} es una funcion
+            if (ColoresSintaxis.TryGetValue(palabra, out var color)) yield return (inicio, palabra, De(color));
+            else if (anterior is "guild" or "inventory" or "questline" or "evolves" or "spawn" or "stash" or "hardcoded" or "drops")
+                yield return (inicio, palabra, De(Tipo));
+            else if (c < texto.Length && texto[c] == '{') yield return (inicio, palabra, De(Funcion));
+            anterior = palabra;
         }
     }
 
-    // Repinta encima las palabras clave con color
-    static void DibujarSintaxis(DrawingContext context, string texto, double y, double fontSize, List<(int Inicio, int Fin)> comentarios, bool ocultarDelimitadores = false)
+    // Repinta encima los tramos con color
+    static void DibujarSintaxis(DrawingContext context, string texto, double y, double fontSize, List<(int Inicio, int Fin)> comentarios, bool oscuro, bool ocultarDelimitadores = false)
     {
-        foreach (var (inicio, palabra, brush) in PalabrasColoreadas(texto, comentarios))
+        foreach (var (inicio, palabra, brush) in PalabrasColoreadas(texto, comentarios, oscuro))
         {
             if (ocultarDelimitadores && palabra is "glhf" or "gg") continue;
             double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..inicio], fontSize);
@@ -672,6 +628,7 @@ public class EditorTextArea : Control
         base.OnPointerPressed(e);
         if (Tab == null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
 
+        CerrarSugerencias();
         Focus();
         var (fila, columna) = PosicionEnPixel(e.GetPosition(this));
         Tab.MoverCursor(fila, columna, extenderSeleccion: e.KeyModifiers.HasFlag(KeyModifiers.Shift));
@@ -739,6 +696,18 @@ public class EditorTextArea : Control
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         bool alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
 
+        // Con la lista abierta, flechas/Enter/Tab van a la lista y no al editor
+        if (_popupSugerencias.IsOpen)
+        {
+            int total = _listaSugerencias.ItemCount;
+            if (e.Key == Key.Down) { _listaSugerencias.SelectedIndex = (_listaSugerencias.SelectedIndex + 1) % total; e.Handled = true; return; }
+            if (e.Key == Key.Up) { _listaSugerencias.SelectedIndex = (_listaSugerencias.SelectedIndex - 1 + total) % total; e.Handled = true; return; }
+            if (e.Key is Key.Enter or Key.Tab) { AceptarSugerencia(); e.Handled = true; return; }
+            if (e.Key == Key.Escape) { CerrarSugerencias(); e.Handled = true; return; }
+            if (e.Key == Key.Back) { Tab.Retroceder(); ActualizarSugerencias(); e.Handled = true; return; }
+            if (e.Key is Key.Left or Key.Right or Key.Home or Key.End) CerrarSugerencias();
+        }
+
         if (ctrl && e.Key == Key.C) { Copiar(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.X) { Cortar(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.V) { _ = PegarAsync(); e.Handled = true; return; }
@@ -798,7 +767,64 @@ public class EditorTextArea : Control
         base.OnTextInput(e);
         if (Tab == null || string.IsNullOrEmpty(e.Text)) return;
         Tab.InsertarTexto(e.Text);
+        ActualizarSugerencias();
         e.Handled = true;
+    }
+
+    // Letras/digitos que terminan justo en la columna fin
+    static string PalabraAntesDe(string linea, int fin)
+    {
+        int inicio = fin;
+        while (inicio > 0 && (char.IsLetterOrDigit(linea[inicio - 1]) || linea[inicio - 1] == '_')) inicio--;
+        return linea[inicio..fin];
+    }
+
+    string PrefijoActual() => PalabraAntesDe(Tab!.Lineas[Tab.FilaCursor], Tab.ColumnaCursor);
+
+    IEnumerable<string> CombosDelArchivo() =>
+        Tab!.Lineas.SelectMany(l => Regex.Matches(l, @"\bcombo\s+(\w+)").Select(m => m.Groups[1].Value));
+
+    // Tras "x." solo van miembros de x; si x no es de la librería puede ser un guild o un squad
+    IEnumerable<string> MiembrosDe(string objeto)
+    {
+        if (objeto.Length == 0 || char.IsDigit(objeto[0])) return [];
+        return MiembrosConocidos.TryGetValue(objeto, out var miembros) ? miembros : CombosDelArchivo().Concat(MetodosSquad);
+    }
+
+    void ActualizarSugerencias()
+    {
+        string linea = Tab!.Lineas[Tab.FilaCursor];
+        string prefijo = PrefijoActual();
+        int inicio = Tab.ColumnaCursor - prefijo.Length;
+        bool trasPunto = inicio > 0 && linea[inicio - 1] == '.';
+
+        var candidatas = trasPunto ? MiembrosDe(PalabraAntesDe(linea, inicio - 1))
+            : prefijo.Length > 0 ? PalabrasGgez.Concat(CombosDelArchivo()) : [];
+        var coincidencias = candidatas.Where(p => p.StartsWith(prefijo, StringComparison.Ordinal) && p != prefijo)
+            .Distinct().Order().ToList();
+        if (coincidencias.Count == 0) { CerrarSugerencias(); return; }
+
+        _listaSugerencias.ItemsSource = coincidencias;
+        _listaSugerencias.SelectedIndex = 0;
+        _popupSugerencias.PlacementRect = ObtenerRectCursor();
+        _popupSugerencias.IsOpen = true;
+    }
+
+    void CerrarSugerencias() => _popupSugerencias.IsOpen = false;
+
+    // Solo inserta lo que falta: con "fa" escrito y "farm" elegida entra "rm"
+    void AceptarSugerencia()
+    {
+        if (_listaSugerencias.SelectedItem is not string palabra) return;
+        Tab!.InsertarTexto(palabra[PrefijoActual().Length..]);
+        CerrarSugerencias();
+
+        // Lo que no es palabra del lenguaje es una funcion (salvo size): se agregan {} con el cursor adentro
+        string linea = Tab.Lineas[Tab.FilaCursor];
+        bool yaTieneLlave = Tab.ColumnaCursor < linea.Length && linea[Tab.ColumnaCursor] == '{';
+        if (ColoresSintaxis.ContainsKey(palabra) || palabra == "size" || yaTieneLlave) return;
+        Tab.InsertarTexto("{}");
+        Tab.MoverCursor(Tab.FilaCursor, Tab.ColumnaCursor - 1, extenderSeleccion: false);
     }
 
     void Copiar()

@@ -45,6 +45,7 @@ public static class Ayuda
             A("Ctrl+A", "Seleccionar todo"),
             A("Alt+Arriba / Alt+Abajo", "Mover la línea arriba o abajo"),
             A("Enter", "Después de glhf, cierra el bloque con gg (Bracket Colorizer)"),
+            A("Enter / Tab", "Acepta la sugerencia de palabra GGEZ (Esc la cierra)"),
         ]),
         new("Buscar y navegar",
         [
