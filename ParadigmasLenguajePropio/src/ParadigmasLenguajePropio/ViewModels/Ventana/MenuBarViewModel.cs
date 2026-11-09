@@ -11,16 +11,18 @@ public partial class MenuBarViewModel : ViewModelBase
 
     public IReadOnlyList<MenuPrincipal> Menus { get; } =
     [
-        new("Archivo", [new("Nuevo", "Ctrl+N"), new("Abrir carpeta", "Ctrl+O"), new("Cerrar carpeta"), ItemMenu.Separador,
-            new("Guardar", "Ctrl+S"), new("Guardar como", "Ctrl+Shift+S"), new("Guardar todo", "Ctrl+Alt+S"), ItemMenu.Separador, new("Salir")]),
+        // Menus e items ordenados de mas a menos usados
+        new("Archivo", [new("Nuevo", "Ctrl+N"), new("Abrir carpeta", "Ctrl+O"), ItemMenu.Separador,
+            new("Guardar", "Ctrl+S"), new("Guardar todo", "Ctrl+Alt+S"), new("Guardar como", "Ctrl+Shift+S"), ItemMenu.Separador,
+            new("Cerrar carpeta"), new("Salir")]),
         new("Editar", [new("Deshacer", "Ctrl+Z"), new("Rehacer", "Ctrl+Y"), ItemMenu.Separador,
-            new("Cortar", "Ctrl+X"), new("Copiar", "Ctrl+C"), new("Pegar", "Ctrl+V"), ItemMenu.Separador,
+            new("Copiar", "Ctrl+C"), new("Pegar", "Ctrl+V"), new("Cortar", "Ctrl+X"), ItemMenu.Separador,
             new("Buscar", "Ctrl+F"), new("Buscar y reemplazar", "Ctrl+H"), new("Ir a línea", "Ctrl+G")]),
-        new("Ver", [new("Explorador", "Ctrl+B"), new("Terminal", "Ctrl+J"), new("Panel derecho"), new("Ajustes"), ItemMenu.Separador,
+        new("Ejecutar", [new("Construir", "F5"), new("Ver errores")]),
+        new("Ver", [new("Terminal", "Ctrl+J"), new("Explorador", "Ctrl+B"), new("Panel derecho"), ItemMenu.Separador,
             new("Acercar", "Ctrl++", "Ctrl+OemPlus"), new("Alejar", "Ctrl+-", "Ctrl+OemMinus"), new("Restablecer zoom", "Ctrl+0", "Ctrl+D0"), ItemMenu.Separador,
-            new("Tema: Win95"), new("Tema: Zelda"), new("Tema: Sonic"), new("Tema: Mega Man")]),
-        new("Ejecutar", [new("Construir", "F5"), new("Pausar / Reanudar"), ItemMenu.Separador, new("Ver salida")]),
-        new("Ayuda", [new("Acerca de"), new("Atajos de teclado", "F1"), new("Sintaxis de GGEZ")]),
+            new("Ajustes")]),
+        new("Ayuda", [new("Atajos de teclado", "F1"), new("Sintaxis de GGEZ"), ItemMenu.Separador, new("Acerca de")]),
     ];
 
     // Atajos globales: solo llegan aca las teclas que el control enfocado no marco como manejadas

@@ -178,6 +178,17 @@
         <Setter Property="Foreground" Value="{DynamicResource TemaCampoTextoBrush}" />
     </Style>
 
+    <!-- Lista del autocompletado: colores de campo para que el texto contraste en todos los temas -->
+    <Style Selector="ListBox.sugerencias">
+        <Setter Property="Background" Value="{DynamicResource TemaCampoFondoBrush}" />
+    </Style>
+    <Style Selector="ListBox.sugerencias TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TemaCampoTextoBrush}" />
+    </Style>
+    <Style Selector="ListBox.sugerencias ListBoxItem:selected /template/ ContentPresenter, ListBox.sugerencias ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource TemaTooltipBackgroundBrush}" />
+    </Style>
+
     <Style Selector="CheckBox /template/ Border#NormalRectangle">
         <Setter Property="Background" Value="{DynamicResource TemaCampoFondoBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource TemaBevelDarkBrush}" />

@@ -1,10 +1,15 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using ParadigmasLenguajePropio.Models;
 using ParadigmasLenguajePropio.ViewModels;
 
@@ -230,6 +235,16 @@ public class EditorTextArea : Control
     bool _caretVisible = true;
     readonly DispatcherTimer _parpadeo;
 
+    // Autocompletado: lista de opciones y, al lado, la estructura de la opcion elegida
+    readonly Popup _popup;
+    readonly ListBox _lista;
+    readonly TextBlock _estructura;
+    List<Sugerencia> _opciones = new();
+    int _inicioSugerencia;
+    // Tras elegir un farm/scan/etc. la estructura queda visible como guia mientras se escribe esa linea
+    Sugerencia? _guia;
+    int _filaGuia;
+
     public EditorTextArea()
     {
         Focusable = true;
@@ -237,7 +252,47 @@ public class EditorTextArea : Control
         _parpadeo.Tick += (_, _) => { _caretVisible = !_caretVisible; InvalidateVisual(); };
 
         GotFocus += (_, _) => { _caretVisible = true; _parpadeo.Start(); InvalidateVisual(); };
-        LostFocus += (_, _) => { _parpadeo.Stop(); InvalidateVisual(); };
+        LostFocus += (_, _) => { _parpadeo.Stop(); CerrarSugerencias(); InvalidateVisual(); };
+
+        _lista = new ListBox
+        {
+            Focusable = false,
+            MaxHeight = 220,
+            MinWidth = 200,
+            ItemTemplate = new FuncDataTemplate<Sugerencia>((s, _) => new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 10,
+                Children =
+                {
+                    new TextBlock { Text = s?.Texto, FontWeight = FontWeight.Bold },
+                    new TextBlock { Text = s?.Detalle, Opacity = 0.65 },
+                },
+            }),
+        };
+        _lista.Classes.Add("sugerencias");
+        _lista.SelectionChanged += (_, _) => MostrarEstructura((_lista.SelectedItem as Sugerencia)?.Estructura);
+        // Tunnel: el clic elige antes de que el item intente tomar el foco y el editor cierre el popup
+        _lista.AddHandler(PointerPressedEvent, Lista_PointerPressed, RoutingStrategies.Tunnel);
+
+        // Mismos colores que el ToolTip del tema (TemaBase.axaml) para que contraste en todos
+        _estructura = new TextBlock { Padding = new Thickness(8, 6), FontSize = 13, IsVisible = false };
+        _estructura.Bind(TextBlock.BackgroundProperty, _estructura.GetResourceObservable("TemaTooltipBackgroundBrush"));
+        _estructura.Bind(TextBlock.ForegroundProperty, _estructura.GetResourceObservable("TemaCampoTextoBrush"));
+
+        var marco = new Win95Bevel { BevelThickness = 2, Padding = new Thickness(2) };
+        marco.Bind(TemplatedControl.BackgroundProperty, marco.GetResourceObservable("TemaBackgroundBrush"));
+        marco.Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Children = { _lista, _estructura } };
+
+        _popup = new Popup
+        {
+            PlacementTarget = this,
+            Placement = PlacementMode.BottomEdgeAlignedLeft,
+            ShouldUseOverlayLayer = true,
+            WindowManagerAddShadowHint = false,
+            Child = marco,
+        };
+        LogicalChildren.Add(_popup);
     }
 
     static EditorTextArea()
@@ -246,6 +301,7 @@ public class EditorTextArea : Control
         {
             if (e.OldValue is EditorTabViewModel viejo) { viejo.ContenidoCambiado -= c.Refrescar; viejo.CursorCambiado -= c.RefrescarCursor; }
             if (e.NewValue is EditorTabViewModel nuevo) { nuevo.ContenidoCambiado += c.Refrescar; nuevo.CursorCambiado += c.RefrescarCursor; }
+            c.CerrarSugerencias();
             c.Refrescar();
         });
 
@@ -673,6 +729,7 @@ public class EditorTextArea : Control
         if (Tab == null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
 
         Focus();
+        CerrarSugerencias();
         var (fila, columna) = PosicionEnPixel(e.GetPosition(this));
         Tab.MoverCursor(fila, columna, extenderSeleccion: e.KeyModifiers.HasFlag(KeyModifiers.Shift));
         Tab.ColumnaDeseada = columna;
@@ -735,6 +792,17 @@ public class EditorTextArea : Control
         base.OnKeyDown(e);
         if (Tab == null) return;
 
+        if (_popup.IsOpen && ManejarTeclaSugerencias(e.Key)) { e.Handled = true; return; }
+        if (e.Key == Key.Space && e.KeyModifiers.HasFlag(KeyModifiers.Control)) { ActualizarSugerencias(forzar: true); e.Handled = true; return; }
+
+        ManejarTecla(e);
+        if (!_popup.IsOpen) return;
+        if (e.Key == Key.Back) ActualizarSugerencias();
+        else if (e.Handled) ActualizarSugerencias(soloGuia: true);
+    }
+
+    void ManejarTecla(KeyEventArgs e)
+    {
         bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         bool alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
@@ -799,6 +867,93 @@ public class EditorTextArea : Control
         if (Tab == null || string.IsNullOrEmpty(e.Text)) return;
         Tab.InsertarTexto(e.Text);
         e.Handled = true;
+        ActualizarSugerencias(soloGuia: !e.Text.All(c => char.IsLetterOrDigit(c) || c is '_' or '.'));
+    }
+
+    // soloGuia = no abrir la lista (se escribio un espacio, se movio el cursor...), solo mantener la guia
+    void ActualizarSugerencias(bool forzar = false, bool soloGuia = false)
+    {
+        if (Tab == null) return;
+        if (_guia != null && Tab.FilaCursor != _filaGuia) _guia = null;
+
+        (_inicioSugerencia, _opciones) = soloGuia
+            ? (Tab.ColumnaCursor, new List<Sugerencia>())
+            : Autocompletado.Sugerir(Tab.Lineas, Tab.FilaCursor, Tab.ColumnaCursor, Tab.RutaCompleta, forzar);
+
+        if (_opciones.Count == 0 && _guia == null) { _popup.IsOpen = false; return; }
+
+        _lista.IsVisible = _opciones.Count > 0;
+        _lista.ItemsSource = _opciones;
+        if (_opciones.Count > 0) _lista.SelectedIndex = 0;
+        else MostrarEstructura(_guia!.Estructura);
+
+        string linea = Tab.Lineas[Tab.FilaCursor];
+        int columna = _opciones.Count > 0 ? _inicioSugerencia : linea.Length - linea.TrimStart().Length;
+        double x = MargenIzquierdo + EditorFont.MedirPrefijo(linea[..columna], TamanoFuente);
+        _popup.PlacementRect = new Rect(x, 4 + Tab.FilaCursor * AltoLinea, 1, AltoLinea);
+        _popup.IsOpen = true;
+    }
+
+    void MostrarEstructura(string? estructura)
+    {
+        _estructura.Text = estructura;
+        _estructura.IsVisible = estructura != null;
+    }
+
+    void CerrarSugerencias()
+    {
+        _guia = null;
+        _opciones = new();
+        _popup.IsOpen = false;
+    }
+
+    bool ManejarTeclaSugerencias(Key tecla)
+    {
+        if (tecla == Key.Escape) { CerrarSugerencias(); return true; }
+        if (_opciones.Count == 0) return false;
+
+        int n = _opciones.Count;
+        if (tecla == Key.Down) { _lista.SelectedIndex = (_lista.SelectedIndex + 1) % n; _lista.ScrollIntoView(_lista.SelectedIndex); return true; }
+        if (tecla == Key.Up) { _lista.SelectedIndex = (_lista.SelectedIndex - 1 + n) % n; _lista.ScrollIntoView(_lista.SelectedIndex); return true; }
+        if (tecla is Key.Enter or Key.Tab) { AceptarSugerencia(); return true; }
+        return false;
+    }
+
+    void Lista_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext is not Sugerencia s) return;
+        _lista.SelectedItem = s;
+        AceptarSugerencia();
+        e.Handled = true;
+    }
+
+    // Reemplaza lo escrito por la opcion; una plantilla se indenta como la linea actual y deja el cursor en su $
+    void AceptarSugerencia()
+    {
+        if (Tab == null || _lista.SelectedItem is not Sugerencia s) return;
+
+        int fila = Tab.FilaCursor;
+        string linea = Tab.Lineas[fila];
+        string texto = s.Plantilla?.Replace("\n", "\n" + new string(' ', linea.Length - linea.TrimStart(' ').Length)) ?? s.Texto;
+        int marca = texto.IndexOf('$');
+        if (marca >= 0) texto = texto.Remove(marca, 1);
+
+        int columna = Tab.ColumnaCursor;
+        Tab.MoverCursor(fila, _inicioSugerencia, extenderSeleccion: false);
+        if (columna > _inicioSugerencia) Tab.MoverCursor(fila, columna, extenderSeleccion: true);
+        Tab.InsertarTexto(texto);
+
+        if (marca >= 0)
+        {
+            string antes = texto[..marca];
+            int saltos = antes.Count(c => c == '\n');
+            Tab.MoverCursor(fila + saltos, saltos == 0 ? _inicioSugerencia + antes.Length : antes.Length - antes.LastIndexOf('\n') - 1, extenderSeleccion: false);
+        }
+
+        _opciones = new();
+        _guia = s.Plantilla == null && s.Estructura != null ? s : null;
+        _filaGuia = Tab.FilaCursor;
+        ActualizarSugerencias(soloGuia: true);
     }
 
     void Copiar()

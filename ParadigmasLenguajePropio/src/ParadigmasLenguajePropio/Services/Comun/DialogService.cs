@@ -22,13 +22,19 @@ public partial class DialogService : ObservableObject
 
     // No null = dialogo de ayuda con secciones en vez de Mensaje
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EsAyuda))]
+    [NotifyPropertyChangedFor(nameof(EsAyuda), nameof(EsMensaje))]
     private IReadOnlyList<SeccionAyuda>? _secciones;
+
+    // Vista fija del "Acerca de" (logo, equipo, versiculo) en vez de Mensaje
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EsMensaje))]
+    private bool _esAcercaDe;
 
     [ObservableProperty]
     private string _subtitulo = "";
 
     public bool EsAyuda => Secciones != null;
+    public bool EsMensaje => !EsAyuda && !EsAcercaDe;
 
     [ObservableProperty]
     private string _valorTexto = "";
@@ -44,6 +50,7 @@ public partial class DialogService : ObservableObject
         Mensaje = mensaje;
         EsPrompt = false;
         Secciones = null;
+        EsAcercaDe = false;
         Botones.Clear();
         foreach (var b in botones) Botones.Add(b);
         IsVisible = true;
@@ -58,6 +65,7 @@ public partial class DialogService : ObservableObject
         Mensaje = mensaje;
         EsPrompt = true;
         Secciones = null;
+        EsAcercaDe = false;
         ValorTexto = valorInicial;
         Botones.Clear();
         // "Cancelar" al final a proposito: Escape elige siempre el ultimo boton
@@ -74,6 +82,13 @@ public partial class DialogService : ObservableObject
         var tarea = ShowModalAsync(titulo, "", "Cerrar");
         Subtitulo = subtitulo;
         Secciones = secciones;
+        return tarea;
+    }
+
+    public Task<int> ShowAcercaDeAsync()
+    {
+        var tarea = ShowModalAsync("Acerca de GGEZ", "", "Cerrar");
+        EsAcercaDe = true;
         return tarea;
     }
 

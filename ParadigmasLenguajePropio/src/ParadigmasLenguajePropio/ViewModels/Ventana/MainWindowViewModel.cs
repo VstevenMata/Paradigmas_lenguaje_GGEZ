@@ -20,6 +20,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public PanelJuegoViewModel PanelJuego { get; } = new();
 
     public IClipboard? Clipboard { get; set; }
+    // La pone MainWindow: cerrar pasa por Closing, que guarda la sesion y corta la terminal
+    public Action? Salir { get; set; }
 
     const double AnchoExploradorMinimo = 100;
     const double AnchoExploradorMaximo = 400;
@@ -269,15 +271,7 @@ public partial class MainWindowViewModel : ViewModelBase
         TerminalVisible = true;
     }
 
-    [RelayCommand]
-    void AlternarPausa() => PanelJuego.EnPausa = !PanelJuego.EnPausa;
 
-    [RelayCommand]
-    void LimpiarEspaciosSobrantes()
-    {
-        if (!Extensions.TrailingWhitespace.Instalada || !Editor.HayArchivosAbiertos) return;
-        Editor.LimpiarEspaciosSobrantes();
-    }
 
     [RelayCommand]
     void MostrarBuscar()
@@ -297,19 +291,16 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Acercar": Editor.CambiarZoom(1); break;
             case "Alejar": Editor.CambiarZoom(-1); break;
             case "Restablecer zoom": Editor.CambiarZoom(0); break;
-            case "Tema: Win95": Extensions.SeleccionarTema(Tema.Win95); break;
-            case "Tema: Zelda": Extensions.SeleccionarTema(Tema.Zelda); break;
-            case "Tema: Sonic": Extensions.SeleccionarTema(Tema.Sonic); break;
-            case "Tema: Mega Man": Extensions.SeleccionarTema(Tema.MegaMan); break;
             case "Abrir carpeta": Explorer.AbrirCarpetaDialogoCommand.Execute(null); break;
             case "Cerrar carpeta": Explorer.CerrarCarpetaCommand.Execute(null); break;
-            case "Acerca de": _ = Dialogs.ShowModalAsync("Acerca de", "Aqui va la informacion del acerca de", "Cerrar"); break;
+            case "Acerca de": _ = Dialogs.ShowAcercaDeAsync(); break;
             case "Sintaxis de GGEZ": _ = Dialogs.ShowAyudaAsync("Sintaxis de GGEZ", "Empieza por el diccionario: cada palabra de GGEZ equivale a un símbolo que ya conoces de Java", Ayuda.Sintaxis); break;
             case "Atajos de teclado": _ = Dialogs.ShowAyudaAsync("Atajos de teclado", "Si el control enfocado usa la misma tecla, gana el control", Ayuda.Atajos); break;
             case "Nuevo": Editor.NuevoArchivo(); break;
             case "Guardar": _ = Editor.GuardarAsync(); break;
             case "Guardar como": _ = Editor.GuardarAsync(forzarElegirRuta: true); break;
             case "Guardar todo": _ = Editor.GuardarTodoAsync(); break;
+            case "Salir": Salir?.Invoke(); break;
             case "Deshacer": Editor.Deshacer(); break;
             case "Rehacer": Editor.Rehacer(); break;
             case "Cortar": _ = CortarAsync(); break;
@@ -319,8 +310,7 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Buscar y reemplazar": Editor.BuscarVisible = true; Editor.MostrarReemplazo = true; break;
             case "Ir a línea": Editor.IrALineaVisible = true; break;
             case "Construir": _ = ConstruirAsync(null); break;
-            case "Pausar / Reanudar": PanelJuego.EnPausa = !PanelJuego.EnPausa; break;
-            case "Ver salida": if (HayLugarParaTerminal) { TerminalVisible = true; Terminal.TabActiva = 1; } break;
+            case "Ver errores": if (HayLugarParaTerminal) { TerminalVisible = true; Terminal.TabActiva = 1; } break;
             default: Console.WriteLine($"Menú: {opcion}"); break;
         }
     }

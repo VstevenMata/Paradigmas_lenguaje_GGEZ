@@ -20,6 +20,7 @@ public partial class MainWindow : Window
         vm.Explorer.Archivos = new FileDialogService(this);
         vm.Editor.Archivos = new FileDialogService(this);
         vm.Clipboard = Clipboard;
+        vm.Salir = Close;
 
         // Si quedo un comando corriendo sobreviviria a la ventana
         Closing += (_, _) => vm.Terminal.Cerrar();

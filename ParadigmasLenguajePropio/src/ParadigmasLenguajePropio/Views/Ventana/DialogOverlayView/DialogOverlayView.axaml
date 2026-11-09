@@ -17,8 +17,68 @@
                         <TextBlock Text="{Binding Titulo}" Foreground="White" FontSize="16" />
                     </Border>
 
-                    <TextBlock Text="{Binding Mensaje}" IsVisible="{Binding !EsAyuda}" Foreground="{DynamicResource TemaTextoBrush}"
+                    <TextBlock Text="{Binding Mensaje}" IsVisible="{Binding EsMensaje}" Foreground="{DynamicResource TemaTextoBrush}"
                                FontSize="16" TextWrapping="Wrap" Margin="16,16,16,0" />
+
+                    <!-- Acerca de: logo y lema arriba, equipo al medio, versiculo en una tarjeta con el fantasma -->
+                    <StackPanel IsVisible="{Binding EsAcercaDe}" Width="460" Margin="18,16,18,0" Spacing="14">
+                        <StackPanel.Styles>
+                            <Style Selector="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource TemaTextoBrush}" />
+                                <Setter Property="TextWrapping" Value="Wrap" />
+                                <Setter Property="FontSize" Value="14" />
+                            </Style>
+                        </StackPanel.Styles>
+
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_logo.png" Width="92" Height="92"
+                                   RenderOptions.BitmapInterpolationMode="None" />
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="GGEZ" FontFamily="avares://ParadigmasLenguajePropio/Assets/Fonts/Silkscreen-Regular.ttf#Silkscreen"
+                                           FontSize="34" />
+                                <TextBlock Text="Un lenguaje de programación con alma de videojuego" FontSize="15" />
+                                <TextBlock Text="Versión 1.0" FontSize="12" Opacity="0.7" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="GGEZ es un lenguaje de programación propio que cambia los símbolos de siempre por palabras del mundo gamer. Nació como proyecto universitario para entender, desde adentro, cómo se diseña un lenguaje: su gramática, sus reglas y la forma de aprenderlo jugando." />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Hecho con cariño por" FontWeight="Bold" Opacity="0.75" FontSize="13" />
+                            <ItemsControl x:CompileBindings="False">
+                                <ItemsControl.Items>
+                                    <x:String>Steven Mata Quirós</x:String>
+                                    <x:String>Maikel Segura Quirós</x:String>
+                                    <x:String>Angel Ureña Naranjo</x:String>
+                                </ItemsControl.Items>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <!-- Vineta: un pixel con el color de la barra de titulo del tema -->
+                                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="4,2">
+                                            <Border Width="7" Height="7" Background="{DynamicResource TemaTitleBarActivaBrush}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding}" FontSize="15" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <controls:Win95Bevel Sunken="True" BevelThickness="2" Padding="12,10" Background="{DynamicResource TemaTooltipBackgroundBrush}">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Fantasma32px.png" Width="32" Height="32"
+                                       VerticalAlignment="Center" RenderOptions.BitmapInterpolationMode="None" />
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="4">
+                                    <TextBlock Text="«Todo lo puedo en Cristo que me fortalece.»" FontStyle="Italic" FontSize="15"
+                                               Foreground="{DynamicResource TemaCampoTextoBrush}" />
+                                    <TextBlock Text="Filipenses 4:13" FontWeight="Bold" FontSize="13" HorizontalAlignment="Right"
+                                               Foreground="{DynamicResource TemaCampoTextoBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </controls:Win95Bevel>
+
+                        <TextBlock Text="Universidad Nacional, EIF400 Paradigmas de Programación, II ciclo 2026" FontSize="12"
+                                   Opacity="0.7" HorizontalAlignment="Center" TextAlignment="Center" />
+                    </StackPanel>
 
                     <StackPanel IsVisible="{Binding EsAyuda}" Width="900">
                         <TextBlock Text="{Binding Subtitulo}" Foreground="{DynamicResource TemaTextoBrush}" Opacity="0.8"

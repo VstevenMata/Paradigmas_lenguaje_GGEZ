@@ -255,7 +255,6 @@ public partial class EditorAreaViewModel : ViewModelBase
     public void ReemplazarUno() => PanelEnfocado.ReemplazarUno();
     public void ReemplazarTodo() => PanelEnfocado.ReemplazarTodo();
     public void ConfirmarIrALinea() => PanelEnfocado.ConfirmarIrALinea();
-    public void LimpiarEspaciosSobrantes() => PanelEnfocado.LimpiarEspaciosSobrantes();
 
     public async Task GuardarTodoAsync()
     {

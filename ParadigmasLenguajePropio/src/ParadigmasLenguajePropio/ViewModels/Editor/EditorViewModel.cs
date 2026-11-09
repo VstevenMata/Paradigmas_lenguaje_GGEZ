@@ -341,5 +341,4 @@ public partial class EditorViewModel : ViewModelBase
     public void Deshacer() => TabActiva?.Deshacer();
     public void Rehacer() => TabActiva?.Rehacer();
     public void IrALinea(int numero) => TabActiva?.IrALinea(numero);
-    public void LimpiarEspaciosSobrantes() => TabActiva?.LimpiarEspaciosSobrantes();
 }
