@@ -84,6 +84,13 @@ public partial class TerminalViewModel : ViewModelBase
     public TerminalViewModel(ExtensionInfo claudeExtension)
     {
         ClaudeExtension = claudeExtension;
+        // Al instalar Claude las terminales libres pasan a PTY; sin esto solo lo serian las nuevas
+        ClaudeExtension.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(ExtensionInfo.Instalada) || !ClaudeExtension.Instalada) return;
+            foreach (var instancia in Instancias)
+                if (!instancia.HayProcesoActivo) instancia.EsReal = true;
+        };
 
         LineasErrores.Add(new TerminalLinea("", "Los errores no existen", TerminalColorLinea.Escrito));
         Problemas.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HayProblemas));

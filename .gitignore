@@ -2,3 +2,5 @@ bin/
 obj/
 traductor-ggez.md
 ideas/
+dist/
+.cache-python/

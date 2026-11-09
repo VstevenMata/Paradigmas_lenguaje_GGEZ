@@ -803,6 +803,7 @@ public class EditorTextArea : Control
 
     void ManejarTecla(KeyEventArgs e)
     {
+        if (Tab == null) return;
         bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         bool alt = e.KeyModifiers.HasFlag(KeyModifiers.Alt);

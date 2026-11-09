@@ -231,8 +231,9 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        string? traductor = RutaDelTraductor();
-        if (traductor == null)
+        if (InstalacionService.FaltaDesplegar) terminal.EscribirAviso("Preparando el traductor (solo pasa la primera vez)...");
+        string? ggezc = await InstalacionService.ComandoTraductorAsync();
+        if (ggezc == null)
         {
             terminal.EscribirAviso("No se encontro Traductor/ggezc.py subiendo desde el ejecutable.");
             return;
@@ -242,20 +243,10 @@ public partial class MainWindowViewModel : ViewModelBase
         string carpeta = Path.GetDirectoryName(archivo)!;
         bool esNivel = File.Exists(Path.Combine(carpeta, "nivel.json"));
         string comando = esNivel ? "check" : "run";
-        if (terminal.EjecutarComando($"python \"{traductor}\" {comando} \"{archivo}\" --eventos"))
+        if (terminal.EjecutarComando($"{ggezc} {comando} \"{archivo}\" --eventos"))
             PanelJuego.ReiniciarMana(esNivel ? carpeta : null);
     }
 
-    // Sube desde la carpeta del ejecutable (bin/Debug/netX/) hasta encontrar Traductor/ggezc.py
-    static string? RutaDelTraductor()
-    {
-        for (var carpeta = new DirectoryInfo(AppContext.BaseDirectory); carpeta != null; carpeta = carpeta.Parent)
-        {
-            string candidato = Path.Combine(carpeta.FullName, "Traductor", "ggezc.py");
-            if (File.Exists(candidato)) return candidato;
-        }
-        return null;
-    }
 
     [RelayCommand]
     void NuevoArchivo() => Editor.NuevoArchivo();

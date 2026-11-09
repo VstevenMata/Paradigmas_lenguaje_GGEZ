@@ -53,8 +53,9 @@ public partial class TerminalInstanceViewModel : ViewModelBase
 
     public string DirectorioActual => _directorioActual;
 
-    // Fijo al crearla: si es real corre una PTY (ClaudeTerminalView) en vez de la simulada por pipes
-    public bool EsReal { get; }
+    // Si es real corre una PTY (ClaudeTerminalView) en vez de la simulada por pipes; vuelve a simulada solo si la PTY falla
+    bool _esReal;
+    public bool EsReal { get => _esReal; set => SetProperty(ref _esReal, value); }
 
     public TerminalInstanceViewModel(string directorioInicial, bool esReal)
     {
@@ -137,6 +138,10 @@ public partial class TerminalInstanceViewModel : ViewModelBase
             case "clear": case "cls": LimpiarPantalla(); return true;
             case "exit": OnCerrar?.Invoke(); return true;
             case "help": MostrarAyuda(); return true;
+            // Por pipes claude no ve una terminal: espera 3 s por stdin y sale con "no stdin data received"
+            case "claude":
+                Escribir("claude necesita una terminal real: instale la extension \"Claude para GGEZ\" en Extensiones.", TerminalColorLinea.Aviso);
+                return true;
             default: return false;
         }
     }

@@ -1,7 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <!-- WinExe: en Windows no abre una consola detras de la ventana -->
+    <OutputType>WinExe</OutputType>
+    <!-- Icono del .exe en Windows; sale de Icon_logo.png -->
+    <ApplicationIcon>Assets/Icons/ggez.ico</ApplicationIcon>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -15,6 +18,20 @@
     <PackageReference Include="RoyalApps.RoyalTerminal.Avalonia" Version="0.5.2" />
     <!-- da acceso a las paginas de codigos OEM (850/437), que es en las que cmd.exe escribe su salida -->
     <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- Publicacion (publicar.sh): un solo archivo con .NET y las librerias nativas adentro -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <!-- Traductor y Python portatil van dentro del ejecutable; InstalacionService los despliega al compilar -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)../../../Traductor/**/*.py" LogicalName="Traductor/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(PythonEmbebido)" LogicalName="python.tar.gz" Condition="'$(PythonEmbebido)' != ''" />
   </ItemGroup>
 
   <ItemGroup>
