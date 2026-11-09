@@ -95,10 +95,6 @@
                     </Border>
                 </Popup>
 
-                <Button Classes="titlebar-btn" Width="24" Height="24" ToolTip.Tip="Menú del buscador">
-                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Menu.png" Width="14" Height="14"
-                           RenderOptions.BitmapInterpolationMode="None" />
-                </Button>
                 <Button Name="PART_BotonTema" Classes="titlebar-btn" Width="24" Height="24" ToolTip.Tip="Cambiar tema"
                         Command="{Binding AlternarMenuTemaCommand}">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Paint.png" Width="14" Height="14"

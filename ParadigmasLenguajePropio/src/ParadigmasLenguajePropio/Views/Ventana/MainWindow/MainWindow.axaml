@@ -108,13 +108,6 @@
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Terminal.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
-                <Button Width="28" Height="28" Padding="2" IsVisible="{Binding Extensions.Claude.Instalada}"
-                        Command="{Binding MostrarChatClaudeCommand}" ToolTip.Tip="{Binding Extensions.Claude.Nombre}">
-                    <Border CornerRadius="3" Background="{Binding Extensions.Claude.IconoColor}">
-                        <TextBlock Text="{Binding Extensions.Claude.Icono}" FontSize="10" FontWeight="Bold" Foreground="White"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                </Button>
             </StackPanel>
 
             <controls:Win95Divider Grid.Column="1" Grid.RowSpan="3" Orientation="Vertical" Margin="0,0,4,0" />

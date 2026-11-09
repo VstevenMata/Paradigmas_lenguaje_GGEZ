@@ -252,6 +252,15 @@ public partial class TerminalViewModel : ViewModelBase
         _directorioActual = Path.GetFullPath(ruta);
     }
 
+    // Al abrir carpeta tambien mueve las terminales que siguen en la semilla anterior (sin cd del usuario)
+    public void EstablecerCarpetaRaiz(string ruta)
+    {
+        string anterior = _directorioActual;
+        EstablecerDirectorio(ruta);
+        foreach (var instancia in Instancias)
+            if (instancia.DirectorioActual == anterior) instancia.EstablecerDirectorio(_directorioActual);
+    }
+
     public void Cerrar()
     {
         foreach (var instancia in Instancias) instancia.Cerrar();

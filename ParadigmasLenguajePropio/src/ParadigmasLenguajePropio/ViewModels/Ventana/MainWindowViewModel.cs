@@ -106,7 +106,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Explorer.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName != nameof(ExplorerViewModel.CarpetaRaiz)) return;
-            if (!string.IsNullOrEmpty(Explorer.CarpetaRaiz)) Terminal.EstablecerDirectorio(Explorer.CarpetaRaiz);
+            if (!string.IsNullOrEmpty(Explorer.CarpetaRaiz)) Terminal.EstablecerCarpetaRaiz(Explorer.CarpetaRaiz);
             Editor.CarpetaRaiz = Explorer.CarpetaRaiz;
         };
 
@@ -267,14 +267,6 @@ public partial class MainWindowViewModel : ViewModelBase
         if (TerminalVisible) { TerminalVisible = false; return; }
         if (!HayLugarParaTerminal) return;
         TerminalVisible = true;
-    }
-
-    [RelayCommand]
-    void MostrarChatClaude()
-    {
-        if (!Extensions.Claude.Instalada || !HayLugarParaTerminal) return;
-        TerminalVisible = true;
-        Terminal.TabActiva = 0;
     }
 
     [RelayCommand]
