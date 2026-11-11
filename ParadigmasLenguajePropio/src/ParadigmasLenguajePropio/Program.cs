@@ -12,6 +12,8 @@ class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // La consola de Windows no usa UTF-8 por defecto y los acentos salian rotos
+        if (OperatingSystem.IsWindows()) Console.OutputEncoding = System.Text.Encoding.UTF8;
         if (args.Length > 0 && SubcomandosTraductor.Contains(args[0])) return Traductor(args);
         if (args is ["game-over"]) return DesinstalacionService.Ejecutar();
 
