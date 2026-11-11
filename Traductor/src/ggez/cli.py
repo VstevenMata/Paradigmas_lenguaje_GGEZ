@@ -1,6 +1,7 @@
 """El comando ggezc, que es lo que lanza el IDE.
 
-    ggezc run <archivo.ggez>     ejecuta
+    ggezc compile <archivo.ggez> solo compila (lexico, sintactico, importaciones y semantico)
+    ggezc run <archivo.ggez>     compila y ejecuta
     ggezc check <archivo.ggez>   corre las pruebas del nivel.json de su carpeta
     ggezc tokens <archivo.ggez>  solo vuelca tokens, para depurar
 
@@ -47,10 +48,23 @@ def _comando_tokens(ruta: Path) -> int:
     return EXITO
 
 
-def _comando_run(ruta: Path, limite_pasos: int, eventos: bool) -> int:
-    """Lexico y sintactico los hace el cargador por archivo; aca semantico y ejecucion."""
+def _compilar(ruta: Path) -> list:
+    """Lexico y sintactico los hace el cargador por archivo; aca el semantico. Las advertencias no detienen."""
     archivos = cargar(ruta)
-    semantico.analizar_archivos(archivos)
+    for advertencia in semantico.analizar_archivos(archivos):
+        print(advertencia, file=sys.stderr, flush=True)
+    return archivos
+
+
+def _comando_compile(ruta: Path) -> int:
+    archivos = _compilar(ruta)
+    importados = len(archivos) - 1
+    print(f"Compilacion exitosa: {ruta.name}" + (f" y {importados} archivo(s) importado(s)" if importados else ""))
+    return EXITO
+
+
+def _comando_run(ruta: Path, limite_pasos: int, eventos: bool) -> int:
+    archivos = _compilar(ruta)
     evaluador = Evaluador(limite_pasos=limite_pasos)
     try:
         evaluador.ejecutar_archivos(archivos)
@@ -105,12 +119,14 @@ def _main(argv: list[str] | None) -> int:
                        help=f"mana: maximo de pasos (por defecto {PASOS_POR_DEFECTO:,}; 0 = sin limite)")
         p.add_argument("--eventos", action="store_true", help="emite lineas @ggez para el panel de juego del IDE")
 
+    sub.add_parser("compile", help="solo compila, sin ejecutar").add_argument("archivo")
+
     p_tok = sub.add_parser("tokens", help="vuelca la lista de tokens (depuracion)")
     p_tok.add_argument("archivo")
 
     args = parser.parse_args(argv)
     ruta = Path(args.archivo)
-    if args.comando != "tokens" and args.pasos < 0:
+    if args.comando in ("run", "check") and args.pasos < 0:
         parser.error("--pasos no puede ser negativo")
 
     if not ruta.is_file():
@@ -120,6 +136,8 @@ def _main(argv: list[str] | None) -> int:
     try:
         if args.comando == "tokens":
             return _comando_tokens(ruta)
+        if args.comando == "compile":
+            return _comando_compile(ruta)
         if args.comando == "check":
             return EXITO if comprobar(ruta, args.pasos, args.eventos) else FALLO_TRADUCCION
         return _comando_run(ruta, args.pasos, args.eventos)

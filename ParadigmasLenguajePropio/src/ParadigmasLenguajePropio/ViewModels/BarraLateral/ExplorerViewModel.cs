@@ -26,6 +26,43 @@ public partial class ExplorerViewModel : ViewModelBase
 
     public string CarpetaRaiz => Raiz?.RutaCompleta ?? "";
 
+    // Guarda la ruta relativa del archivo principal dentro del proyecto
+    const string ArchivoProyecto = ".ggezproyecto";
+
+    public string? RutaPrincipal => NodoArchivos.RutaPrincipal;
+
+    void CargarPrincipal()
+    {
+        NodoArchivos.RutaPrincipal = null;
+        try
+        {
+            var config = Path.Combine(CarpetaRaiz, ArchivoProyecto);
+            var relativa = File.Exists(config) ? File.ReadAllText(config).Trim() : "";
+            if (relativa.Length > 0) NodoArchivos.RutaPrincipal = Path.GetFullPath(Path.Combine(CarpetaRaiz, relativa));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"No se pudo leer {ArchivoProyecto}: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    void MarcarPrincipal(NodoArchivos nodo)
+    {
+        if (nodo.EsCarpeta || string.IsNullOrEmpty(CarpetaRaiz)) return;
+        NodoArchivos.RutaPrincipal = Path.GetFullPath(nodo.RutaCompleta);
+        try
+        {
+            var relativa = Path.GetRelativePath(CarpetaRaiz, nodo.RutaCompleta).Replace('\\', '/');
+            File.WriteAllText(Path.Combine(CarpetaRaiz, ArchivoProyecto), relativa);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"No se pudo guardar el archivo principal: {ex.Message}");
+        }
+        Raiz?.AvisarPrincipal();
+    }
+
     public ExplorerViewModel(DialogService dialogos)
     {
         _dialogos = dialogos;
@@ -37,6 +74,7 @@ public partial class ExplorerViewModel : ViewModelBase
         Seleccionado = null;
         HayProyecto = true;
         OnPropertyChanged(nameof(CarpetaRaiz));
+        CargarPrincipal();
     }
 
     [RelayCommand]
@@ -51,6 +89,7 @@ public partial class ExplorerViewModel : ViewModelBase
     [RelayCommand]
     void CerrarCarpeta()
     {
+        NodoArchivos.RutaPrincipal = null;
         Raiz = null;
         Seleccionado = null;
         HayProyecto = false;
@@ -144,9 +183,11 @@ public partial class ExplorerViewModel : ViewModelBase
             else File.Move(nodo.RutaCompleta, rutaNueva);
 
             var rutaVieja = nodo.RutaCompleta;
+            bool eraPrincipal = nodo.EsPrincipal;
             nodo.RutaCompleta = rutaNueva;
             nodo.Nombre = nuevoNombre;
             nodo.Refrescar(); // sus hijos cargados quedaron apuntando a la ruta vieja
+            if (eraPrincipal) MarcarPrincipal(nodo);
 
             OnArchivoRenombrado?.Invoke(rutaVieja, rutaNueva, nuevoNombre);
         }

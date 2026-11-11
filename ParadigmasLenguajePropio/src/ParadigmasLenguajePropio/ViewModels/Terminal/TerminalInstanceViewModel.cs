@@ -79,7 +79,9 @@ public partial class TerminalInstanceViewModel : ViewModelBase
                 OnEvento?.Invoke(texto[PrefijoEvento.Length..]);
                 continue;
             }
-            Escribir(texto, salida.EsError ? TerminalColorLinea.Error : TerminalColorLinea.Escrito);
+            var color = !salida.EsError ? TerminalColorLinea.Escrito
+                : texto.Contains(": advertencia: ") ? TerminalColorLinea.Aviso : TerminalColorLinea.Error;
+            Escribir(texto, color);
             if (salida.EsError) OnError?.Invoke(texto);
         }
     }

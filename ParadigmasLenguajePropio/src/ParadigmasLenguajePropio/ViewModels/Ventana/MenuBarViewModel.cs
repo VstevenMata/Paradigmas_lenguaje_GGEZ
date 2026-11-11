@@ -18,7 +18,7 @@ public partial class MenuBarViewModel : ViewModelBase
         new("Editar", [new("Deshacer", "Ctrl+Z"), new("Rehacer", "Ctrl+Y"), ItemMenu.Separador,
             new("Copiar", "Ctrl+C"), new("Pegar", "Ctrl+V"), new("Cortar", "Ctrl+X"), ItemMenu.Separador,
             new("Buscar", "Ctrl+F"), new("Buscar y reemplazar", "Ctrl+H"), new("Ir a línea", "Ctrl+G")]),
-        new("Ejecutar", [new("Construir", "F5"), new("Ver errores")]),
+        new("Ejecutar", [new("Compilar", "F6"), new("Ejecutar", "F5"), new("Ver errores")]),
         new("Ver", [new("Terminal", "Ctrl+J"), new("Explorador", "Ctrl+B"), new("Panel derecho"), ItemMenu.Separador,
             new("Acercar", "Ctrl++", "Ctrl+OemPlus"), new("Alejar", "Ctrl+-", "Ctrl+OemMinus"), new("Restablecer zoom", "Ctrl+0", "Ctrl+D0"), ItemMenu.Separador,
             new("Ajustes")]),

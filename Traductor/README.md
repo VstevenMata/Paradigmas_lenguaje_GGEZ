@@ -49,7 +49,8 @@ O con el Makefile:
 
 ```bash
 make run ARCHIVO=ejemplos/clasificador.ggez
-make test                                    # pasa los dos ejemplos
+python ggezc.py compile ejemplos/modulos.ggez # solo compila (boton Compilar, F6)
+make test                                    # corre las pruebas de pruebas/
 ```
 
 **Estado actual:** léxico, sintáctico, semántico y ejecución terminados.
@@ -74,9 +75,11 @@ ggezc run <archivo.ggez>
 ### stdout / stderr / código de salida
 
 - **stdout**: la salida real del programa GGEZ (lo que el usuario debe ver correr).
-- **stderr**: errores — uno por línea, con el formato
-  `archivo:línea:columna: etapa: mensaje` (estilo gcc), donde *etapa* es `error lexico`,
-  `error sintactico`, `error semantico` o `error en ejecucion`. Ya está implementado en
+- **stderr**: errores, con el formato `archivo:línea:columna: etapa: mensaje` (estilo gcc),
+  donde *etapa* es `error lexico`, `error sintactico`, `error semantico`, `error de importacion`
+  o `error en ejecucion`. La línea siguiente trae `    posible causa: ...`, que el panel
+  Problemas muestra debajo del error. Las advertencias usan el mismo formato con la etapa
+  `advertencia` y no cambian el código de salida. Ya está implementado en
   `src/ggez/errores.py`. *archivo* es donde está el error, que puede ser uno traído con
   `travel`: va relativo a la carpeta del archivo que se ejecuta, con `/`
   (`lib/utilidades.ggez:7:14: ...`). Nunca lleva la unidad (`C:`), para no romper la

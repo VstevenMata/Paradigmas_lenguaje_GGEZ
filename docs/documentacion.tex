@@ -1,0 +1,428 @@
+% Documentacion del proyecto GGEZ. Compilar desde docs/ con: xelatex documentacion.tex (dos veces)
+% Las tablas de la seccion 18 salen de: python Traductor/pruebas/correr.py --latex docs/pruebas_tablas.tex
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{spanish}
+\setmainfont{Liberation Serif}
+\setmonofont{Liberation Mono}[Scale=0.9]
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[table]{xcolor}
+\usepackage{graphicx,fancyhdr,longtable,array,listings,caption,float}
+\usepackage[hidelinks]{hyperref}
+\Urlmuskip=0mu plus 2mu\def\UrlBreaks{\do\/\do-\do.}
+
+\setlength{\parskip}{0.7em}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{2em}
+\linespread{1.15}
+\renewcommand{\arraystretch}{1.2}
+
+% "1. Introduccion" con punto solo en las secciones; "3.1 Titulo" sin punto
+\makeatletter
+\def\@seccntformat#1{\csname the#1\endcsname\csname punto@#1\endcsname\quad}
+\def\punto@section{.}
+\makeatother
+\addto\captionsspanish{\renewcommand{\contentsname}{Tabla de contenidos}}
+
+% "Pagina X de Y" sin el paquete lastpage
+\AtEndDocument{\label{ultimapagina}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\small Página \thepage\ de \pageref{ultimapagina}}
+
+\newcommand{\kw}[1]{\texttt{#1}}
+\newcommand{\ggez}{GGEZ}
+
+\lstdefinelanguage{GGEZ}{
+  sensitive=true,
+  morecomment=[l]{/w},
+  morecomment=[s]{/all}{/end},
+  morestring=[b]",
+}
+\lstset{
+  language=GGEZ, basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true,
+  breaklines=true, showstringspaces=false, xleftmargin=1.2em, aboveskip=0.4em, belowskip=0.6em,
+}
+
+% Tablas al estilo del documento: encabezado gris y filas de categoria
+\newcommand{\cab}{\rowcolor{gray!22}}
+\newcommand{\categoria}[2]{\multicolumn{#1}{|l|}{\cellcolor{gray!10}\textbf{#2}}\\\hline}
+
+% Tabla de pruebas: la generan Traductor/pruebas/correr.py
+\newenvironment{tablaprueba}{\footnotesize
+  \begin{longtable}{|p{3.4cm}|p{3.0cm}|p{5.6cm}|p{2.1cm}|}\hline
+  \cab\textbf{Prueba y objetivo} & \textbf{Entrada} & \textbf{Resultado esperado} & \textbf{Resultado obtenido y estado}\\\hline\endhead}
+  {\end{longtable}}
+
+\begin{document}
+
+% ---------------------------------------------------------------- Portada
+\thispagestyle{empty}
+\begingroup\setlength{\parskip}{0pt}
+\begin{center}
+\vspace*{0.5cm}
+{\bfseries UNIVERSIDAD NACIONAL\par}
+\vspace{0.4cm}
+{\bfseries SEDE REGIONAL BRUNCA -- CAMPUS PÉREZ ZELEDÓN\par}
+\vspace{0.4cm}
+{CURSO: PARADIGMAS DE PROGRAMACIÓN\par}
+\vspace{1cm}
+\includegraphics[width=3.6cm]{img/una.png}\par
+\vspace{1.2cm}
+{\large\bfseries PROYECTO FINAL\par}
+\vspace{0.6cm}
+{\large\textbf{GGEZ}: \emph{Lenguaje de programación con vocabulario de videojuegos para estudiantes de primer ingreso}\par}
+\vspace{0.8cm}
+\includegraphics[width=3.2cm]{img/logo.png}\par
+\vspace{1cm}
+{\bfseries Integrantes:\par}
+\vspace{0.3cm}
+Steven Mata Quirós\par\vspace{0.2cm}
+Maikel Segura Quirós\par\vspace{0.2cm}
+Angel Ureña Naranjo\par
+\vspace{0.8cm}
+{\bfseries Profesor:\par}
+\vspace{0.3cm}
+Pablo A. Venegas Elizondo\par
+\vspace{0.8cm}
+{\bfseries II Ciclo, 2026\par}
+\end{center}
+\endgroup
+\newpage
+
+% ---------------------------------------------------------------- Tabla de contenidos
+\begingroup\setlength{\parskip}{0pt}\linespread{1}\selectfont
+\tableofcontents
+\endgroup
+\newpage
+
+% ================================================================ 1
+\section{Introducción}
+
+El presente documento describe el diseño y la implementación de \ggez, un lenguaje de programación desarrollado como proyecto final del curso Paradigmas de Programación de la Universidad Nacional, Sede Regional Brunca, durante el II Ciclo de 2026. \ggez\ surge de una situación que el equipo conoce de cerca: la mayoría de las personas que ingresan a la carrera de Ingeniería en Sistemas juegan algún tipo de videojuego, y muchas de ellas entran pensando en programar sus propios juegos. Sin embargo, su primer contacto con la programación ocurre con lenguajes cuyo vocabulario y símbolos no se parecen a nada de lo que ya conocen.
+
+A diferencia de los lenguajes tradicionales, \ggez\ toma su vocabulario de la jerga de los videojuegos. Su nombre viene de la expresión \emph{GG EZ} («good game, easy»), que los jugadores usan al terminar una partida; sus bloques se abren con \kw{glhf} («good luck, have fun») y se cierran con \kw{gg}; las variables se guardan con \kw{stash}, las funciones son \kw{combo}, un ciclo se abandona con \kw{ragequit} y se pasa a la siguiente vuelta con \kw{respawn}. El entorno de desarrollo sigue la misma idea: programar se vuelve una partida con maná, niveles, estrellas, logros y un mundo que avanza a medida que el código del estudiante funciona.
+
+A lo largo de este documento se detalla, en primer lugar, el problema identificado y las evidencias que respaldan su relevancia. Posteriormente se expone la propuesta de solución, los objetivos del proyecto y su alcance. La sección central del documento describe formalmente el lenguaje: su identidad, palabras reservadas, sintaxis, semántica y tipos de datos. Finalmente se documentan los procesos de compilación y ejecución, el manejo de errores, la característica de innovación, la arquitectura del entorno de desarrollo integrado, las pruebas realizadas y las contribuciones individuales de cada integrante del equipo.
+
+El proyecto es desarrollado por Steven Mata Quirós, Maikel Segura Quirós y Angel Ureña Naranjo, bajo la orientación del profesor Pablo A. Venegas Elizondo.
+
+\newpage
+% ================================================================ 2
+\section{Planteamiento del problema}
+
+Aprender a programar exige, al mismo tiempo, comprender conceptos abstractos (variables, ciclos, funciones, objetos) y memorizar las reglas de un lenguaje formal lleno de símbolos (\kw{\{ \}}, \kw{;}, \kw{\&\&}, \kw{!=}, \kw{++}). Para quien recién ingresa a la universidad, ese doble esfuerzo coincide con el momento de mayor incertidumbre de la carrera: todo es nuevo, el ritmo es distinto al del colegio y el primer curso de programación suele ser el que define si la persona continúa o no.
+
+\subsection*{El problema}
+
+El problema que aborda este proyecto es la \textbf{distancia entre el mundo que el estudiante de primer ingreso ya domina, los videojuegos, y la forma en que se le presenta la programación}. El estudiante llega sabiendo qué es un inventario, un combo, un \emph{respawn} o abandonar una partida, y muchas veces eligió la carrera porque quiere crear juegos. Sin embargo, el primer curso le presenta un lenguaje que habla otro idioma y un entorno de desarrollo que no ofrece ninguna sensación de avance más allá de que el programa compile o no. Esa distancia se traduce en desmotivación, sensación de no progresar y, en algunos casos, abandono temprano.
+
+\subsection*{A quiénes afecta}
+
+Afecta principalmente a los \textbf{estudiantes de primer ingreso de Ingeniería en Sistemas} y carreras afines que llevan su primer curso de programación. Dentro de ese grupo afecta en especial a quienes no programaron en el colegio y a quienes entraron a la carrera motivados por los videojuegos y se encuentran con un primer curso que no se parece a lo que esperaban. De forma secundaria afecta a los docentes de cursos introductorios, que necesitan mantener la motivación de grupos numerosos y con niveles muy distintos.
+
+\subsection*{En qué contexto ocurre}
+
+El problema se manifiesta en dos contextos. El primero es el aula universitaria del primer ciclo, donde el lenguaje lo define el curso y el estudiante debe aprender, a la vez, la lógica de programación y la sintaxis de un lenguaje profesional. El segundo es la práctica fuera de clase: el estudiante resuelve ejercicios solo, recibe mensajes de error difíciles de entender y no tiene una señal clara de que está mejorando, algo que contrasta con la retroalimentación inmediata y constante a la que está acostumbrado en los juegos.
+
+\subsection*{Qué soluciones existen actualmente}
+
+Existen varias herramientas conocidas que buscan acercar la programación a principiantes:
+
+\begin{itemize}
+  \item \textbf{Lenguajes visuales por bloques}, como Scratch, donde el programa se arma uniendo piezas gráficas en lugar de escribir código.
+  \item \textbf{Juegos que enseñan a programar}, como CodeCombat, donde el jugador controla un personaje escribiendo código en un lenguaje profesional.
+  \item \textbf{Lenguajes profesionales usados en el curso}, como Java, C\# o Python, acompañados de entornos de desarrollo de uso general.
+\end{itemize}
+
+\subsection*{Qué limitaciones presentan}
+
+\begin{itemize}
+  \item Los lenguajes por bloques están pensados principalmente para niños y adolescentes; un estudiante universitario puede percibirlos como poco serios, y el paso de los bloques a un lenguaje escrito no es directo.
+  \item Los juegos que enseñan a programar usan el lenguaje profesional sin cambios: el juego es el envoltorio, pero el vocabulario sigue siendo ajeno al estudiante. Además, solo se resuelven los retos que el juego trae, no programas propios.
+  \item Los lenguajes profesionales y sus entornos están hechos para programadores con experiencia: sus mensajes de error asumen conocimientos que el principiante todavía no tiene y no ofrecen ningún elemento de motivación.
+  \item Ninguna de estas opciones usa el vocabulario de los videojuegos dentro del propio lenguaje, ni conecta un sistema de progreso con cualquier programa que el estudiante escriba.
+\end{itemize}
+
+\subsection*{Cómo GGEZ contribuirá a atender el problema}
+
+\ggez\ se propone como un lenguaje textual completo, con la misma estructura que un lenguaje imperativo y orientado a objetos como Java, pero cuyo vocabulario sale de los videojuegos. Así, cada concepto nuevo se asocia con algo que el estudiante ya conoce: \kw{respawn} vuelve a empezar la vuelta del ciclo, \kw{ragequit} lo abandona, \kw{clutch} y \kw{revive} rescatan un error y \kw{spawn} crea un objeto. Como la estructura de los programas es la de un lenguaje convencional, lo aprendido se transfiere a Java, C\# o Python, y la ayuda del aplicativo muestra cada ejemplo de \ggez\ junto a su equivalente en Java.
+
+El entorno de desarrollo completa la propuesta: cada ejecución gasta maná, avanza misiones en un mundo de diez zonas, desbloquea logros y temas visuales, y los niveles con pruebas automáticas dan estrellas. Ese progreso solo avanza cuando el código del estudiante corre de verdad, de modo que la motivación del juego queda unida al aprendizaje real. De esta manera, \ggez\ busca ser un puente entre las ganas de programar juegos con las que llega el estudiante y los fundamentos de programación que necesita aprender.
+
+\newpage
+% ================================================================ 3
+\section{Evidencias de investigación}
+
+Esta sección presenta las evidencias que fundamentan las decisiones de diseño de \ggez. El equipo no realizó un estudio formal con encuestas ni cuenta con fuentes bibliográficas propias; las evidencias provienen de la observación directa del contexto, del análisis del vocabulario de los videojuegos y de los resultados verificables del propio proyecto.
+
+\subsection{Observación del contexto}
+
+Los tres integrantes del equipo son estudiantes de la carrera y vivieron el primer curso de programación. Desde esa experiencia se observó que:
+
+\begin{itemize}
+  \item La mayoría de los compañeros de primer ingreso juega videojuegos con regularidad y conoce su vocabulario en inglés (\emph{gg}, \emph{afk}, \emph{nerf}, \emph{buff}, \emph{respawn}), aunque no hable inglés con fluidez.
+  \item Una motivación frecuente para entrar a la carrera es querer crear videojuegos.
+  \item Las primeras dificultades suelen ser de forma y no de lógica: llaves sin cerrar, puntos y comas olvidados, operadores confundidos (\kw{=} con \kw{==}) y mensajes de error que no se entienden.
+  \item La sensación de no avanzar desmotiva más que la dificultad en sí: un ejercicio que no compila no deja ninguna señal de progreso.
+\end{itemize}
+
+\subsection{El vocabulario de los videojuegos como puente}
+
+Se analizó la jerga de los videojuegos buscando, para cada construcción de un lenguaje convencional, una palabra que el jugador ya asocie con un significado parecido. El resultado muestra que la correspondencia es natural en la mayoría de los casos: un \kw{combo} es una secuencia de acciones con nombre, como una función; \kw{respawn} es volver a empezar, como \emph{continue}; \kw{ragequit} es abandonar, como \emph{break}; \kw{afk} es estar ausente, como \emph{null}; \kw{buff} y \kw{nerf} son mejorar y empeorar, como \kw{++} y \kw{--}; y un \kw{guild} agrupa miembros, como una clase. La lista completa de palabras reservadas, con su propósito y un ejemplo, está en la sección~\ref{sec:palabras}.
+
+Además, al usar palabras para los operadores relacionales (\kw{over}, \kw{under}, \kw{matches}), los símbolos \kw{<} y \kw{>} quedan libres para índices y listas, y se elimina la confusión entre \kw{=} y \kw{==}: asignar es \kw{set} y comparar es \kw{matches}.
+
+\subsection{Evidencia del propio proyecto}
+
+La propuesta se verificó con resultados del proyecto que cualquiera puede reproducir:
+
+\begin{itemize}
+  \item El lenguaje permite escribir todos los programas que se esperan en un primer curso (tipos, condicionales, ciclos, funciones, recursión, listas, registros, clases y proyectos de varios archivos), como muestran las pruebas de la sección~\ref{sec:pruebas}.
+  \item Cada error del compilador indica su posible causa en español, y el entorno lleva a la línea del error con un clic.
+  \item El sistema de progreso del entorno solo avanza con ejecuciones reales, porque el intérprete informa qué construcciones se ejecutaron.
+\end{itemize}
+
+En síntesis, las evidencias respaldan las decisiones fundamentales del diseño de \ggez: mantener un lenguaje escrito y con la estructura de los lenguajes profesionales, reemplazar los símbolos sin significado por palabras que el estudiante ya conoce, entregar mensajes de error con su posible causa y usar elementos de juego ligados a la ejecución real del código. El efecto de \ggez\ sobre la motivación no se ha medido todavía con estudiantes reales; esa evaluación queda como trabajo futuro.
+
+\newpage
+% ================================================================ 4
+\section{Propuesta de solución}
+
+\ggez\ es un lenguaje de programación imperativo, estructurado y con soporte para programación orientada a objetos, de tipado estático y con vocabulario de videojuegos, acompañado de un entorno de desarrollo integrado (IDE) propio con mecánicas de juego. Esta propuesta detalla los usuarios a los que se dirige el lenguaje, el contexto en que se utilizará, los beneficios esperados, sus características principales y algunos ejemplos representativos de los programas que podrán desarrollarse en él.
+
+\subsection{Usuarios}
+
+El público objetivo principal de \ggez\ son los \textbf{estudiantes de primer ingreso} de Ingeniería en Sistemas y carreras afines que llevan su primer curso de programación, en especial quienes juegan videojuegos o quieren programarlos. Como público secundario, \ggez\ puede ser útil para docentes de cursos introductorios que buscan material de práctica con un componente de motivación, y para cualquier persona que quiera aprender a programar por su cuenta.
+
+\subsection{Contexto de uso}
+
+\ggez\ está pensado para dos contextos. En el aula, como herramienta de práctica durante las primeras semanas del curso introductorio, antes o junto al lenguaje profesional del curso. Fuera del aula, para que el estudiante practique por su cuenta escribiendo programas pequeños y medianos (calculadoras, clasificadores, juegos por turnos, inventarios), en un IDE que funciona sin conexión a internet, en Linux y Windows, sin instalar nada aparte.
+
+\subsection{Alcance}
+
+El alcance del proyecto, en su versión de entrega, comprende el diseño e implementación completa de un lenguaje de programación con su compilador, su intérprete y su entorno de desarrollo integrado, cumpliendo los requerimientos establecidos en el enunciado del proyecto. La descripción detallada del alcance se encuentra en la sección~\ref{sec:alcance}.
+
+\subsection{Limitaciones}
+
+Esta primera versión de \ggez\ se enfoca en cubrir con solidez los elementos de un lenguaje para un primer curso, priorizando un lenguaje coherente y completo por sobre una biblioteca extensa. Las limitaciones específicas se documentan en la sección~\ref{sec:limitaciones}.
+
+\subsection{Beneficios esperados}
+
+\begin{itemize}
+  \item \textbf{Menor fricción inicial.} Las palabras reservadas evocan algo que el estudiante ya conoce, y la ayuda muestra cada construcción junto a su equivalente en Java.
+  \item \textbf{Motivación sostenida.} El progreso del mundo, los logros y las estrellas dan una señal visible de avance cada vez que el código funciona.
+  \item \textbf{Retroalimentación comprensible ante errores.} Cada mensaje indica tipo de error, archivo, línea, descripción y posible causa, y un clic lleva a la línea.
+  \item \textbf{Transición facilitada a lenguajes profesionales.} Tipos explícitos, funciones con firma, clases con visibilidad y herencia, y módulos: todo con la misma estructura que Java.
+  \item \textbf{Buenas prácticas tempranas.} Proyectos con varios archivos, constantes, manejo de errores y advertencias de código sin usar.
+\end{itemize}
+
+\subsection{Características principales}
+
+\begin{itemize}
+  \item \textbf{Vocabulario de videojuegos.} Las palabras reservadas están en inglés, como en la cultura de los juegos; los mensajes de error, la ayuda y la documentación están en español.
+  \item \textbf{Bloques delimitados por palabras.} Todo bloque abre con \kw{glhf} y cierra con \kw{gg}; la indentación no es obligatoria.
+  \item \textbf{Tipado estático.} Toda variable, parámetro y retorno declara su tipo, y los tipos se verifican antes de ejecutar.
+  \item \textbf{Lenguaje completo para un primer curso.} Cinco tipos simples, el valor nulo \kw{afk}, vectores (\kw{squad}), registros (\kw{inventory}), clases con herencia (\kw{guild}), funciones con recursión, selección múltiple, tres tipos de ciclo y manejo de errores.
+  \item \textbf{Proyectos de varios archivos.} Importación con \kw{travel} y detección de importaciones circulares.
+  \item \textbf{Mensajes de error con posible causa}, más advertencias de variables y funciones sin usar y de código que nunca se ejecuta.
+  \item \textbf{Entorno de desarrollo integrado propio.} Árbol de archivos, editor con pestañas, minimapa, autocompletado, coloreado de sintaxis, búsqueda, terminal integrada, panel de problemas, ayuda del lenguaje y botones de compilar (\kw{F6}) y ejecutar (\kw{F5}).
+  \item \textbf{Innovación.} Gamificación ligada a la ejecución, terminal real con asistente de inteligencia artificial y sistema de extensiones, documentados en la sección~\ref{sec:innovacion}.
+\end{itemize}
+
+\subsection{Ejemplos de programas que podrían desarrollarse}
+
+Los siguientes cuatro ejemplos ilustran el tipo de programas que un usuario puede desarrollar en \ggez. Cubren instrucciones básicas, control de flujo, funciones, listas e importación entre archivos.
+
+\subsubsection*{Ejemplo 1: Cálculo del daño de un ataque}
+
+Programa simple que calcula el daño de un golpe crítico.
+\begin{lstlisting}
+lobby.launch{start THE GAME} glhf
+    stash score ataque set 25
+    stash aim critico set 1.5
+    chat.send{"Dano: " gain {ataque crit critico}}
+gg
+\end{lstlisting}
+
+\subsubsection*{Ejemplo 2: Rango de un jugador}
+
+Programa que clasifica una puntuación según su rango utilizando un condicional múltiple dentro de una función.
+\begin{lstlisting}
+combo rango{score puntos} drops lore glhf
+    scan puntos atleast 90 glhf
+        reward "S"
+    gg fallback scan puntos atleast 70 glhf
+        reward "A"
+    gg fallback glhf
+        reward "B"
+    gg
+gg
+
+lobby.launch{start THE GAME} glhf
+    chat.send{"Rango: " gain rango{85}}
+gg
+\end{lstlisting}
+
+\subsubsection*{Ejemplo 3: Mochila con una lista}
+
+Programa que usa un \kw{squad} para guardar objetos y recorrerlos con un ciclo.
+\begin{lstlisting}
+lobby.launch{start THE GAME} glhf
+    stash squad[lore] mochila set <"Espada" | "Escudo">
+    mochila.recruit{"Pocion"}
+    stash score i set 0
+    farm i set 0 | i under mochila.size | i buff glhf
+        chat.send{i gain ": " gain mochila<i>}
+    gg
+gg
+\end{lstlisting}
+
+\subsubsection*{Ejemplo 4: Modularización con importación entre archivos}
+
+Programa distribuido en dos archivos que demuestra el sistema de importación de \ggez.
+
+Archivo \kw{lib/combate.ggez}:
+\begin{lstlisting}
+combo danoTotal{score base | score golpes} drops score glhf
+    reward base crit golpes
+gg
+\end{lstlisting}
+
+Archivo \kw{principal.ggez}:
+\begin{lstlisting}
+travel combate from lib
+
+lobby.launch{start THE GAME} glhf
+    chat.send{"Dano total: " gain combate.danoTotal{20 | 3}}
+gg
+\end{lstlisting}
+
+\newpage
+% ================================================================ 5
+\section{Objetivos}
+
+\subsection{Objetivo general}
+
+Diseñar e implementar \ggez, un lenguaje de programación con vocabulario de videojuegos y su entorno de desarrollo integrado con mecánicas de juego, orientado a facilitar y motivar el aprendizaje de la programación en estudiantes de primer ingreso de Ingeniería en Sistemas.
+
+\subsection{Objetivos específicos}
+
+Para alcanzar el objetivo general, el proyecto se propone los siguientes objetivos específicos:
+
+\begin{itemize}
+  \item \textbf{Definir formalmente el lenguaje \ggez}, especificando su identidad, palabras reservadas, gramática, semántica y sistema de tipos, tomando su vocabulario de los videojuegos.
+  \item \textbf{Implementar un compilador funcional}, capaz de realizar análisis léxico, sintáctico y semántico, verificación estática de tipos y validación completa de las importaciones entre archivos, incluida la detección de importaciones circulares.
+  \item \textbf{Desarrollar un intérprete} que ejecute los programas a partir del árbol sintáctico de una compilación exitosa, gestionando el flujo de control, las variables con sus alcances, las llamadas a funciones, los objetos, las importaciones y los errores.
+  \item \textbf{Construir un entorno de desarrollo integrado propio}, con editor de código, árbol de archivos, segmento de salida con clasificación de mensajes, menús de consulta del lenguaje y botones dedicados para compilar y ejecutar.
+  \item \textbf{Incorporar una característica de innovación} que refuerce el propósito del lenguaje, esté integrada al aplicativo y sea demostrable durante la presentación.
+  \item \textbf{Documentar el proyecto en su totalidad}, incluyendo el diseño del lenguaje, la arquitectura del aplicativo, un conjunto representativo de pruebas y las contribuciones de cada integrante.
+\end{itemize}
+
+\newpage
+% ================================================================ 6
+\section{Alcance y limitaciones}
+
+Esta sección presenta, de forma sintética, las capacidades que el proyecto \ggez\ ofrece en su versión actual y las que quedan fuera de su alcance. Funciona como referencia para verificar rápidamente el cumplimiento de los requisitos.
+
+\subsection{Alcance}
+\label{sec:alcance}
+
+El proyecto \ggez, en su versión de entrega, comprende los siguientes componentes y capacidades:
+
+\subsubsection*{Lenguaje de programación}
+\begin{itemize}
+  \item 71 palabras reservadas tomadas del vocabulario de los videojuegos
+  \item Cinco tipos de datos simples (\kw{score}, \kw{aim}, \kw{lore}, \kw{pixel} y \kw{win}) y el valor nulo \kw{afk}
+  \item Dos tipos de datos compuestos: vector (\kw{squad}) y registro (\kw{inventory})
+  \item Declaración de variables con tipo explícito, constantes y asignación con operadores compuestos
+  \item Entrada y salida de datos
+  \item Operaciones aritméticas (incluido el menos unario), relacionales y lógicas con cortocircuito
+  \item Condicionales simple, con alternativa y múltiple, y selección múltiple (\kw{loadout})
+  \item Ciclos equivalentes a \emph{for}, \emph{while} y \emph{do-while}, con interrupción y salto de vuelta
+  \item Funciones con y sin retorno, con parámetros tipados, y recursión
+  \item Manejo de errores desde el código del usuario
+  \item Clases con constructor, visibilidad, herencia simple y polimorfismo
+  \item Punto de entrada explícito: \kw{lobby.launch\{start THE GAME\}}
+  \item Importación de funciones y tipos entre archivos del mismo proyecto
+\end{itemize}
+
+\subsubsection*{Compilador}
+\begin{itemize}
+  \item Análisis léxico, sintáctico, de importaciones y semántico
+  \item Verificación estática de tipos antes de ejecutar
+  \item Validación del archivo principal y de su punto de entrada único
+  \item Validación completa de las importaciones, incluidas las circulares
+  \item Reporte de errores (tipo, archivo, línea, columna, descripción y posible causa) y de advertencias
+\end{itemize}
+
+\subsubsection*{Intérprete}
+\begin{itemize}
+  \item Ejecución desde el punto de entrada recorriendo el árbol sintáctico
+  \item Gestión de variables con alcance de bloque
+  \item Llamadas a funciones y métodos, retorno de valores y objetos
+  \item Ejecución de lo importado desde otros archivos
+  \item Errores atrapables y límites de pasos (maná) y de recursión
+\end{itemize}
+
+\subsubsection*{Entorno de desarrollo integrado}
+\begin{itemize}
+  \item Interfaz gráfica con menú, árbol de archivos, editor y segmento de salida
+  \item Identificación visible del archivo activo (pestaña y ruta) y del archivo principal (etiqueta «principal»)
+  \item Gestión de proyectos: creación, apertura, creación de archivos y carpetas, renombrado y eliminación
+  \item Menú de consulta del lenguaje: diccionario de palabras, tipos, operadores, estructuras de control, funciones, listas, errores, objetos, importaciones, semántica y ejemplos
+  \item Editor con numeración de líneas, coloreado de sintaxis, autocompletado, minimapa, búsqueda y reemplazo, ir a línea, zoom y pestañas
+  \item Compilación y ejecución desde botones dedicados, terminal integrada con entrada interactiva y pestañas de errores y problemas
+\end{itemize}
+
+\subsubsection*{Innovación}
+\begin{itemize}
+  \item Gamificación ligada a la ejecución real: maná, mundo con misiones, niveles con estrellas, monedas, pistas, logros y temas desbloqueables
+  \item Terminal real con asistente de inteligencia artificial y sistema de extensiones (sección~\ref{sec:innovacion})
+\end{itemize}
+
+\subsubsection*{Gestión y pruebas}
+\begin{itemize}
+  \item Repositorio en GitHub con contribuciones de los tres integrantes, README, código, documentación y pruebas versionadas
+  \item Batería de pruebas: 5 programas válidos, 5 con errores sintácticos, 5 con errores semánticos, 5 de importaciones, 1 de importación circular, 1 completa relacionada con el problema y 1 de advertencias
+  \item Ejecutable único del aplicativo para Linux y Windows, generado con el script \kw{publicar.sh}
+\end{itemize}
+
+\subsection{Limitaciones}
+\label{sec:limitaciones}
+
+Las siguientes capacidades quedan fuera del alcance de esta versión del proyecto:
+
+\subsubsection*{Del lenguaje}
+\begin{itemize}
+  \item Interfaces (\kw{questline}), terminación explícita del programa (\kw{quit}), organización en paquetes (\kw{server}, \kw{region}), pilas (\kw{stack}) y colas (\kw{queue}): son palabras reservadas para una versión futura y el compilador responde con un mensaje claro si se usan
+  \item Biblioteca estándar \kw{arsenal} (\kw{physics}, \kw{rng}, \kw{clock}, \kw{save}): reservada; en esta versión solo existe el módulo \kw{chat}
+  \item Conversión de texto a número: \kw{chat.load} siempre devuelve un \kw{lore}
+  \item Inicialización de vectores de vectores con un literal anidado
+  \item Genéricos definidos por el usuario, sobrecarga de funciones, funciones anónimas y concurrencia
+  \item Manejo de archivos externos, comunicación en red y acceso a bases de datos
+\end{itemize}
+
+\subsubsection*{Del entorno de desarrollo}
+\begin{itemize}
+  \item Depurador con puntos de interrupción y ejecución paso a paso; el botón de pausa del panel de juego todavía no suspende el programa
+  \item Formateo automático del código: la extensión «GGEZ Formatter» aparece en el catálogo, pero no está implementada
+  \item Integración con sistemas de control de versiones
+\end{itemize}
+
+\subsubsection*{Del ámbito de aplicación}
+\begin{itemize}
+  \item Generación de ejecutables propios a partir de programas \ggez: el lenguaje es interpretado
+  \item Uso en entornos de producción de software
+  \item El ejecutable de Windows se genera con el mismo script que el de Linux, pero no se ha probado en un equipo con Windows
+\end{itemize}
+
+\newpage
+\input{secciones/lenguaje}
+\input{secciones/aplicativo}
+\input{secciones/final}
+
+\end{document}

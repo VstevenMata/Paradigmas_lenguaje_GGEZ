@@ -1,0 +1,726 @@
+% ================================================================ 7
+\section{Descripción del lenguaje}
+
+\subsection{Identidad}
+
+\subsubsection*{Nombre}
+\ggez.
+
+\subsubsection*{Propósito}
+Ofrecer un lenguaje de programación completo cuyo vocabulario esté tomado de los videojuegos, para que el estudiante de primer ingreso asocie cada concepto de programación con algo que ya conoce, y acompañarlo de un entorno de desarrollo que convierta la práctica en una partida.
+
+\subsubsection*{Usuarios}
+Estudiantes de primer ingreso de Ingeniería en Sistemas y carreras afines, en especial quienes juegan videojuegos o quieren programarlos; docentes de cursos introductorios que buscan material de práctica con un componente de motivación.
+
+\subsubsection*{Extensión de los archivos}
+Los archivos de código fuente escritos en \ggez\ utilizan la extensión \kw{.ggez}. La elección responde a dos criterios: identidad (es el mismo nombre del lenguaje, por lo que no hay duda de qué contiene el archivo) y unicidad (no colisiona con extensiones de otros lenguajes o formatos). Un proyecto \ggez\ se compone de uno o más archivos con esta extensión, uno de los cuales se designa como archivo principal.
+
+\subsubsection*{Logotipo}
+El logotipo de \ggez\ es el mismo ícono del entorno de desarrollo: una consola de videojuegos portátil en estilo \emph{pixel art} con las letras «GGEZ», que resume en una imagen la idea del proyecto: programar como quien juega.
+
+\begin{center}
+\includegraphics[width=3.8cm]{img/logo.png}
+\end{center}
+
+\subsubsection*{Filosofía general de diseño}
+\ggez\ se rige por cuatro principios de diseño: (1) \textbf{vocabulario conocido}, usando palabras de la jerga de los videojuegos en lugar de símbolos sin significado para el estudiante; (2) \textbf{estructura profesional}, con tipos explícitos, funciones con firma, clases y módulos como en Java, para que lo aprendido se transfiera; (3) \textbf{retroalimentación clara}, con errores que indican dónde ocurrieron y su posible causa; y (4) \textbf{progreso visible}, con un entorno que premia cada programa que funciona.
+
+\subsection{Palabras reservadas}
+\label{sec:palabras}
+
+\ggez\ cuenta con 71 palabras reservadas que constituyen su vocabulario. Se escriben en minúscula (salvo \kw{THE} y \kw{GAME} del punto de entrada), distinguen mayúsculas de minúsculas y no pueden utilizarse como nombres de variables, funciones, parámetros, clases ni módulos. La siguiente tabla presenta cada palabra reservada con su propósito, forma general de uso y un ejemplo.
+
+{\small
+\begin{longtable}{|p{2.1cm}|p{4cm}|p{3.9cm}|p{4.1cm}|}\hline
+\cab\textbf{Palabra reservada} & \textbf{Propósito} & \textbf{Forma de uso} & \textbf{Ejemplo} \\\hline\endhead
+\categoria{4}{Estructura del programa}
+\kw{lobby} \kw{launch} & Punto de entrada del programa (equivale a \kw{main}) & \kw{lobby.launch\{start THE GAME\} glhf ... gg} & \kw{lobby.launch\{start THE GAME\} glhf chat.send\{"Hola"\} gg} \\\hline
+\kw{start} \kw{THE} \kw{GAME} & Texto fijo obligatorio del punto de entrada & Dentro de las llaves de \kw{lobby.launch} & \kw{\{start THE GAME\}} \\\hline
+\kw{glhf} & Abre un bloque («good luck, have fun») & Después de la cabecera del bloque & \kw{scan x over 0 glhf ... gg} \\\hline
+\kw{gg} & Cierra un bloque («good game») & Al final del bloque & \kw{scan x over 0 glhf ... gg} \\\hline
+\categoria{4}{Importaciones}
+\kw{travel} & Importa otro archivo del proyecto & \kw{travel archivo from carpeta} & \kw{travel combate from lib} \\\hline
+\kw{from} & Indica la carpeta del archivo importado (\kw{base} = la misma) & \kw{from carpeta} & \kw{travel reglas from base} \\\hline
+\categoria{4}{Declaración}
+\kw{stash} & Declara una variable (guardar en el alijo) & \kw{stash tipo nombre set valor} & \kw{stash score vida set 100} \\\hline
+\kw{hardcoded} & Declara una constante & \kw{hardcoded tipo NOMBRE set valor} & \kw{hardcoded aim GRAVEDAD set 9.8} \\\hline
+\kw{noloot} & Indica que un \kw{combo} no devuelve nada (\kw{void}) & \kw{drops noloot} & \kw{combo saludar\{\} drops noloot glhf ... gg} \\\hline
+\kw{afk} & Valor nulo («away from keyboard») & Como valor & \kw{scan jefe matches afk glhf ... gg} \\\hline
+\categoria{4}{Tipos de datos}
+\kw{score} & Número entero & \kw{stash score n set ...} & \kw{stash score oro set 50} \\\hline
+\kw{aim} & Número real & \kw{stash aim n set ...} & \kw{stash aim precision set 0.85} \\\hline
+\kw{lore} & Texto & \kw{stash lore n set ...} & \kw{stash lore nombre set "Link"} \\\hline
+\kw{pixel} & Un carácter & \kw{stash pixel c set ...} & \kw{stash pixel letra set 'A'} \\\hline
+\kw{win} & Valor lógico & \kw{stash win b set ...} & \kw{stash win vivo set hit} \\\hline
+\kw{hit} \kw{miss} & Verdadero y falso & Como valor de tipo \kw{win} & \kw{stash win escudo set miss} \\\hline
+\kw{squad} & Vector de elementos de un mismo tipo & \kw{squad[tipo]} & \kw{stash squad[lore] equipo} \\\hline
+\kw{inventory} & Registro con campos & \kw{inventory Nombre glhf campos gg} & \kw{inventory Item glhf lore nombre gg} \\\hline
+\categoria{4}{Condicionales}
+\kw{scan} & Inicia un condicional (\kw{if}) & \kw{scan condicion glhf ... gg} & \kw{scan vida over 0 glhf ... gg} \\\hline
+\kw{fallback} & Bloque alternativo (\kw{else}) & \kw{gg fallback glhf ... gg} & \kw{gg fallback scan x over 5 glhf ... gg} \\\hline
+\kw{loadout} & Selección múltiple (\kw{switch}) & \kw{loadout valor glhf ramas gg} & \kw{loadout clase glhf ... gg} \\\hline
+\kw{pick} & Caso de un \kw{loadout} & \kw{pick v1 | v2 glhf ... gg} & \kw{pick "mago" glhf ... gg} \\\hline
+\kw{noob} & Caso por defecto (\kw{default}) & \kw{noob glhf ... gg} & \kw{noob glhf poder set 50 gg} \\\hline
+\categoria{4}{Ciclos}
+\kw{farm} & Ciclo con contador (\kw{for}) & \kw{farm inicio | condicion | paso glhf ... gg} & \kw{farm i set 1 | i atmost 10 | i buff glhf ... gg} \\\hline
+\kw{survive} & Ciclo con condición previa (\kw{while}); también cierra el \kw{grind} & \kw{survive condicion glhf ... gg} & \kw{survive vida over 0 glhf ... gg} \\\hline
+\kw{grind} & Ciclo con condición posterior (\kw{do-while}) & \kw{grind glhf ... gg survive\{condicion\}} & \kw{grind glhf ... gg survive\{x under 3\}} \\\hline
+\kw{ragequit} & Sale del ciclo (\kw{break}) & Sola, dentro de un ciclo & \kw{scan i matches 8 glhf ragequit gg} \\\hline
+\kw{respawn} & Pasa a la siguiente vuelta (\kw{continue}) & Sola, dentro de un ciclo & \kw{scan i matches 3 glhf respawn gg} \\\hline
+\categoria{4}{Funciones}
+\kw{combo} & Declara una función & \kw{combo nombre\{parametros\} drops tipo glhf ... gg} & \kw{combo doble\{score n\} drops score glhf ... gg} \\\hline
+\kw{drops} & Indica el tipo de retorno & \kw{drops tipo} & \kw{drops lore} \\\hline
+\kw{reward} & Devuelve un valor (\kw{return}) & \kw{reward expresion} & \kw{reward n crit 2} \\\hline
+\categoria{4}{Manejo de errores}
+\kw{clutch} & Bloque protegido (\kw{try}) & \kw{clutch glhf ... gg revive \{e\} glhf ... gg} & \kw{clutch glhf ... gg revive \{e\} glhf ... gg} \\\hline
+\kw{revive} & Atrapa el error (\kw{catch}) & \kw{revive \{nombre\} glhf ... gg} & \kw{revive \{e\} glhf chat.send\{e.reason\} gg} \\\hline
+\kw{checkpoint} & Bloque que siempre se ejecuta (\kw{finally}) & \kw{gg checkpoint glhf ... gg} & \kw{gg checkpoint glhf chat.send\{"fin"\} gg} \\\hline
+\kw{wipe} & Lanza un error (\kw{throw}) & \kw{wipe\{mensaje\}} & \kw{wipe\{"Sin energia"\}} \\\hline
+\categoria{4}{Programación orientada a objetos}
+\kw{guild} & Declara una clase & \kw{guild Nombre glhf miembros gg} & \kw{guild Heroe glhf ... gg} \\\hline
+\kw{evolves} & Herencia (\kw{extends}) & \kw{guild Hijo evolves Padre} & \kw{guild Mago evolves Heroe glhf ... gg} \\\hline
+\kw{spawn} & Crea un objeto (\kw{new}) & \kw{spawn Clase\{argumentos\}} & \kw{spawn Heroe\{"Ana"\}} \\\hline
+\kw{me} & Objeto actual (\kw{this}) & \kw{me.campo} & \kw{me.vida set 100} \\\hline
+\kw{open} & Visibilidad pública & Antes de un campo o \kw{combo} & \kw{open lore nombre} \\\hline
+\kw{party} & Visibilidad protegida & Antes de un campo o \kw{combo} & \kw{party score vida} \\\hline
+\kw{solo} & Visibilidad privada & Antes de un campo o \kw{combo} & \kw{solo score secreto} \\\hline
+\categoria{4}{Operaciones aritméticas}
+\kw{gain} & Suma y concatenación (\kw{+}) & \kw{a gain b} & \kw{"HP: " gain vida} \\\hline
+\kw{drain} & Resta y menos unario (\kw{-}) & \kw{a drain b}, \kw{drain a} & \kw{vida drain 10} \\\hline
+\kw{crit} & Multiplicación (\kw{*}) & \kw{a crit b} & \kw{dano crit 2} \\\hline
+\kw{split} & División (\kw{/}) & \kw{a split b} & \kw{oro split 3} \\\hline
+\kw{scrap} & Residuo (\kw{\%}) & \kw{a scrap b} & \kw{n scrap 2} \\\hline
+\categoria{4}{Operaciones relacionales}
+\kw{matches} & Igual (\kw{==}) & \kw{a matches b} & \kw{clase matches "mago"} \\\hline
+\kw{mismatch} & Distinto (\kw{!=}) & \kw{a mismatch b} & \kw{jefe mismatch afk} \\\hline
+\kw{over} & Mayor que (\kw{>}) & \kw{a over b} & \kw{vida over 0} \\\hline
+\kw{under} & Menor que (\kw{<}) & \kw{a under b} & \kw{i under 10} \\\hline
+\kw{atleast} & Mayor o igual (\kw{>=}) & \kw{a atleast b} & \kw{nivel atleast 5} \\\hline
+\kw{atmost} & Menor o igual (\kw{<=}) & \kw{a atmost b} & \kw{n atmost 1} \\\hline
+\categoria{4}{Operaciones lógicas}
+\kw{chain} & Conjunción (\kw{\&\&}) & \kw{a chain b} & \kw{vivo chain tieneLlave} \\\hline
+\kw{swap} & Disyunción (\kw{||}) & \kw{a swap b} & \kw{esJefe swap esElite} \\\hline
+\kw{dodge} & Negación (\kw{!}) & \kw{dodge a} & \kw{scan dodge vivo glhf ... gg} \\\hline
+\categoria{4}{Asignación}
+\kw{set} & Asigna un valor (\kw{=}) & \kw{variable set valor} & \kw{vida set 100} \\\hline
+\kw{boost} & Suma al valor (\kw{+=}) & \kw{variable boost valor} & \kw{oro boost 50} \\\hline
+\kw{sap} & Resta al valor (\kw{-=}) & \kw{variable sap valor} & \kw{vida sap 10} \\\hline
+\kw{buff} & Incrementa en uno (\kw{++}) & \kw{variable buff} & \kw{nivel buff} \\\hline
+\kw{nerf} & Decrementa en uno (\kw{--}) & \kw{variable nerf} & \kw{vidas nerf} \\\hline
+\categoria{4}{Reservadas para una versión futura}
+\kw{questline} & Interfaces & --- & --- \\\hline
+\kw{quit} & Terminar el programa & --- & --- \\\hline
+\kw{server} \kw{region} & Organización en paquetes & --- & --- \\\hline
+\kw{stack} \kw{queue} & Pila y cola & --- & --- \\\hline
+\end{longtable}
+}
+
+Los ejemplos de la tabla se muestran en una sola línea por razones de espacio; en código real cada instrucción va en su propia línea, y el contenido de un bloque se escribe entre \kw{glhf} y su \kw{gg}. Las palabras de la última categoría están reservadas para que quien las escriba reciba un mensaje claro (por ejemplo, «GGEZ no tiene 'stack': la unica coleccion es squad») en lugar de que se interpreten como un nombre cualquiera.
+
+\subsubsection*{Funciones incorporadas del lenguaje}
+
+Además de las palabras reservadas, \ggez\ incluye funciones incorporadas, disponibles en cualquier programa sin importar nada. El nombre \kw{chat} está reservado para su módulo: un archivo propio no puede llamarse así.
+
+{\footnotesize
+\begin{longtable}{|p{2.7cm}|p{4.5cm}|p{3.4cm}|p{3.6cm}|}\hline
+\cab\textbf{Función} & \textbf{Propósito} & \textbf{Forma de uso} & \textbf{Ejemplo} \\\hline\endhead
+\kw{chat.send\{x\}} & Escribe un valor en la salida estándar, convertido a texto, con salto de línea & \kw{chat.send\{expresion\}} & \kw{chat.send\{"Hola"\}} \\\hline
+\kw{chat.rage\{x\}} & Escribe un valor en la salida de errores; el IDE lo muestra en rojo & \kw{chat.rage\{expresion\}} & \kw{chat.rage\{"Cuidado"\}} \\\hline
+\kw{chat.load\{\}} & Lee una línea escrita por el usuario y la devuelve como \kw{lore} & \kw{chat.load\{\}} & \kw{stash lore n set chat.load\{\}} \\\hline
+\kw{v.size} & Cantidad de elementos de un \kw{squad} & \kw{lista.size} & \kw{equipo.size} \\\hline
+\kw{v.recruit\{x\}} & Agrega un elemento al final de un \kw{squad} & \kw{lista.recruit\{valor\}} & \kw{equipo.recruit\{"Mago"\}} \\\hline
+\kw{v.kick\{i\}} & Quita el elemento de la posición indicada & \kw{lista.kick\{posicion\}} & \kw{equipo.kick\{0\}} \\\hline
+\end{longtable}
+}
+
+El compilador valida estas funciones: \kw{recruit} solo acepta un valor del tipo de los elementos de la lista, \kw{kick} solo acepta un \kw{score}, y \kw{chat.load} no recibe argumentos.
+
+\subsection{Sintaxis}
+
+Esta sección documenta la sintaxis de \ggez. En todas las construcciones se aplica la misma regla de bloques: un bloque se abre con \kw{glhf} y se cierra con \kw{gg}, aunque contenga una sola instrucción. La indentación se recomienda por estilo, pero no es obligatoria. La gramática formal completa, en notación BNF extendida, está en el archivo \kw{Traductor/GRAMATICA.md} del repositorio.
+
+\subsubsection{Instrucciones}
+
+Cada instrucción se escribe en su propia línea; el salto de línea cierra la instrucción y no se usa \kw{;}. Una expresión puede partirse en varias líneas mientras haya un \kw{\{} o un \kw{<} sin cerrar.
+
+\textbf{Declaración de variables.} Toda variable se declara con \kw{stash}, su tipo, su nombre y, para los tipos simples, un valor inicial obligatorio con \kw{set}. Una lista puede declararse sin valor y empieza vacía. Las constantes se declaran con \kw{hardcoded}.
+\begin{lstlisting}
+stash score vida set 100
+stash lore nombre set "Link"
+stash squad[score] puntos
+hardcoded aim GRAVEDAD set 9.8
+\end{lstlisting}
+
+\textbf{Asignación.} Una variable ya declarada recibe un valor nuevo con \kw{set}, sin repetir \kw{stash}. También existen \kw{boost}, \kw{sap}, \kw{buff} y \kw{nerf}.
+\begin{lstlisting}
+vida set 90
+vida sap 15
+nivel buff
+\end{lstlisting}
+
+\textbf{Entrada de datos.} \kw{chat.load\{\}} lee una línea escrita por el usuario en la terminal del IDE. El valor devuelto es siempre un \kw{lore}.
+\begin{lstlisting}
+stash lore nombre set chat.load{}
+\end{lstlisting}
+
+\textbf{Salida de datos.} \kw{chat.send} imprime un valor o el resultado de una expresión; con \kw{gain} se une texto con números sin convertirlos.
+\begin{lstlisting}
+chat.send{"Hola mundo"}
+chat.send{"Vida: " gain vida}
+\end{lstlisting}
+
+\textbf{Llamadas a funciones.} Una función se invoca con su nombre y los argumentos entre llaves, separados por \kw{|}.
+\begin{lstlisting}
+saludar{"Ana"}
+stash score total set sumar{3 | 4}
+\end{lstlisting}
+
+\textbf{Importaciones.} Se declaran al inicio del archivo, y lo importado se usa con el nombre del módulo delante.
+\begin{lstlisting}
+travel combate from lib
+\end{lstlisting}
+
+\textbf{Comentarios.} \kw{/w} comenta hasta el final de la línea («whisper», mensaje privado); \kw{/all} \dots\ \kw{/end} comenta varias líneas («all chat»).
+\begin{lstlisting}
+/w Calcula el total del botin
+/all
+    Este bloque completo
+    es un comentario
+/end
+\end{lstlisting}
+
+\textbf{Reglas generales.} Se distinguen mayúsculas y minúsculas. Los nombres empiezan con letra o \kw{\_} y siguen con letras, dígitos o \kw{\_}, sin tildes ni \kw{ñ}. Los delimitadores cambian respecto a Java: \kw{\{ \}} agrupan y llaman, \kw{< >} indexan y forman listas, \kw{[ ]} indican el tipo de los elementos de una lista y \kw{|} separa elementos.
+
+\subsubsection{Condicionales}
+
+\ggez\ soporta las tres formas de condicional: simple, con alternativa y múltiple, además de la selección múltiple con \kw{loadout}.
+
+\textbf{Condicional simple.}
+\begin{lstlisting}
+scan vida over 0 glhf
+    chat.send{"Sigue vivo"}
+gg
+\end{lstlisting}
+
+\textbf{Condicional con alternativa.} El bloque alternativo se escribe a continuación del \kw{gg} con \kw{fallback}.
+\begin{lstlisting}
+scan nota atleast 70 glhf
+    chat.send{"Aprobado"}
+gg fallback glhf
+    chat.send{"Reprobado"}
+gg
+\end{lstlisting}
+
+\textbf{Condicional múltiple.} Se encadenan ramas con \kw{gg fallback scan}.
+\begin{lstlisting}
+scan vida over 50 glhf
+    chat.send{"Sano"}
+gg fallback scan vida over 0 glhf
+    chat.send{"Herido"}
+gg fallback glhf
+    chat.send{"Derrotado"}
+gg
+\end{lstlisting}
+
+\textbf{Selección múltiple.} Compara un valor con literales; cada \kw{pick} tiene su propio bloque y puede listar varios valores.
+\begin{lstlisting}
+loadout clase glhf
+    pick "guerrero" glhf
+        poder set 80
+    gg
+    pick "mago" | "brujo" glhf
+        poder set 95
+    gg
+    noob glhf
+        poder set 50
+    gg
+gg
+\end{lstlisting}
+
+\subsubsection{Ciclos}
+
+\ggez\ incluye tres ciclos: \kw{farm} (equivalente a \emph{for}), \kw{survive} (\emph{while}) y \kw{grind} (\emph{do-while}).
+
+\textbf{Ciclo farm.} Tiene tres partes separadas por \kw{|}: asignación inicial, condición y paso.
+\begin{lstlisting}
+stash score i set 0
+farm i set 1 | i atmost 10 | i buff glhf
+    chat.send{i}
+gg
+\end{lstlisting}
+
+\textbf{Ciclo survive.} Repite mientras la condición sea \kw{hit}; la condición se evalúa antes de cada vuelta.
+\begin{lstlisting}
+survive enemigos over 0 glhf
+    enemigos nerf
+gg
+\end{lstlisting}
+
+\textbf{Ciclo grind.} El cuerpo se ejecuta al menos una vez; la condición va después del \kw{gg}.
+\begin{lstlisting}
+grind glhf
+    intentos buff
+gg survive{intentos under 3}
+\end{lstlisting}
+
+\subsubsection{Funciones}
+
+Toda función se declara con \kw{combo}, su nombre, los parámetros con su tipo entre llaves (separados por \kw{|}) y el tipo de retorno después de \kw{drops}. Las llaves se escriben siempre, aunque no haya parámetros.
+
+\textbf{Función sin retorno.} Se declara con \kw{drops noloot}.
+\begin{lstlisting}
+combo saludar{lore nombre} drops noloot glhf
+    chat.send{"Hola, " gain nombre}
+gg
+\end{lstlisting}
+
+\textbf{Función con retorno.} Devuelve un valor con \kw{reward}, que termina la función de inmediato. Todos los caminos deben terminar en \kw{reward}.
+\begin{lstlisting}
+combo factorial{score n} drops score glhf
+    scan n atmost 1 glhf
+        reward 1
+    gg
+    reward n crit factorial{n drain 1}
+gg
+\end{lstlisting}
+
+\textbf{Punto de entrada.} Todo programa debe tener exactamente un \kw{lobby.launch\{start THE GAME\}} en su archivo principal. \kw{start THE GAME} es texto fijo, no son parámetros.
+\begin{lstlisting}
+lobby.launch{start THE GAME} glhf
+    chat.send{"GG EZ"}
+gg
+\end{lstlisting}
+
+\subsubsection{Operaciones aritméticas}
+
+\ggez\ usa palabras para las operaciones aritméticas: \kw{gain} (suma), \kw{drain} (resta), \kw{crit} (multiplicación), \kw{split} (división) y \kw{scrap} (residuo). \kw{gain} también une texto y convierte automáticamente el otro operando. \kw{drain} funciona como menos unario. Las llaves \kw{\{ \}} agrupan para cambiar el orden de evaluación. Dividir entre cero produce un error en ejecución.
+\begin{lstlisting}
+stash score a set 10
+stash score b set 3
+chat.send{a gain b}
+chat.send{a split b}
+stash score r set {a gain b} crit {a drain b}
+chat.send{drain r}
+\end{lstlisting}
+
+\subsubsection{Operaciones lógicas}
+
+Las operaciones lógicas son \kw{chain} (y), \kw{swap} (o) y \kw{dodge} (no). \kw{chain} y \kw{swap} usan cortocircuito, y cada operando debe ser de tipo \kw{win}.
+\begin{lstlisting}
+scan vida over 0 chain tieneLlave glhf
+    chat.send{"Puede abrir la puerta"}
+gg
+\end{lstlisting}
+
+\subsubsection{Operaciones relacionales}
+
+Las comparaciones son \kw{matches}, \kw{mismatch}, \kw{over}, \kw{under}, \kw{atleast} y \kw{atmost}, y devuelven un \kw{win}. \kw{matches} y \kw{mismatch} comparan valores de cualquier tipo, incluido \kw{afk}; las demás solo comparan números. No se encadenan: se escribe \kw{x over 1 chain x under 10}.
+\begin{lstlisting}
+scan clase matches "mago" glhf
+    poder boost 15
+gg
+\end{lstlisting}
+
+\subsubsection{Clases, registros y errores}
+
+\textbf{Registros.} Agrupan campos con nombre; se crean con \kw{spawn} pasando los valores en orden.
+\begin{lstlisting}
+inventory Item glhf
+    lore nombre
+    score poder
+gg
+\end{lstlisting}
+
+\textbf{Clases.} Tienen campos con visibilidad, métodos y un constructor (el \kw{combo} que se llama igual que la clase). La herencia se indica con \kw{evolves}.
+\begin{lstlisting}
+guild Heroe glhf
+    party lore nombre
+
+    combo Heroe{lore n} drops noloot glhf
+        nombre set n
+    gg
+
+    open combo grito{} drops lore glhf
+        reward nombre gain ": al ataque!"
+    gg
+gg
+\end{lstlisting}
+
+\textbf{Manejo de errores.} Un error dentro de \kw{clutch} se atrapa en \kw{revive}; \kw{checkpoint} se ejecuta siempre.
+\begin{lstlisting}
+clutch glhf
+    chat.send{10 split cero}
+gg revive {e} glhf
+    chat.send{"Linea " gain e.line gain ": " gain e.reason}
+gg checkpoint glhf
+    chat.send{"Fin del intento"}
+gg
+\end{lstlisting}
+
+\subsection{Semántica}
+
+Esta sección documenta el comportamiento del lenguaje, respondiendo a los aspectos semánticos que estructuran su diseño.
+
+\subsubsection*{Cómo inicia un programa}
+Todo programa \ggez\ comienza en el bloque de \kw{lobby.launch\{start THE GAME\}} del archivo principal del proyecto. Al ejecutar, el traductor carga todas las importaciones, analiza el proyecto completo y, si no hay errores, ejecuta las instrucciones de ese bloque en orden. Al terminar el bloque, el programa termina con código de salida 0; un error no atrapado lo termina con código 1.
+
+\subsubsection*{Cómo se delimitan los bloques}
+Todo bloque se abre con \kw{glhf} y se cierra con \kw{gg}. El compilador reconoce los bloques por estas palabras y no por el espaciado, de modo que los bloques son siempre visibles e inequívocos.
+
+\subsubsection*{Si la indentación es obligatoria}
+No. La indentación no tiene significado para el compilador. Se recomienda indentar cuatro espacios por nivel para facilitar la lectura, y el editor ayuda con colores de sangría y cerrando \kw{gg} automáticamente.
+
+\subsubsection*{Cómo se declaran y utilizan las variables}
+Las variables se declaran con \kw{stash}, seguido del tipo, el nombre y el valor inicial. El tipo es explícito y no cambia. Toda variable debe declararse antes de usarse; usar una variable no declarada es un error semántico. Una constante \kw{hardcoded} no puede volver a asignarse. La única conversión implícita es de \kw{score} a \kw{aim}; asignar un \kw{aim} a un \kw{score} es un error. \kw{afk} se puede asignar a variables de tipo \kw{lore}, \kw{pixel}, lista u objeto, pero no a \kw{score}, \kw{aim} ni \kw{win}.
+
+\subsubsection*{Cómo funcionan los alcances}
+\ggez\ usa alcance de bloque: una variable existe desde su declaración hasta el \kw{gg} del bloque donde se declaró. No se puede declarar dos veces el mismo nombre en un bloque ni ocultar (sombrear) una variable de un bloque exterior, para evitar confusiones. La única excepción es un parámetro o variable local con el nombre de un campo de su clase: el campo se alcanza con \kw{me.campo}.
+
+\subsubsection*{Cómo se evalúan las expresiones}
+Las expresiones se evalúan de izquierda a derecha respetando la precedencia de la sección~\ref{sec:precedencia}. \kw{chain} y \kw{swap} usan cortocircuito. Los tipos se verifican antes de ejecutar: una operación con tipos incompatibles es un error semántico. Si los dos operandos de \kw{split} son \kw{score}, el resultado es \kw{score} y se trunca hacia cero.
+
+\subsubsection*{Cómo funcionan las condiciones y ciclos}
+Las condiciones deben ser de tipo \kw{win}. En un \kw{scan} se ejecuta solo la primera rama cuya condición sea \kw{hit}. En un \kw{loadout} se ejecuta el primer \kw{pick} que coincide, sin caer en los siguientes, o \kw{noob} si ninguno coincide. \kw{survive} evalúa la condición antes de cada vuelta y \kw{grind} después. \kw{farm} hace la asignación inicial, evalúa la condición antes de cada vuelta y aplica el paso al final de ella. \kw{ragequit} sale del ciclo más cercano y \kw{respawn} salta a la siguiente vuelta; ambos solo son válidos dentro de un ciclo.
+
+\subsubsection*{Cómo se llaman las funciones}
+Se evalúan los argumentos de izquierda a derecha, se crea un entorno nuevo con los parámetros y se ejecuta el cuerpo. La cantidad y el tipo de los argumentos deben coincidir con la firma. Los valores simples se pasan por valor y los objetos y listas por referencia. Un \kw{combo} puede llamarse aunque esté definido más abajo, y se permite la recursión hasta 5000 llamadas anidadas. En un método se ejecuta la versión del objeto real (polimorfismo).
+
+\subsubsection*{Cómo se retornan valores}
+\kw{reward} devuelve un valor y termina la función de inmediato. El compilador verifica que todo camino de un \kw{combo} con retorno termine en \kw{reward} y que el valor sea del tipo declarado en \kw{drops}. Un \kw{combo} \kw{drops noloot} no devuelve nada.
+
+\subsubsection*{Cómo funcionan las importaciones}
+\kw{travel X from Y} carga \kw{X.ggez} de la carpeta \kw{Y}, relativa al archivo que importa. Todo lo que el archivo declara (\kw{combo}, \kw{guild}, \kw{inventory}) queda disponible con el prefijo del módulo: \kw{X.combo\{\}}, \kw{X.Tipo}. Cada archivo se carga una sola vez, las importaciones no son transitivas y un archivo importado no puede tener \kw{lobby.launch}.
+
+\subsubsection*{Cómo se manejan los errores}
+Los errores se clasifican en léxicos, sintácticos, de importación y semánticos (detectados al compilar) y en ejecución. A ellos se suma el error de proyecto que el IDE reporta si no hay archivo principal. Cada error indica tipo, archivo, línea, columna, descripción y posible causa. Un programa con errores de compilación no se ejecuta. Los errores en ejecución pueden atraparse con \kw{clutch}/\kw{revive}; si no se atrapan, detienen el programa. El detalle está en la sección~\ref{sec:errores}.
+
+\subsection{Tipos de datos}
+
+\ggez\ soporta cinco tipos simples (\kw{score}, \kw{aim}, \kw{lore}, \kw{pixel} y \kw{win}), el valor nulo \kw{afk} y dos tipos compuestos (\kw{squad} e \kw{inventory}), además de las clases definidas con \kw{guild}. El tipo se declara siempre de forma explícita.
+
+\subsubsection{Tipos simples}
+
+\textbf{score.} Representa números enteros con signo. Admite todas las operaciones aritméticas y relacionales. Combinado con un \kw{aim}, el resultado es \kw{aim}. La división entre dos \kw{score} descarta la parte decimal (\kw{7 split 2} da \kw{3}).
+\begin{lstlisting}
+stash score vida set 100
+stash score deuda set drain 5
+\end{lstlisting}
+
+\textbf{aim.} Representa números reales. Se escribe con dígitos a ambos lados del punto (\kw{0.5}, \kw{5.0}). Un \kw{score} se convierte automáticamente a \kw{aim} cuando hace falta.
+\begin{lstlisting}
+stash aim precision set 0.85
+stash aim velocidad set 3
+\end{lstlisting}
+
+\textbf{lore.} Representa texto entre comillas dobles. Admite la concatenación con \kw{gain} y las comparaciones \kw{matches} y \kw{mismatch}. Acepta los escapes \kw{\textbackslash n}, \kw{\textbackslash t}, \kw{\textbackslash "} y \kw{\textbackslash\textbackslash}. No se indexa por posición.
+\begin{lstlisting}
+stash lore nombre set "Link"
+stash lore saludo set "Hola, " gain nombre
+\end{lstlisting}
+
+\textbf{pixel.} Representa un solo carácter entre comillas simples.
+\begin{lstlisting}
+stash pixel inicial set 'L'
+\end{lstlisting}
+
+\textbf{win.} Representa un valor lógico: \kw{hit} (verdadero) o \kw{miss} (falso). Es el tipo de toda condición y de los resultados de las comparaciones. No hay conversión automática desde números.
+\begin{lstlisting}
+stash win vivo set hit
+stash win esJefe set vida over 500
+\end{lstlisting}
+
+\textbf{afk.} Representa la ausencia de valor. Es el valor inicial de los campos de texto, listas y objetos de una clase. Usar un objeto \kw{afk} produce un error en ejecución.
+\begin{lstlisting}
+stash Heroe jefe set afk
+scan jefe matches afk glhf
+    chat.send{"Todavia no aparece el jefe"}
+gg
+\end{lstlisting}
+
+\subsubsection{Tipos compuestos}
+
+\textbf{squad (vector).} Lista ordenada de elementos del mismo tipo, indexada desde cero, que crece según se necesite. Se escribe con \kw{< >} y se modifica con \kw{recruit}, \kw{kick} y asignación por índice. Un índice fuera de rango produce un error en ejecución.
+\begin{lstlisting}
+stash squad[lore] equipo set <"Tanque" | "Sanador">
+equipo.recruit{"Arquero"}
+equipo<0> set "Guerrero"
+equipo.kick{1}
+chat.send{equipo.size}
+\end{lstlisting}
+
+\textbf{inventory (registro).} Agrupa campos con nombre y tipo, sin métodos. Se crea con \kw{spawn} pasando los valores en el orden de declaración, y sus campos se leen y modifican con punto.
+\begin{lstlisting}
+inventory Item glhf
+    lore nombre
+    score poder
+gg
+
+lobby.launch{start THE GAME} glhf
+    stash Item espada set spawn Item{"Espada" | 40}
+    espada.poder boost 5
+    chat.send{espada.nombre gain ": " gain espada.poder}
+gg
+\end{lstlisting}
+
+\textbf{guild (clase).} Tipo definido por el usuario con campos, métodos, constructor, visibilidad y herencia simple (sección~\ref{sec:funciones}).
+
+\textbf{Error capturado.} La variable de \kw{revive \{e\}} tiene dos campos de solo lectura: \kw{e.reason} (\kw{lore}) y \kw{e.line} (\kw{score}).
+
+\newpage
+% ================================================================ 8
+\section{Funciones}
+\label{sec:funciones}
+
+Las funciones son la unidad principal de organización del código en \ggez. La sintaxis se documenta en la sección 7.3.4 y su semántica en la sección 7.4. Esta sección consolida las categorías de funciones, las buenas prácticas para su diseño y las restricciones que aplican.
+
+\subsection{Categorías de funciones en GGEZ}
+
+En \ggez\ coexisten tres categorías de funciones:
+
+\begin{itemize}
+  \item \textbf{Funciones definidas por el usuario.} Se declaran con \kw{combo} en el nivel superior de un archivo, tienen nombre, parámetros tipados y un tipo de retorno (o \kw{noloot}). Pueden usarse desde otros archivos que importen el suyo con \kw{travel}.
+  \item \textbf{Métodos y constructores.} Son \kw{combo} declarados dentro de un \kw{guild}. El que se llama igual que la clase es el constructor, se declara \kw{drops noloot} y se ejecuta al hacer \kw{spawn}. Dentro de un método, \kw{me} se refiere al objeto actual.
+  \item \textbf{Funciones incorporadas.} \kw{chat.send}, \kw{chat.rage}, \kw{chat.load} y los métodos de \kw{squad} (\kw{size}, \kw{recruit}, \kw{kick}), disponibles sin importar nada (sección 7.2).
+\end{itemize}
+
+\begin{lstlisting}
+guild Personaje glhf
+    party lore nombre
+    party score vida
+
+    combo Personaje{lore n} drops noloot glhf
+        nombre set n
+        vida set 100
+    gg
+
+    open combo grito{} drops lore glhf
+        reward nombre gain ": ..."
+    gg
+gg
+
+guild Guerrero evolves Personaje glhf
+    combo Guerrero{lore n} drops noloot glhf
+        nombre set n
+        vida set 120
+    gg
+
+    combo grito{} drops lore glhf
+        reward nombre gain ": POR LA GLORIA!"
+    gg
+gg
+
+lobby.launch{start THE GAME} glhf
+    stash Personaje heroe set spawn Guerrero{"Conan"}
+    chat.send{heroe.grito{}}
+gg
+\end{lstlisting}
+
+\subsection{Buenas prácticas}
+
+\begin{itemize}
+  \item \textbf{Funciones breves con propósito único.} Cada \kw{combo} debería hacer una sola tarea identificable.
+  \item \textbf{Nombres descriptivos.} Usar verbos que digan qué hace la función (\kw{calcularDano}, \kw{mostrarMenu}, \kw{validarEdad}).
+  \item \textbf{Pocos parámetros.} Si una función necesita muchos datos relacionados, conviene agruparlos en un \kw{inventory} o un \kw{guild}.
+  \item \textbf{Separar cálculo y presentación.} Las funciones que calculan deberían devolver valores con \kw{reward}, no imprimirlos; la impresión ocurre en \kw{lobby.launch} o en una función dedicada.
+  \item \textbf{Modularizar por archivos.} Agrupar en un archivo los \kw{combo} y clases de un mismo tema (por ejemplo, \kw{combate.ggez}, \kw{personajes.ggez}).
+\end{itemize}
+
+\subsection{Restricciones del sistema de funciones}
+
+\begin{itemize}
+  \item \textbf{Argumentos por posición:} no hay argumentos con nombre ni valores por defecto; la cantidad debe coincidir con la de parámetros.
+  \item \textbf{Sin sobrecarga:} cada nombre de \kw{combo} es único en su archivo.
+  \item \textbf{Sin funciones anónimas:} las funciones no son valores que se puedan guardar en variables.
+  \item \textbf{Retorno obligatorio:} todo camino de un \kw{combo} con retorno debe terminar en \kw{reward}.
+  \item \textbf{Herencia sin \kw{super}:} el constructor del padre no se ejecuta ni se hereda; el hijo inicializa los campos heredados, que deben ser \kw{party} u \kw{open}. Un método redefinido debe tener la misma firma y no puede reducir su visibilidad.
+  \item \textbf{Recursión limitada} a 5000 llamadas anidadas.
+\end{itemize}
+
+Los valores simples (\kw{score}, \kw{aim}, \kw{lore}, \kw{pixel}, \kw{win}) se pasan por valor: modificar el parámetro no afecta la variable original. Las listas, registros y objetos se pasan por referencia: modificar su contenido dentro de la función sí afecta el original.
+
+\newpage
+% ================================================================ 9
+\section{Estructuras de control}
+
+La sintaxis de las estructuras de control se documenta en las secciones 7.3.2 y 7.3.3, y su semántica en la sección 7.4. Esta sección consolida las estructuras disponibles y ofrece recomendaciones de estilo.
+
+\subsection{Cuadro sinóptico}
+
+\ggez\ incluye nueve estructuras de control: cuatro de decisión, tres de repetición y dos de manejo de errores.
+
+\begin{longtable}{|p{5.2cm}|p{3.6cm}|p{5.6cm}|}\hline
+\cab\textbf{Estructura} & \textbf{Tipo} & \textbf{Propósito} \\\hline\endhead
+\kw{scan ... glhf ... gg} & Condicional simple & Ejecuta un bloque solo si se cumple una condición \\\hline
+\kw{scan ... gg fallback glhf ... gg} & Condicional con alternativa & Ejecuta uno de dos bloques según el resultado \\\hline
+\kw{scan ... gg fallback scan ...} & Condicional múltiple & Evalúa varias condiciones y ejecuta la primera verdadera \\\hline
+\kw{loadout ... pick ... noob} & Selección múltiple & Compara un valor con varias opciones \\\hline
+\kw{farm ... | ... | ... glhf ... gg} & Ciclo con contador & Repite un bloque con una variable de control \\\hline
+\kw{survive ... glhf ... gg} & Ciclo con condición previa & Repite mientras se cumpla una condición \\\hline
+\kw{grind glhf ... gg survive\{...\}} & Ciclo con condición posterior & Repite al menos una vez \\\hline
+\kw{clutch ... revive ... checkpoint} & Manejo de errores & Atrapa un error y continúa \\\hline
+\kw{wipe\{...\}} & Lanzamiento de error & Produce un error propio \\\hline
+\end{longtable}
+
+\subsection{Recomendaciones de estilo}
+
+\begin{itemize}
+  \item \textbf{Evitar el anidamiento profundo.} Si un bloque necesita más de dos niveles, conviene extraer parte del código a un \kw{combo}.
+  \item \textbf{Preferir salidas tempranas con \kw{reward}.} En una función que clasifica, varios \kw{reward} en condiciones simples se leen mejor que condicionales anidados.
+  \item \textbf{Usar \kw{loadout} para comparar un valor con opciones fijas}, en lugar de una cadena larga de \kw{scan}.
+  \item \textbf{Elegir el ciclo adecuado.} \kw{farm} cuando se conoce la cantidad de vueltas, \kw{survive} cuando depende de una condición y \kw{grind} cuando el cuerpo debe correr al menos una vez.
+\end{itemize}
+
+\subsection{Interrupción de ciclos}
+
+\ggez\ incluye instrucciones para interrumpir un ciclo: \kw{ragequit} sale del ciclo más cercano (\emph{break}) y \kw{respawn} pasa a la siguiente vuelta (\emph{continue}). Se incluyeron porque son conceptos que el estudiante encontrará en cualquier lenguaje profesional, y sus nombres hacen evidente lo que hacen: abandonar la partida o reaparecer. El compilador verifica que solo se usen dentro de un ciclo.
+\begin{lstlisting}
+stash score i set 0
+farm i set 1 | i atmost 10 | i buff glhf
+    scan i matches 3 glhf
+        respawn
+    gg
+    scan i matches 8 glhf
+        ragequit
+    gg
+    chat.send{i}
+gg
+\end{lstlisting}
+
+\newpage
+% ================================================================ 10
+\section{Operaciones}
+
+\ggez\ incluye cuatro familias de operaciones: aritméticas, relacionales, lógicas y de asignación, documentadas en las secciones 7.3.1 y 7.3.5 a 7.3.7. Esta sección presenta la precedencia que aplica cuando se combinan.
+
+\subsection{Precedencia de operadores}
+\label{sec:precedencia}
+
+La siguiente tabla presenta la precedencia de mayor a menor. Los operadores del mismo nivel se evalúan de izquierda a derecha, salvo los unarios \kw{dodge} y \kw{drain}. Los relacionales no se encadenan.
+
+\begin{longtable}{|p{2.2cm}|p{6.4cm}|p{5.8cm}|}\hline
+\cab\textbf{Nivel} & \textbf{Operadores} & \textbf{Tipo} \\\hline\endhead
+1 (mayor) & \kw{\{ \}}, \kw{.}, \kw{< >} & Agrupación, llamada, acceso a miembro e índice \\\hline
+2 & \kw{dodge}, \kw{drain} (unario) & Negación lógica y menos unario \\\hline
+3 & \kw{crit}, \kw{split}, \kw{scrap} & Multiplicación, división y residuo \\\hline
+4 & \kw{gain}, \kw{drain} & Suma (y concatenación) y resta \\\hline
+5 & \kw{matches}, \kw{mismatch}, \kw{over}, \kw{under}, \kw{atleast}, \kw{atmost} & Relacionales \\\hline
+6 & \kw{chain} & Conjunción lógica \\\hline
+7 & \kw{swap} & Disyunción lógica \\\hline
+8 (menor) & \kw{set}, \kw{boost}, \kw{sap} & Asignación (solo como instrucción) \\\hline
+\end{longtable}
+
+\subsection{Uso de llaves para agrupar}
+
+En \ggez\ las llaves \kw{\{ \}} cumplen el papel de los paréntesis: agrupan una expresión para cambiar el orden de evaluación. No se confunden con una llamada por su posición: después de un nombre son una llamada (\kw{chat.send\{"hola"\}}); donde se espera un valor son una agrupación. Se recomienda usarlas aunque no sean necesarias cuando aclaran la intención.
+\begin{lstlisting}
+stash score r1 set 2 gain 3 crit 4       /w 14: crit primero
+stash score r2 set {2 gain 3} crit 4     /w 20: las llaves primero
+\end{lstlisting}
+
+\subsection{Evaluación de cortocircuito}
+
+En \kw{A chain B}, si \kw{A} es \kw{miss}, \kw{B} no se evalúa; en \kw{A swap B}, si \kw{A} es \kw{hit}, \kw{B} no se evalúa. Esto permite proteger operaciones que fallarían:
+\begin{lstlisting}
+scan jefe mismatch afk chain jefe.vida over 0 glhf
+    chat.send{"El jefe sigue en pie"}
+gg
+\end{lstlisting}
+
+\newpage
+% ================================================================ 11
+\section{Organización de archivos}
+
+Un proyecto \ggez\ es una carpeta con uno o más archivos \kw{.ggez}, que pueden organizarse en subcarpetas. Esta sección describe su estructura y las reglas para nombrar y organizar los archivos.
+
+\subsection{Estructura de un proyecto}
+
+Todo proyecto tiene un archivo principal, el único con \kw{lobby.launch}. Los demás son bibliotecas con \kw{combo}, \kw{guild} e \kw{inventory}, importadas con \kw{travel}.
+
+\begin{lstlisting}[language={}]
+MiAventura/
+    .ggezproyecto           (guarda cual es el archivo principal)
+    principal.ggez          (contiene lobby.launch)
+    reglas.ggez             (combos de las reglas del juego)
+    lib/
+        personajes.ggez     (guilds e inventories)
+\end{lstlisting}
+
+\kw{travel} busca el archivo en una carpeta relativa al que importa (\kw{from base} es la misma carpeta; \kw{from lib}, la subcarpeta \kw{lib}), de modo que un proyecto puede organizarse en carpetas.
+
+\subsection{Gestión desde el aplicativo}
+
+El árbol de archivos del IDE permite crear un proyecto, abrir una carpeta existente, crear archivos y carpetas, abrir archivos en pestañas, renombrarlos, eliminarlos y designar el archivo principal con clic derecho, «Marcar como principal». El archivo principal se identifica en el árbol con la etiqueta «(principal)», y la designación se guarda en el archivo \kw{.ggezproyecto} de la raíz del proyecto. El archivo activo se identifica por su pestaña y por la ruta que se muestra sobre el editor. Las pestañas abiertas se conservan al cerrar y volver a abrir el IDE.
+
+\subsection{Validaciones del archivo principal}
+
+Antes de compilar o ejecutar un proyecto se verifica que:
+\begin{itemize}
+  \item Exista un archivo designado como principal y que ese archivo no haya sido borrado. Si no, el IDE reporta un \textbf{error de proyecto} que indica cómo designarlo.
+  \item El archivo principal tenga exactamente un \kw{lobby.launch\{start THE GAME\}}.
+  \item Todas sus importaciones sean válidas (sección~\ref{sec:importaciones}).
+\end{itemize}
+
+Si el archivo que se ejecuta está en una carpeta con \kw{nivel.json}, se trata como un nivel del modo de juego y se ejecutan las pruebas del nivel (sección~\ref{sec:innovacion}).
+
+\subsection{Convenciones de nomenclatura}
+
+Se recomienda que los nombres de archivo usen solo letras, dígitos y guiones bajos, sin espacios ni tildes, y que describan su contenido (\kw{combate.ggez} en lugar de \kw{archivo1.ggez}). El archivo principal puede llamarse \kw{principal.ggez} o como el proyecto. La extensión \kw{.ggez} es obligatoria. Como \kw{travel} recibe el nombre del archivo como un identificador, un archivo cuyo nombre tenga espacios, tildes o guiones no puede importarse, y no puede llamarse \kw{chat}.
+
+\newpage
+% ================================================================ 12
+\section{Importaciones}
+\label{sec:importaciones}
+
+El sistema de importaciones permite reutilizar funciones y tipos definidos en otros archivos del mismo proyecto. La sintaxis y la semántica se documentan en las secciones 7.3.1 y 7.4.
+
+\subsection{Forma de importación}
+
+\ggez\ tiene una sola forma de importación: \kw{travel archivo from carpeta}. Todo lo que el archivo declara queda disponible con el nombre del módulo como prefijo, igual que \kw{chat.send}. Así siempre se sabe de qué archivo viene cada cosa.
+
+Archivo \kw{lib/personajes.ggez}:
+\begin{lstlisting}
+guild Heroe glhf
+    open lore nombre
+
+    combo Heroe{lore n} drops noloot glhf
+        nombre set n
+    gg
+gg
+
+combo saludo{Heroe h} drops lore glhf
+    reward "Hola, " gain h.nombre
+gg
+\end{lstlisting}
+
+Archivo \kw{principal.ggez}:
+\begin{lstlisting}
+travel personajes from lib
+
+lobby.launch{start THE GAME} glhf
+    stash personajes.Heroe h set spawn personajes.Heroe{"Ana"}
+    chat.send{personajes.saludo{h}}     /w imprime: Hola, Ana
+gg
+\end{lstlisting}
+
+\subsection{Validaciones del compilador}
+
+El compilador realiza las siguientes validaciones sobre cada importación. Todas se reportan como \kw{error de importacion}:
+
+\begin{longtable}{|p{4.2cm}|p{10.2cm}|}\hline
+\cab\textbf{Validación} & \textbf{Descripción} \\\hline\endhead
+Existencia del archivo & El archivo indicado en \kw{travel} debe existir en la carpeta indicada, con extensión \kw{.ggez}. Mensaje: \kw{no existe tienda.ggez en la carpeta 'lib'}. \\\hline
+Existencia de la función o el tipo & Lo que se usa con el prefijo del módulo debe estar declarado en ese archivo. Mensaje: \kw{el modulo combate no tiene 'curar'. Tiene: danoTotal}. \\\hline
+Cantidad de argumentos & Cada llamada a un \kw{combo} importado debe pasar tantos argumentos como parámetros declara. \\\hline
+Tipos de los argumentos & Cada argumento debe ser del tipo del parámetro. Mensaje: \kw{el parametro 'base' de 'danoTotal' es score y se paso un lore}. \\\hline
+Módulos duplicados & No se puede importar dos veces el mismo módulo en un archivo, ni dos módulos distintos con el mismo nombre, ni un módulo llamado \kw{chat}. \\\hline
+Importaciones circulares & Si \kw{a} importa \kw{b} y \kw{b} importa \kw{a}, directa o indirectamente, se reporta el ciclo completo: \kw{importacion en circulo: mapa.ggez -> zona.ggez -> mapa.ggez}. \\\hline
+Errores en el archivo importado & Si un archivo importado tiene errores léxicos, sintácticos o semánticos, la compilación se detiene y el error se reporta con su categoría original, el nombre del archivo importado y su línea. \\\hline
+\end{longtable}
+
+Las importaciones no son transitivas: para usar algo de un módulo hay que importarlo en el mismo archivo. Los archivos del proyecto que no se alcanzan desde el archivo principal no se analizan.
+
+\subsection{Restricciones estructurales}
+
+Los archivos importados solo pueden contener \kw{travel}, \kw{combo}, \kw{guild} e \kw{inventory}. No pueden tener \kw{lobby.launch}; si lo tienen, el compilador reporta: \kw{un archivo que se importa con travel es una biblioteca: no puede tener lobby.launch}. Las importaciones van al inicio del archivo, y cada archivo se carga una sola vez aunque varios lo importen.
+
+\newpage

@@ -55,6 +55,8 @@ public partial class ExplorerView : UserControl
         else
             _itemsMenuContextual.Children.Add(CrearItem("Renombrar", () => vm.RenombrarCommand.Execute(nodo)));
         _itemsMenuContextual.Children.Add(CrearItem("Eliminar", () => vm.EliminarCommand.Execute(nodo)));
+        if (!nodo.EsCarpeta && nodo.Nombre.EndsWith(".ggez", StringComparison.OrdinalIgnoreCase))
+            _itemsMenuContextual.Children.Add(CrearItem("Marcar como principal", () => vm.MarcarPrincipalCommand.Execute(nodo)));
 
         AbrirPopup();
     }

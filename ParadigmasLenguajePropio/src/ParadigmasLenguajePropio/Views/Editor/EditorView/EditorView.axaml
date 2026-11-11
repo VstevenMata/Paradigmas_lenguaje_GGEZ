@@ -45,7 +45,7 @@
             <DockPanel>
                 <Button DockPanel.Dock="Right" Margin="0,2,6,2" Padding="6,1" x:CompileBindings="False"
                         Command="{Binding $parent[Window].DataContext.ConstruirCommand}" CommandParameter="{Binding TabActiva}"
-                        ToolTip.Tip="Construir y ejecutar este archivo (F5)">
+                        ToolTip.Tip="Compilar y ejecutar (F5)">
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Play.png" Width="14" Height="14"
                                RenderOptions.BitmapInterpolationMode="None" />

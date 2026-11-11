@@ -6,7 +6,7 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 from . import arbol
-from .errores import ErrorSemantico
+from .errores import ErrorImportacion
 from .lexer import tokenizar
 from .sintactico import parsear
 
@@ -53,8 +53,8 @@ def cargar(ruta: Path) -> list[Archivo]:
         orden.append(archivo)
 
     def traer(archivo: Archivo, travel: arbol.Travel) -> Archivo:
-        def error(mensaje: str) -> ErrorSemantico:
-            return ErrorSemantico(mensaje, travel.linea, travel.columna, archivo.nombre)
+        def error(mensaje: str) -> ErrorImportacion:
+            return ErrorImportacion(mensaje, travel.linea, travel.columna, archivo.nombre)
 
         if travel.modulo in MODULOS_LIBRERIA:
             raise error(f"'{travel.modulo}' ya es un modulo de la libreria: el archivo tiene que llamarse distinto")
@@ -86,7 +86,7 @@ def cargar(ruta: Path) -> list[Archivo]:
         nuevo = leer(destino, travel.modulo)
         for declaracion in nuevo.programa.declaraciones:
             if isinstance(declaracion, arbol.PuntoEntrada):
-                raise ErrorSemantico(
+                raise ErrorImportacion(
                     "un archivo que se importa con travel es una biblioteca: no puede "
                     "tener lobby.launch",
                     declaracion.linea, declaracion.columna, nuevo.nombre,

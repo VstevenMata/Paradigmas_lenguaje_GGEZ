@@ -69,9 +69,14 @@ public partial class TerminalViewModel : ViewModelBase
     bool _huboErroresReales;
 
     // Formato del traductor: "archivo.ggez:12:5: error: mensaje"; lo que no matchea no genera fila
-    static readonly Regex RegexProblema = new(@"^(?<archivo>[^:]+):(?<linea>\d+):(?<columna>\d+):\s*(?<severidad>error|warning)?:?\s*(?<mensaje>.+)$", RegexOptions.Compiled);
+    static readonly Regex RegexProblema = new(@"^(?<archivo>[^:]+):(?<linea>\d+):(?<columna>\d+):\s*(?<severidad>error|warning|advertencia)?:?\s*(?<mensaje>.+)$", RegexOptions.Compiled);
+
+    static readonly Regex RegexCausa = new(@"^\s+posible causa:\s*(.+)$", RegexOptions.Compiled);
 
     public ObservableCollection<ProblemaItem> Problemas { get; } = new();
+
+    // Cada compilacion parte de cero: si no, los problemas ya corregidos se acumulan
+    public void LimpiarProblemas() => Problemas.Clear();
     public bool HayProblemas => Problemas.Count > 0;
 
     [RelayCommand]
@@ -228,10 +233,18 @@ public partial class TerminalViewModel : ViewModelBase
         LineasErrores.Add(new TerminalLinea("", texto, TerminalColorLinea.Error));
         while (LineasErrores.Count > LimiteLineasErrores) LineasErrores.RemoveAt(0);
 
+        // El traductor manda la posible causa en la linea siguiente al error
+        var causa = RegexCausa.Match(texto);
+        if (causa.Success && Problemas.Count > 0)
+        {
+            Problemas[^1] = Problemas[^1] with { Causa = causa.Groups[1].Value };
+            return;
+        }
+
         var match = RegexProblema.Match(texto);
         if (!match.Success) return;
 
-        var severidad = match.Groups["severidad"].Value == "warning" ? TerminalColorLinea.Aviso : TerminalColorLinea.Error;
+        var severidad = match.Groups["severidad"].Value is "warning" or "advertencia" ? TerminalColorLinea.Aviso : TerminalColorLinea.Error;
         Problemas.Add(new ProblemaItem(
             match.Groups["archivo"].Value,
             int.Parse(match.Groups["linea"].Value),

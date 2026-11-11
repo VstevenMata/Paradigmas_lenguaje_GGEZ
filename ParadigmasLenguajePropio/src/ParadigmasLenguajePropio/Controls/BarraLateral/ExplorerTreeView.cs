@@ -136,7 +136,7 @@ public class ExplorerTreeView : Control
         var destino = new Rect(x, y + (AltoFila - lado) / 2.0, lado, lado);
         context.DrawImage(icono, destino);
 
-        var texto = EditorFont.Formatear(nodo.Nombre, FontSize, seleccionado ? Brushes.White : Brushes.Black);
+        var texto = EditorFont.Formatear(nodo.EsPrincipal ? nodo.Nombre + "  (principal)" : nodo.Nombre, FontSize, seleccionado ? Brushes.White : Brushes.Black);
         double yTexto = y + (AltoFila - texto.Height) / 2.0;
         context.DrawText(texto, new Point(x + LadoIconoCarpeta + 4, yTexto));
     }

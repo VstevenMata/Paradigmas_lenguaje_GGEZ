@@ -198,15 +198,21 @@ public partial class MainWindowViewModel : ViewModelBase
     // Sin carpeta ni archivo abierto la terminal arrancaria en la carpeta del ejecutable
     bool HayLugarParaTerminal => Explorer.HayProyecto || Editor.HayArchivosAbiertos;
 
-    // Ejecuta el .ggez abierto con Traductor/ggezc.py (contrato en Traductor/README.md)
+    // Ejecutar (F5): compila y corre; Compilar (F6): solo revisa. Contrato en Traductor/README.md
     [RelayCommand]
-    // tab = null compila la pestaña activa del panel enfocado
-    async Task ConstruirAsync(EditorTabViewModel? tab)
+    Task Construir(EditorTabViewModel? tab) => LanzarTraductorAsync(tab, soloCompilar: false);
+
+    [RelayCommand]
+    Task Compilar(EditorTabViewModel? tab) => LanzarTraductorAsync(tab, soloCompilar: true);
+
+    // Con proyecto abierto corre su archivo principal; sin proyecto, la pestaña activa (tab = null: la del panel enfocado)
+    async Task LanzarTraductorAsync(EditorTabViewModel? tab, bool soloCompilar)
     {
         if (!HayLugarParaTerminal) return;
         await Editor.GuardarTodoAsync();
         TerminalVisible = true;
         Terminal.TabActiva = 0;
+        Terminal.LimpiarProblemas();
 
         var terminal = Terminal.InstanciaParaComando();
         if (terminal == null)
@@ -219,6 +225,24 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // El traductor lee del disco, no del buffer
         string? archivo = (tab ?? Editor.TabActiva)?.RutaCompleta;
+        // Un .ggez junto a un nivel.json es un nivel: F5 corre sus pruebas en vez de ejecutarlo
+        bool esNivel = !string.IsNullOrEmpty(archivo) && File.Exists(Path.Combine(Path.GetDirectoryName(archivo)!, "nivel.json"));
+
+        if (!esNivel && Explorer.HayProyecto)
+        {
+            archivo = Explorer.RutaPrincipal;
+            if (archivo == null)
+            {
+                terminal.EscribirAviso("Error de proyecto: no hay archivo principal. Clic derecho sobre un .ggez del arbol > Marcar como principal.");
+                return;
+            }
+            if (!File.Exists(archivo))
+            {
+                terminal.EscribirAviso($"Error de proyecto: el archivo principal '{Path.GetFileName(archivo)}' ya no existe. Marque otro como principal.");
+                return;
+            }
+        }
+
         if (string.IsNullOrEmpty(archivo))
         {
             terminal.EscribirAviso("Guarde el archivo antes de construir.");
@@ -239,9 +263,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        // Un .ggez junto a un nivel.json es un nivel: F5 corre sus pruebas en vez de ejecutarlo
+        if (soloCompilar)
+        {
+            terminal.EjecutarComando($"{ggezc} compile \"{archivo}\"");
+            return;
+        }
         string carpeta = Path.GetDirectoryName(archivo)!;
-        bool esNivel = File.Exists(Path.Combine(carpeta, "nivel.json"));
         string comando = esNivel ? "check" : "run";
         if (terminal.EjecutarComando($"{ggezc} {comando} \"{archivo}\" --eventos"))
             PanelJuego.ReiniciarMana(esNivel ? carpeta : null);
@@ -300,7 +327,8 @@ public partial class MainWindowViewModel : ViewModelBase
             case "Buscar": Editor.BuscarVisible = true; Editor.MostrarReemplazo = false; break;
             case "Buscar y reemplazar": Editor.BuscarVisible = true; Editor.MostrarReemplazo = true; break;
             case "Ir a línea": Editor.IrALineaVisible = true; break;
-            case "Construir": _ = ConstruirAsync(null); break;
+            case "Ejecutar": _ = LanzarTraductorAsync(null, soloCompilar: false); break;
+            case "Compilar": _ = LanzarTraductorAsync(null, soloCompilar: true); break;
             case "Ver errores": if (HayLugarParaTerminal) { TerminalVisible = true; Terminal.TabActiva = 1; } break;
             default: Console.WriteLine($"Menú: {opcion}"); break;
         }

@@ -1,0 +1,71 @@
+\subsection{Programas válidos}
+\label{pr:1_validos}
+Casos de la carpeta \texttt{pruebas/1\_validos/}.
+
+\begin{tablaprueba}
+1. Tipos simples y operaciones. Declarar los cinco tipos simples y una constante, y usar operaciones aritméticas, relacionales y lógicas & \texttt{1\_\allowbreak{}validos/\allowbreak{}01\_\allowbreak{}tipos\_\allowbreak{}y\_\allowbreak{}operaciones}. Entrada: ninguna & {\ttfamily\footnotesize Novato (rango B)\newline Vida tras 2 golpes: 70\newline Dano critico: 11.25\newline 17 split 5 = 3, 17 scrap 5 = 2\newline Sigue vivo: hit\newline Sin escudo: miss\newline Vida igual a 100: hit, distinta de 50: hit\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+2. Entrada de datos y condicionales. Leer datos con chat.load y decidir con scan, fallback y loadout & \texttt{1\_\allowbreak{}validos/\allowbreak{}02\_\allowbreak{}entrada\_\allowbreak{}y\_\allowbreak{}condicionales}. Entrada: Ana y mago & {\ttfamily\footnotesize Nombre del jugador:\newline Clase (guerrero, mago o arquero):\newline Bienvenido, Ana. Poder: 95\newline Rango: Pro\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+3. Ciclos. Usar farm (for), survive (while) y grind (do-while), con ragequit y respawn & \texttt{1\_\allowbreak{}validos/\allowbreak{}03\_\allowbreak{}ciclos}. Entrada: ninguna & {\ttfamily\footnotesize Monedas (1..6 sin el 3): 18\newline Quedan 3 enemigos\newline Quedan 2 enemigos\newline Quedan 1 enemigos\newline El grind corre al menos una vez\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+4. Funciones, recursión y squad. Combos con y sin retorno, parámetros, recursión directa y operaciones de squad & \texttt{1\_\allowbreak{}validos/\allowbreak{}04\_\allowbreak{}funciones\_\allowbreak{}y\_\allowbreak{}listas}. Entrada: ninguna & {\ttfamily\footnotesize 5! = 120\newline - Tanque\newline - Sanador\newline - Arquero\newline Ahora son 2, el primero es Curandero\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+5. Registros, clases, herencia y manejo de errores. Usar inventory, guild con evolves y clutch/revive/checkpoint & \texttt{1\_\allowbreak{}validos/\allowbreak{}05\_\allowbreak{}objetos\_\allowbreak{}y\_\allowbreak{}errores}. Entrada: ninguna & {\ttfamily\footnotesize Espada tiene poder 40\newline Conan: POR LA GLORIA!\newline Error atrapado en la linea 44: division entre cero\newline El checkpoint siempre corre\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}
+
+\subsection{Errores sintácticos}
+\label{pr:2_sintacticos}
+Casos de la carpeta \texttt{pruebas/2\_sintacticos/}.
+
+\begin{tablaprueba}
+1. Bloque sin cerrar. Detectar un glhf al que le falta su gg & \texttt{2\_\allowbreak{}sintacticos/\allowbreak{}01\_\allowbreak{}bloque\_\allowbreak{}sin\_\allowbreak{}gg}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:5:30: error sintactico: bloque sin cerrar: falta 'gg'\newline     posible causa: Cada glhf necesita su gg. Revise que no se haya borrado un gg al final de un bloque.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+2. Combo sin drops. Detectar un combo que no declara su tipo de retorno con drops & \texttt{2\_\allowbreak{}sintacticos/\allowbreak{}02\_\allowbreak{}combo\_\allowbreak{}sin\_\allowbreak{}drops}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:5:25: error sintactico: se esperaba 'drops' y se encontro 'glhf'\newline     posible causa: Revise el orden de las palabras en esta linea comparandolo con la sintaxis en Ayuda.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+3. Punto de entrada mal escrito. Detectar que start THE GAME es texto fijo obligatorio & \texttt{2\_\allowbreak{}sintacticos/\allowbreak{}03\_\allowbreak{}punto\_\allowbreak{}de\_\allowbreak{}entrada\_\allowbreak{}mal\_\allowbreak{}escrito}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:5:20: error sintactico: se esperaba 'THE' y se encontro 'GAME'\newline     posible causa: Revise el orden de las palabras en esta linea comparandolo con la sintaxis en Ayuda.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+4. Condicional sin glhf. Detectar un scan cuya condición no va seguida de glhf & \texttt{2\_\allowbreak{}sintacticos/\allowbreak{}04\_\allowbreak{}scan\_\allowbreak{}sin\_\allowbreak{}glhf}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:7:21: error sintactico: se esperaba 'glhf' y se encontro un salto de linea\newline     posible causa: Revise el orden de las palabras en esta linea comparandolo con la sintaxis en Ayuda.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+5. Declaración sin valor. Detectar un set al que le falta la expresión & \texttt{2\_\allowbreak{}sintacticos/\allowbreak{}05\_\allowbreak{}falta\_\allowbreak{}valor}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:6:25: error sintactico: se esperaba una expresion y se encontro un salto de linea\newline     posible causa: Revise el orden de las palabras en esta linea comparandolo con la sintaxis en Ayuda.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}
+
+\subsection{Errores semánticos}
+\label{pr:3_semanticos}
+Casos de la carpeta \texttt{pruebas/3\_semanticos/}.
+
+\begin{tablaprueba}
+1. Variable no declarada. Detectar el uso de una variable que nunca se declaró con stash & \texttt{3\_\allowbreak{}semanticos/\allowbreak{}01\_\allowbreak{}no\_\allowbreak{}declarada}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:7:25: error semantico: 'escudo' no esta declarada\newline     posible causa: Declarela con stash antes de usarla, o revise si escribio mal el nombre o si quedo en otro bloque.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+2. Tipos incompatibles. Detectar que se guarda un lore en una variable score & \texttt{3\_\allowbreak{}semanticos/\allowbreak{}02\_\allowbreak{}tipos\_\allowbreak{}incompatibles}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:6:5: error semantico: se esperaba score y se obtuvo lore\newline     posible causa: Los tipos no coinciden: use un valor del tipo declarado (score, aim, lore, win, pixel...).\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+3. Cantidad de argumentos. Detectar una llamada con menos argumentos que parámetros & \texttt{3\_\allowbreak{}semanticos/\allowbreak{}03\_\allowbreak{}cantidad\_\allowbreak{}argumentos}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:10:21: error semantico: el combo 'atacar' espera 2 argumento(s) y recibio 1\newline     posible causa: Revise la firma del combo: la cantidad de valores entre \{ \} debe ser igual a la de parametros.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+4. Redeclaración. Detectar dos stash con el mismo nombre en el mismo bloque & \texttt{3\_\allowbreak{}semanticos/\allowbreak{}04\_\allowbreak{}redeclaracion}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:7:5: error semantico: 'oro' ya fue declarada en este bloque\newline     posible causa: Para cambiar su valor use set sin stash.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+5. Archivo principal sin punto de entrada. Detectar que el archivo principal no tiene lobby.launch & \texttt{3\_\allowbreak{}semanticos/\allowbreak{}05\_\allowbreak{}sin\_\allowbreak{}punto\_\allowbreak{}de\_\allowbreak{}entrada}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:1:1: error semantico: el programa no tiene punto de entrada: falta lobby.launch\{start THE GAME\}\newline     posible causa: Agregue lobby.launch\{start THE GAME\} glhf ... gg en el archivo principal.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}
+
+\subsection{Pruebas de importaciones}
+\label{pr:4_importaciones}
+Casos de la carpeta \texttt{pruebas/4\_importaciones/}.
+
+\begin{tablaprueba}
+1. Importación válida. Usar combos y tipos de un archivo de la misma carpeta (base) y de una subcarpeta (lib) & \texttt{4\_\allowbreak{}importaciones/\allowbreak{}01\_\allowbreak{}importacion\_\allowbreak{}valida}. Entrada: ninguna & {\ttfamily\footnotesize Dano: 60\newline Pocion cuesta 25 monedas\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+2. Archivo importado inexistente. Detectar un travel a un archivo que no existe & \texttt{4\_\allowbreak{}importaciones/\allowbreak{}02\_\allowbreak{}archivo\_\allowbreak{}inexistente}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:5:1: error de importacion: no existe inventario.ggez en la misma carpeta\newline     posible causa: Revise el nombre del archivo o tipo y la carpeta indicada en el from.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+3. Combo inexistente en el módulo. Detectar la llamada a un combo que el archivo importado no define & \texttt{4\_\allowbreak{}importaciones/\allowbreak{}03\_\allowbreak{}combo\_\allowbreak{}inexistente}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:8:22: error de importacion: el modulo combate no tiene 'curar'. Tiene: danoTotal\newline     posible causa: Revise el nombre: el mensaje lista lo que si existe.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+4. Tipos incompatibles en una llamada importada. Detectar que se pasa un lore a un parámetro score de un combo de otro archivo & \texttt{4\_\allowbreak{}importaciones/\allowbreak{}04\_\allowbreak{}tipos\_\allowbreak{}en\_\allowbreak{}llamada\_\allowbreak{}importada}. Entrada: ninguna & {\ttfamily\footnotesize principal.ggez:8:33: error de importacion: el parametro 'base' de 'danoTotal' es score y se paso un lore\newline     posible causa: Pase un valor del tipo que declara el parametro.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+5. Error dentro de un archivo importado. Detectar y ubicar un error que está en el archivo importado, no en el principal & \texttt{4\_\allowbreak{}importaciones/\allowbreak{}05\_\allowbreak{}error\_\allowbreak{}en\_\allowbreak{}importado}. Entrada: ninguna & {\ttfamily\footnotesize combate.ggez:2:22: error semantico: 'golpez' no esta declarada\newline     posible causa: Declarela con stash antes de usarla, o revise si escribio mal el nombre o si quedo en otro bloque.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}
+
+\subsection{Prueba de importación circular}
+\label{pr:5_circular}
+Casos de la carpeta \texttt{pruebas/5\_circular/}.
+
+\begin{tablaprueba}
+1. Importación circular. Detectar el ciclo mapa -> zona -> mapa & \texttt{5\_\allowbreak{}circular/\allowbreak{}01\_\allowbreak{}circular}. Entrada: ninguna & {\ttfamily\footnotesize zona.ggez:1:1: error de importacion: importacion en circulo: mapa.ggez -> zona.ggez -> mapa.ggez\newline     posible causa: Elimine uno de los travel del ciclo para que ningun archivo dependa de si mismo.\newline [codigo de salida 1]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}
+
+\subsection{Prueba completa relacionada con el problema}
+\label{pr:6_completa}
+Casos de la carpeta \texttt{pruebas/6\_completa/}.
+
+\begin{tablaprueba}
+1. La aventura del novato. Programa completo de un juego por turnos, como el que haría un estudiante de primer ingreso: módulos, clases con herencia, squad, ciclos, condicionales, recursión, entrada de datos y manejo de errores & \texttt{6\_\allowbreak{}completa/\allowbreak{}01\_\allowbreak{}aventura\_\allowbreak{}del\_\allowbreak{}novato}. Entrada: Ana y mago & {\ttfamily\footnotesize Nombre del heroe:\newline Clase (guerrero o mago):\newline == Ana el mago (vida 80, ataque 30) ==\newline Aparece Slime!\newline   Ana golpea a Slime por 30\newline Slime derrotado en 1 ronda(s)\newline   Pocion: vida = 110\newline Aparece Goblin!\newline   Ana golpea a Goblin por 30\newline   Goblin responde por 7\newline   Ana golpea a Goblin por 30\newline Goblin derrotado en 2 ronda(s)\newline   Pocion: vida = 133\newline Aparece Dragon!\newline   Ana golpea a Dragon por 30\newline   Dragon responde por 12\newline   Ana golpea a Dragon por 30\newline   Dragon responde por 12\newline   Ana golpea a Dragon por 30\newline Dragon derrotado en 3 ronda(s)\newline   No se pudo curar: no quedan pociones\newline Enemigos derrotados: 3 de 3\newline Experiencia total: 60\newline Rango final: Pro\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}
+
+\subsection{Advertencias}
+\label{pr:7_advertencias}
+Casos de la carpeta \texttt{pruebas/7\_advertencias/}.
+
+\begin{tablaprueba}
+1. Advertencias del compilador. Avisar de una variable sin usar, un combo que nunca se llama y código que nunca se ejecuta, sin impedir la ejecución & \texttt{7\_\allowbreak{}advertencias/\allowbreak{}01\_\allowbreak{}advertencias}. Entrada: ninguna & {\ttfamily\footnotesize Oro doble: 100\newline principal.ggez:11:5: advertencia: este codigo nunca se ejecuta: esta despues de un 'reward'\newline principal.ggez:16:1: advertencia: la variable 'extra' se declaro pero su valor nunca se usa\newline principal.ggez:5:1: advertencia: el combo 'sinUso' nunca se llama\newline [codigo de salida 0]} & Igual al esperado. \textbf{Aprobada} \\ \hline
+\end{tablaprueba}

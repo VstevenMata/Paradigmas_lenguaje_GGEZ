@@ -201,7 +201,10 @@ public class EditorTextArea : Control
         ["over"] = Relacionales, 
         ["under"] = Relacionales, 
         ["atleast"] = Relacionales, 
-        ["atmost"] = Relacionales, 
+        ["atmost"] = Relacionales,
+        ["chain"] = Relacionales,
+        ["swap"] = Relacionales,
+        ["dodge"] = Relacionales,
 
         ["set"] = Asignacion, 
         ["boost"] = Suma, 

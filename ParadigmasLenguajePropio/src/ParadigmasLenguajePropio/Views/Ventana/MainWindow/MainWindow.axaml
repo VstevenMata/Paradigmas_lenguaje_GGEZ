@@ -82,8 +82,11 @@
 
                 <controls:Win95Divider Margin="0,5" />
 
-                <Button Width="28" Height="28" Padding="4" Command="{Binding ConstruirCommand}" ToolTip.Tip="Construir">
+                <Button Width="28" Height="28" Padding="4" Command="{Binding CompilarCommand}" ToolTip.Tip="Compilar (F6)">
                     <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Build.png" RenderOptions.BitmapInterpolationMode="None" />
+                </Button>
+                <Button Width="28" Height="28" Padding="4" Command="{Binding ConstruirCommand}" ToolTip.Tip="Ejecutar (F5)">
+                    <Image Source="avares://ParadigmasLenguajePropio/Assets/Icons/Icon_Play.png" RenderOptions.BitmapInterpolationMode="None" />
                 </Button>
 
                 <controls:Win95Divider Margin="0,5" />

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import arbol
-from .errores import ErrorSemantico
+from .errores import ErrorImportacion, ErrorSemantico
 from .tokens import TIPOS_SIMPLES
 
 # score se promueve a aim solo; al reves no, se perderian decimales
@@ -53,6 +53,8 @@ class Simbolo:
     miembro: bool = False
     dueno: str | None = None
     modificador: str | None = None
+    # Solo las variables con stash arrancan en False: parametros, me y el error de revive no avisan
+    leido: bool = True
 
 
 @dataclass
@@ -79,6 +81,10 @@ class InfoGuild:
     constructor: Firma | None
     linea: int
     padre: str | None = None
+
+# Sentencias tras las que el resto del bloque no corre
+SALIDAS = {arbol.Reward: "reward", arbol.Ragequit: "ragequit", arbol.Respawn: "respawn", arbol.Wipe: "wipe"}
+
 
 class Alcance:
 
@@ -124,6 +130,11 @@ class Semantico:
         self.guilds = guilds if guilds is not None else {}
         self.combo_actual: Firma | None = None
         self.guild_actual: str | None = None
+        self.advertencias: list[str] = []
+        self.llamados: set[str] = set()
+
+    def _advertir(self, mensaje: str, linea: int, columna: int = 1) -> None:
+        self.advertencias.append(f"{self.archivo}:{linea}:{columna}: advertencia: {mensaje}")
 
     def _error(self, mensaje: str, nodo: arbol.Nodo) -> ErrorSemantico:
         return ErrorSemantico(mensaje, nodo.linea, nodo.columna, self.archivo)
@@ -151,6 +162,12 @@ class Semantico:
 
         for declaracion in programa.declaraciones:
             self.declaracion(declaracion)
+
+        if principal:
+            # Solo en el principal: un archivo importado puede tener combos que este programa no usa
+            for d in programa.declaraciones:
+                if isinstance(d, arbol.DeclCombo) and d.nombre not in self.llamados:
+                    self._advertir(f"el combo '{d.nombre}' nunca se llama", d.linea, d.columna)
 
         if principal and self.puntos_entrada == 0:
             raise ErrorSemantico(
@@ -499,8 +516,19 @@ class Semantico:
 
     def bloque(self, nodo: arbol.Bloque) -> None:
         self.alcance = Alcance(self.alcance)
+        salida = None
         for sentencia in nodo.sentencias:
+            if salida is not None:
+                self._advertir(f"este codigo nunca se ejecuta: esta despues de un '{salida}'",
+                               sentencia.linea, sentencia.columna)
+                salida = ""                         # un solo aviso por bloque
             self.sentencia(sentencia)
+            if salida is None and type(sentencia) in SALIDAS:
+                salida = SALIDAS[type(sentencia)]
+        for simbolo in self.alcance.simbolos.values():
+            if not simbolo.leido:
+                self._advertir(f"la variable '{simbolo.nombre}' se declaro pero su valor nunca se usa",
+                               simbolo.linea)
         self.alcance = self.alcance.padre          # type: ignore[assignment]
 
     def sentencia(self, nodo: arbol.Nodo) -> None:
@@ -660,10 +688,15 @@ class Semantico:
             obtenido = self.expresion(nodo.valor)
             self._verificar_asignable(declarado, obtenido, nodo, nodo.valor)
 
-        self.alcance.declarar(Simbolo(nombre, declarado, nodo.constante, nodo.linea))
+        self.alcance.declarar(Simbolo(nombre, declarado, nodo.constante, nodo.linea, leido=False))
 
     def asignacion(self, nodo: arbol.Asignacion) -> None:
+        # Escribir no cuenta como usar: se restaura la marca que pone expresion()
+        previo = self.alcance.buscar(nodo.destino.nombre) if isinstance(nodo.destino, arbol.Identificador) else None
+        leido = previo.leido if previo else True
         destino = self.expresion(nodo.destino)
+        if previo:
+            previo.leido = leido
         valor = self.expresion(nodo.valor)
         self._verificar_no_falla(nodo.destino, nodo)
         if isinstance(nodo.destino, arbol.Me):
@@ -701,6 +734,9 @@ class Semantico:
         self, destino: str, origen: str, nodo: arbol.Nodo, valor: arbol.Nodo | None = None
     ) -> None:
         if destino == origen or origen == "desconocido":
+            return
+        # afk es el null de Java: vale para lore, pixel, colecciones y objetos, no para score, aim ni win
+        if origen == "afk" and destino not in ("score", "aim", "win"):
             return
         if self._es_hijo(origen, destino):
             return
@@ -742,6 +778,7 @@ class Semantico:
                 if nodo.nombre in self.modulos:
                     return "modulo"
                 raise self._error(f"'{nodo.nombre}' no esta declarada", nodo)
+            simbolo.leido = True
             if simbolo.miembro:
                 self._verificar_visible(
                     simbolo.dueno, f"'{nodo.nombre}'", simbolo.modificador, nodo   # type: ignore[arg-type]
@@ -855,8 +892,9 @@ class Semantico:
                     nodo,
                 )
             disponibles = ", ".join(sorted(importado.combos)) or "ningun combo"
-            raise self._error(
-                f"el modulo {modulo} no tiene '{nodo.campo}'. Tiene: {disponibles}", nodo
+            raise ErrorImportacion(
+                f"el modulo {modulo} no tiene '{nodo.campo}'. Tiene: {disponibles}",
+                nodo.linea, nodo.columna, self.archivo,
             )
 
         if nodo.campo == "size" and constructor_de(objeto) is not None:
@@ -995,7 +1033,10 @@ class Semantico:
             if marca.startswith("externo:"):
                 _, modulo, nombre = marca.split(":", 2)
                 firma = self.importa[modulo].combos[nombre]
-                self._verificar_argumentos(firma, nodo, f"el combo '{modulo}.{nombre}'")
+                try:
+                    self._verificar_argumentos(firma, nodo, f"el combo '{modulo}.{nombre}'")
+                except ErrorSemantico as err:
+                    raise ErrorImportacion(err.mensaje, err.linea, err.columna, err.archivo) from None
                 return firma.retorno if firma.retorno is not None else "noloot"
 
         if isinstance(nodo.destino, arbol.Identificador):
@@ -1025,6 +1066,8 @@ class Semantico:
             return "desconocido"
 
         self._verificar_argumentos(firma, nodo, f"el combo '{firma.nombre}'", tipos)
+        if self.combo_actual is None or self.combo_actual.nombre != firma.nombre:
+            self.llamados.add(firma.nombre)     # llamarse a si mismo no cuenta como uso
         if firma.retorno is None:
             return "noloot"
         return firma.retorno
@@ -1123,7 +1166,7 @@ def analizar(programa: arbol.Programa, archivo: str = "<entrada>") -> arbol.Prog
     return Semantico(archivo).analizar(programa)
 
 
-def analizar_archivos(archivos: list) -> None:
+def analizar_archivos(archivos: list) -> list[str]:
     """Revisa cada archivo con su tabla; vienen en orden, lo importado ya esta revisado -> D-28."""
     registros: dict[str, list[tuple[str, str]]] = {}
     guilds: dict[str, InfoGuild] = {}
@@ -1133,3 +1176,4 @@ def analizar_archivos(archivos: list) -> None:
         semantico = Semantico(archivo.nombre, registros, guilds, archivo.modulo, importa)
         semantico.analizar(archivo.programa, principal=archivo.modulo is None)
         revisados[id(archivo)] = semantico
+    return [a for s in revisados.values() for a in s.advertencias]

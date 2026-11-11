@@ -23,6 +23,19 @@ public partial class NodoArchivos : ObservableObject
 
     public bool EsRaizDeProyecto => Padre == null && !string.IsNullOrEmpty(RutaCompleta);
 
+    // ponytail: estatica porque el IDE abre un solo proyecto a la vez
+    public static string? RutaPrincipal { get; set; }
+
+    public bool EsPrincipal => !EsCarpeta && RutaPrincipal != null && !string.IsNullOrEmpty(RutaCompleta)
+                               && Path.GetFullPath(RutaCompleta) == RutaPrincipal;
+
+    // El arbol se redibuja con cualquier PropertyChanged de sus nodos
+    public void AvisarPrincipal()
+    {
+        OnPropertyChanged(nameof(EsPrincipal));
+        foreach (var hijo in Hijos) hijo.AvisarPrincipal();
+    }
+
     bool _intentoCarga;
 
     // Solo la primera expansion carga los hijos

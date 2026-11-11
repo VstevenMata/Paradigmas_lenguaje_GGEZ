@@ -61,7 +61,8 @@ public static class Ayuda
         ]),
         new("Ejecutar y ayuda",
         [
-            A("F5", "Construir y ejecutar el .ggez abierto"),
+            A("F5", "Ejecutar: compila y corre el archivo principal del proyecto"),
+            A("F6", "Compilar: revisa el proyecto sin ejecutarlo"),
             A("F1", "Mostrar estos atajos"),
         ]),
         new("Terminal",
@@ -210,5 +211,17 @@ public static class Ayuda
             P("En círculo", "Si a importa b y b importa a, da error: importacion en circulo: a.ggez -> b.ggez -> a.ggez"),
             P("Errores", "Un error dentro del archivo importado se reporta con el nombre y la línea de ese archivo."),
         ]),
+
+        new("12. Semántica: cómo corre un programa",
+        [
+            P("Inicio", "Corre el lobby.launch{start THE GAME} del archivo principal (clic derecho en el árbol > Marcar como principal). Debe haber exactamente uno."),
+            P("Bloques", "Cada glhf abre un bloque y su gg lo cierra. La indentación no es obligatoria, solo ayuda a leer."),
+            P("Variables", "Se declaran con stash y su tipo. Las simples necesitan set; el tipo nunca cambia."),
+            P("Alcance", "Lo declarado dentro de un bloque solo existe hasta su gg. No se puede repetir el nombre de una variable de un bloque de afuera."),
+            P("Expresiones", "Se evalúan de izquierda a derecha respetando la precedencia; chain y swap se cortan apenas saben el resultado."),
+            P("Funciones", "Los argumentos se evalúan antes de entrar al combo. reward termina el combo y devuelve el valor; drops noloot no devuelve nada."),
+            P("Compilar (F6)", "Revisa palabras, estructura, tipos, funciones e importaciones sin ejecutar. Con errores no se ejecuta nada."),
+            P("Errores", "Se muestran con tipo, archivo, línea, descripción y posible causa en la pestaña Problemas. Las advertencias no detienen la ejecución."),
+        ], "Las reglas que sigue GGEZ al revisar y ejecutar un programa."),
     ];
 }
