@@ -58,8 +58,8 @@ TEXTO=(
 ""
 "Un lenguaje de programación con alma de videojuego."
 ""
-"Steven Mata · Ángel Ureña · Maikel Segura"
-"${GRIS}Curso de Paradigmas de Programación"
+"Steven Mata · Maikel Segura · Angel Ureña"
+"${GRIS}Paradigmas de Programación · UNA · 2026"
 )
 ETAPAS=("Sistema" "Carpeta" "Instalación" "Listo")
 OPCIONES=("Linux" "Windows" "Salir")
