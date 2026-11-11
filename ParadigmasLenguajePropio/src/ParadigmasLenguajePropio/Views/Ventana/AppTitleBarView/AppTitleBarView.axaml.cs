@@ -55,16 +55,20 @@ public partial class AppTitleBarView : UserControl
         _window = TopLevel.GetTopLevel(this) as Window;
         if (_window == null) return;
 
-        _window.Activated += (_, _) => ActualizarFondoSegunFoco();
-        _window.Deactivated += (_, _) => ActualizarFondoSegunFoco();
-        ActualizarFondoSegunFoco();
+        // Arranca con el color activo del XAML: aqui la ventana aun no se muestra e IsActive da false,
+        // y hay gestores de ventanas que nunca mandan Activated, asi que quedaba gris para siempre
+        _window.Activated += (_, _) => ActualizarFondoSegunFoco(true);
+        _window.Deactivated += (_, _) => ActualizarFondoSegunFoco(false);
     }
 
-    void ActualizarFondoSegunFoco()
+    IDisposable? _fondoRecurso;
+
+    // Enlazado al recurso (no copiado) para que tambien cambie al cambiar de tema
+    void ActualizarFondoSegunFoco(bool activa)
     {
-        bool activa = _window?.IsActive ?? true;
-        _fondo.Background = (Avalonia.Media.IBrush?)this.FindResource(
-            activa ? "TemaTitleBarActivaBrush" : "TemaTitleBarInactivaBrush");
+        _fondoRecurso?.Dispose();
+        _fondoRecurso = _fondo.Bind(Border.BackgroundProperty,
+            this.GetResourceObservable(activa ? "TemaTitleBarActivaBrush" : "TemaTitleBarInactivaBrush"));
     }
 
     // Sin decoracion nativa, BeginMoveDrag delega el arrastre al gestor de ventanas
