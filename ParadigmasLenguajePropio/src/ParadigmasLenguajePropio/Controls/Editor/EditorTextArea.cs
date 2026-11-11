@@ -97,119 +97,25 @@ public class EditorTextArea : Control
         ("HACK", new SolidColorBrush(Color.FromArgb(90, 245, 158, 11))),
     };
 
-    /*Los colores de las variables estan basados en los tipos de rarezas que 
-    tienen los items en los videojuegos*/
-    static readonly IBrush ColorTipoDato = new SolidColorBrush(Color.Parse("#4FA3FF"));
-    static readonly IBrush EstructuraDelPrograma = new SolidColorBrush(Color.Parse("#2EC4B6"));
-    static readonly IBrush Declaraciones = new SolidColorBrush(Color.Parse("#C792EA"));
-    static readonly IBrush Modificadores = new SolidColorBrush(Color.Parse("#F07178"));
-    static readonly IBrush FlujoDeControl = new SolidColorBrush(Color.Parse("#5C7CFA"));
-    static readonly IBrush ManejoDeErrores = new SolidColorBrush(Color.Parse("#FFD23F"));
-    static readonly IBrush RojoDano = new SolidColorBrush(Color.Parse("#FF4D4D"));
-    static readonly IBrush VerdeVida = new SolidColorBrush(Color.Parse("#3DDC84"));
-    static readonly IBrush Nulo = new SolidColorBrush(Color.FromArgb(179, 0x6B, 0x6B, 0x6B));
-    static readonly IBrush Instancia = new SolidColorBrush(Color.Parse("#7FDBFF"));
-    static readonly IBrush Entrada = new SolidColorBrush(Color.Parse("#00E5FF"));
-    static readonly IBrush Suma = new SolidColorBrush(Color.Parse("#7EE787"));
-    static readonly IBrush Resta = new SolidColorBrush(Color.Parse("#FF7B72"));
-    static readonly IBrush Critico = new SolidColorBrush(Color.Parse("#FFE66D"));
-    static readonly IBrush Reparto = new SolidColorBrush(Color.Parse("#98C1D9"));
-    static readonly IBrush Relacionales = new SolidColorBrush(Color.Parse("#E5C07B"));
-    static readonly IBrush Delimitadores = new SolidColorBrush(Color.Parse("#5C6370"));
-    static readonly IBrush Asignacion = new SolidColorBrush(Color.Parse("#ABB2BF"));
-    static readonly Dictionary<string, IBrush> ColoresSintaxis = new()
+    // Mismos colores que C++ en Visual Studio 2022: Claro con el tema claro, Oscuro con Modo Oscuro
+    static IBrush Pincel(string hex) => new SolidColorBrush(Color.Parse(hex));
+    static readonly (IBrush Claro, IBrush Oscuro) PalabraClave = (Pincel("#0000FF"), Pincel("#569CD6"));
+    static readonly (IBrush Claro, IBrush Oscuro) PalabraControl = (Pincel("#8F08C4"), Pincel("#D8A0DF"));
+    static readonly (IBrush Claro, IBrush Oscuro) Funcion = (Pincel("#74531F"), Pincel("#DCDCAA"));
+    static readonly (IBrush Claro, IBrush Oscuro) Tipo = (Pincel("#2B91AF"), Pincel("#4EC9B0"));
+    static readonly (IBrush Claro, IBrush Oscuro) Texto = (Pincel("#A31515"), Pincel("#D69D85"));
+    static readonly (IBrush Claro, IBrush Oscuro) Numero = (Brushes.Black, Pincel("#B5CEA8"));
+
+    // Cada palabra toma el color de su equivalente en C++: if/for/return/try son de control; int, class, and, true... son clave
+    static readonly Dictionary<string, (IBrush Claro, IBrush Oscuro)> ColoresSintaxis = new[]
     {
-        ["lobby"] = EstructuraDelPrograma,  
-        ["launch"] = EstructuraDelPrograma,
-        ["start"] = EstructuraDelPrograma,  
-        ["THE"] = EstructuraDelPrograma,
-        ["GAME"] = EstructuraDelPrograma,
-        ["travel"] = EstructuraDelPrograma, 
-        ["from"] = EstructuraDelPrograma,   
-        ["server"] = EstructuraDelPrograma, 
-        ["region"] = EstructuraDelPrograma, 
-        ["quit"] = RojoDano,                
-
-        ["stash"] = Declaraciones,     
-        ["hardcoded"] = Declaraciones, 
-        ["noloot"] = ColorTipoDato,    
-        ["afk"] = Nulo,                
-
-        ["score"] = ColorTipoDato,
-        ["aim"] = ColorTipoDato, 
-        ["lore"] = ColorTipoDato,
-        ["win"] = ColorTipoDato, 
-        ["pixel"] = ColorTipoDato, 
-        ["squad"] = ColorTipoDato,
-        ["stack"] = ColorTipoDato, 
-        ["matchmaking"] = ColorTipoDato,
-        ["inventory"] = ColorTipoDato, 
-
-        ["hit"] = VerdeVida, 
-        ["miss"] = RojoDano, 
-
-        ["scan"] = FlujoDeControl,
-        ["fallback"] = FlujoDeControl, 
-        ["farm"] = FlujoDeControl,
-        ["survive"] = FlujoDeControl,
-        ["grind"] = FlujoDeControl, 
-        ["loadout"] = FlujoDeControl,
-        ["pick"] = FlujoDeControl,
-        ["noob"] = FlujoDeControl, 
-        ["ragequit"] = FlujoDeControl,
-        ["respawn"] = FlujoDeControl,
-
-        ["combo"] = Declaraciones,
-        ["drops"] = Declaraciones, 
-        ["reward"] = Declaraciones, 
-
-        ["clutch"] = ManejoDeErrores,
-        ["revive"] = ManejoDeErrores, 
-        ["checkpoint"] = ManejoDeErrores, 
-        ["wipe"] = RojoDano, 
-
-        ["guild"] = Declaraciones,
-        ["questline"] = Declaraciones, 
-        ["evolves"] = Declaraciones,
-        ["spawn"] = Declaraciones,
-        ["me"] = Instancia, 
-        ["open"] = Modificadores,
-        ["party"] = Modificadores, 
-        ["solo"] = Modificadores, 
-
-        ["load"] = Entrada,
-        ["rage"] = RojoDano,
-        ["physics"] = EstructuraDelPrograma, 
-        ["rng"] = EstructuraDelPrograma,
-        ["clock"] = EstructuraDelPrograma, 
-        ["save"] = EstructuraDelPrograma,
-
-        ["buff"] = Suma,
-        ["nerf"] = Resta,
-
-        ["glhf"] = Delimitadores, 
-        ["gg"] = Delimitadores,
-
-        ["gain"] = Suma, 
-        ["drain"] = Resta, 
-        ["crit"] = Critico, 
-        ["split"] = Reparto,
-        ["scrap"] = Reparto,
-
-        ["matches"] = Relacionales, 
-        ["mismatch"] = Relacionales,
-        ["over"] = Relacionales, 
-        ["under"] = Relacionales, 
-        ["atleast"] = Relacionales, 
-        ["atmost"] = Relacionales,
-        ["chain"] = Relacionales,
-        ["swap"] = Relacionales,
-        ["dodge"] = Relacionales,
-
-        ["set"] = Asignacion, 
-        ["boost"] = Suma, 
-        ["sap"] = Resta,
-    };
+        (Color: PalabraClave, Palabras: "lobby start THE GAME travel from server region quit stash hardcoded noloot afk " +
+            "score aim lore win pixel squad stack queue inventory hit miss combo drops guild questline evolves spawn me " +
+            "open party solo glhf gg gain drain crit split scrap matches mismatch over under atleast atmost " +
+            "set boost sap buff nerf chain swap dodge"),
+        (Color: PalabraControl, Palabras: "scan fallback farm survive grind loadout pick noob ragequit respawn reward clutch revive checkpoint wipe"),
+        (Color: Tipo, Palabras: "chat arsenal physics rng clock save"),
+    }.SelectMany(g => g.Palabras.Split(' ').Select(p => (Palabra: p, g.Color))).ToDictionary(x => x.Palabra, x => x.Color);
 
     public static readonly StyledProperty<EditorTabViewModel?> TabProperty =
         AvaloniaProperty.Register<EditorTextArea, EditorTabViewModel?>(nameof(Tab));
@@ -420,7 +326,7 @@ public class EditorTextArea : Control
                 if (ocultarDelimitadores)
                     foreach (var d in delimitadores!) formateado.SetForegroundBrush(Brushes.Transparent, d.Inicio, d.Largo);
                 context.DrawText(formateado, new Point(MargenIzquierdo, y));
-                DibujarSintaxis(context, texto, y, fontSize, comentarios, ocultarDelimitadores);
+                DibujarSintaxis(context, texto, y, fontSize, comentarios, modoOscuro, ocultarDelimitadores);
             }
 
             nivelBrackets = ProcesarBrackets(context, texto, y, nivelBrackets, fontSize, dibujar: bracketColorizer, ocultarPalabras: ocultarDelimitadores, comentarios: comentarios);
@@ -483,9 +389,12 @@ public class EditorTextArea : Control
         return -1;
     }
 
-    // Palabras clave con color de una linea, saltando strings y comentarios
-    public static IEnumerable<(int Inicio, string Palabra, IBrush Color)> PalabrasColoreadas(string texto, List<(int Inicio, int Fin)> comentarios)
+    // Tramos con color de una linea (palabras, funciones, tipos, textos y numeros), saltando comentarios
+    public static IEnumerable<(int Inicio, string Palabra, IBrush Color)> PalabrasColoreadas(string texto, List<(int Inicio, int Fin)> comentarios, bool oscuro)
     {
+        IBrush De((IBrush Claro, IBrush Oscuro) color) => oscuro ? color.Oscuro : color.Claro;
+
+        string anterior = "";
         int c = 0;
         while (c < texto.Length)
         {
@@ -494,10 +403,24 @@ public class EditorTextArea : Control
             int finComentario = FinDeComentarioEn(comentarios, c);
             if (finComentario >= 0) { c = finComentario; continue; }
 
-            if (ch == '"')
+            if (ch is '"' or '\'')
             {
-                int cierre = texto.IndexOf('"', c + 1);
-                c = cierre < 0 ? texto.Length : cierre + 1;
+                int fin = c + 1;
+                while (fin < texto.Length && texto[fin] != ch) fin += texto[fin] == '\\' ? 2 : 1;
+                fin = Math.Min(fin + 1, texto.Length);
+                yield return (c, texto[c..fin], De(Texto));
+                c = fin;
+                continue;
+            }
+
+            // Igual que el lexer: el punto es decimal solo si le sigue un digito
+            if (char.IsDigit(ch))
+            {
+                int inicioNumero = c;
+                while (c < texto.Length && char.IsDigit(texto[c])) c++;
+                if (c + 1 < texto.Length && texto[c] == '.' && char.IsDigit(texto[c + 1]))
+                    for (c++; c < texto.Length && char.IsDigit(texto[c]); c++) { }
+                yield return (inicioNumero, texto[inicioNumero..c], De(Numero));
                 continue;
             }
 
@@ -507,14 +430,19 @@ public class EditorTextArea : Control
             while (c < texto.Length && (char.IsLetterOrDigit(texto[c]) || texto[c] == '_')) c++;
 
             string palabra = texto[inicio..c];
-            if (ColoresSintaxis.TryGetValue(palabra, out var brush)) yield return (inicio, palabra, brush);
+            // Como en C++: el nombre tras guild/stash/spawn... es un tipo y nombre{...} es una funcion
+            if (ColoresSintaxis.TryGetValue(palabra, out var color)) yield return (inicio, palabra, De(color));
+            else if (anterior is "guild" or "inventory" or "questline" or "evolves" or "spawn" or "stash" or "hardcoded" or "drops")
+                yield return (inicio, palabra, De(Tipo));
+            else if (c < texto.Length && texto[c] == '{') yield return (inicio, palabra, De(Funcion));
+            anterior = palabra;
         }
     }
 
-    // Repinta encima las palabras clave con color
-    static void DibujarSintaxis(DrawingContext context, string texto, double y, double fontSize, List<(int Inicio, int Fin)> comentarios, bool ocultarDelimitadores = false)
+    // Repinta encima los tramos con color
+    static void DibujarSintaxis(DrawingContext context, string texto, double y, double fontSize, List<(int Inicio, int Fin)> comentarios, bool oscuro, bool ocultarDelimitadores = false)
     {
-        foreach (var (inicio, palabra, brush) in PalabrasColoreadas(texto, comentarios))
+        foreach (var (inicio, palabra, brush) in PalabrasColoreadas(texto, comentarios, oscuro))
         {
             if (ocultarDelimitadores && palabra is "glhf" or "gg") continue;
             double x = MargenIzquierdo + EditorFont.MedirPrefijo(texto[..inicio], fontSize);
@@ -952,6 +880,16 @@ public class EditorTextArea : Control
             string antes = texto[..marca];
             int saltos = antes.Count(c => c == '\n');
             Tab.MoverCursor(fila + saltos, saltos == 0 ? _inicioSugerencia + antes.Length : antes.Length - antes.LastIndexOf('\n') - 1, extenderSeleccion: false);
+        }
+        else if (s.Plantilla == null && (s.Detalle.StartsWith("combo ->") || s.Estructura?.Contains(s.Texto + "{") == true))
+        {
+            // Funcion (combo, chat.send, lista.recruit...): agrega {} con el cursor adentro si no estaban ya
+            string resto = Tab.Lineas[Tab.FilaCursor];
+            if (Tab.ColumnaCursor >= resto.Length || resto[Tab.ColumnaCursor] != '{')
+            {
+                Tab.InsertarTexto("{}");
+                Tab.MoverCursor(Tab.FilaCursor, Tab.ColumnaCursor - 1, extenderSeleccion: false);
+            }
         }
 
         _opciones = new();
