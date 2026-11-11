@@ -31,7 +31,8 @@ FALLO_TRADUCCION = 1
 FALLO_ARCHIVO = 2
 
 PASOS_POR_DEFECTO = 5_000_000   # unos 6 s: corta un ciclo sin fin sin colgar el IDE
-PILA_HILO = 512 * 1024 * 1024   # la recursion de GGEZ usa ~7 marcos de Python por llamada
+# la recursion de GGEZ usa ~7 marcos de Python por llamada; CPython en Windows rechaza pilas >= 256 MB
+PILA_HILO = (255 if sys.platform == "win32" else 512) * 1024 * 1024
 
 
 def _leer(ruta: Path) -> str:
