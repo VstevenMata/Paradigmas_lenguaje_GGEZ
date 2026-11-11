@@ -1,0 +1,50 @@
+% Manual de usuario de GGEZ por separado. Compilar desde docs/ con: xelatex manual_usuario.tex (dos veces)
+\input{preambulo}
+
+\begin{document}
+
+% ---------------------------------------------------------------- Portada
+\thispagestyle{empty}
+\begingroup\setlength{\parskip}{0pt}
+\begin{center}
+\vspace*{0.5cm}
+{\bfseries UNIVERSIDAD NACIONAL\par}
+\vspace{0.4cm}
+{\bfseries SEDE REGIONAL BRUNCA -- CAMPUS PÉREZ ZELEDÓN\par}
+\vspace{0.4cm}
+{CURSO: PARADIGMAS DE PROGRAMACIÓN\par}
+\vspace{1cm}
+\includegraphics[width=3.6cm]{img/una.png}\par
+\vspace{1.2cm}
+{\large\bfseries MANUAL DE USUARIO\par}
+\vspace{0.6cm}
+{\large\textbf{GGEZ}: \emph{Lenguaje de programación con vocabulario de videojuegos para estudiantes de primer ingreso}\par}
+\vspace{0.8cm}
+\includegraphics[width=3.2cm]{img/logo.png}\par
+\vspace{1cm}
+{\bfseries Integrantes:\par}
+\vspace{0.3cm}
+Steven Mata Quirós\par\vspace{0.2cm}
+Maikel Segura Quirós\par\vspace{0.2cm}
+Angel Ureña Naranjo\par
+\vspace{0.8cm}
+{\bfseries Profesor:\par}
+\vspace{0.3cm}
+Pablo A. Venegas Elizondo\par
+\vspace{0.8cm}
+{\bfseries II Ciclo, 2026\par}
+\end{center}
+\endgroup
+\newpage
+
+% ---------------------------------------------------------------- Tabla de contenidos
+\begingroup\setlength{\parskip}{0pt}\linespread{1}\selectfont
+\tableofcontents
+\endgroup
+\newpage
+
+% En el manual aparte cada parte es una seccion numerada del indice
+\let\manualseccion\section
+\input{secciones/manual}
+
+\end{document}
