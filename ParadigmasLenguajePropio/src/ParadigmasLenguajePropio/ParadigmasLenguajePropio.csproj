@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- WinExe: en Windows no abre una consola detras de la ventana -->
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <!-- Icono del .exe en Windows; sale de Icon_logo.png -->
     <ApplicationIcon>Assets/Icons/ggez.ico</ApplicationIcon>
     <TargetFramework>net10.0</TargetFramework>

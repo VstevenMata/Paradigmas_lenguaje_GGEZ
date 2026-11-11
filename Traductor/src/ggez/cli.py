@@ -4,6 +4,7 @@
     ggezc run <archivo.ggez>     compila y ejecuta
     ggezc check <archivo.ggez>   corre las pruebas del nivel.json de su carpeta
     ggezc tokens <archivo.ggez>  solo vuelca tokens, para depurar
+    ggezc play                   consola interactiva (consola.py)
 
 stdout = salida del programa, stderr = errores, codigo 0 = ok.
 Contrato completo en Traductor/README.md.
@@ -99,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
 
     sys.setrecursionlimit(200_000)
     threading.stack_size(PILA_HILO)
+    # La consola lee el teclado en el hilo principal (Ctrl+C solo llega ahi) y ejecuta en hilos con esta pila
+    if (sys.argv[1:] if argv is None else argv)[:1] == ["play"]:
+        from .consola import iniciar
+        return iniciar()
     hilo = threading.Thread(target=correr)
     hilo.start()
     hilo.join()

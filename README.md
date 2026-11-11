@@ -99,6 +99,37 @@ La gramática completa está en [`Traductor/GRAMATICA.md`](Traductor/GRAMATICA.m
 
 ---
 
+## Modo consola
+
+Además del IDE, el comando `ggez` permite programar directo en la terminal:
+
+```bash
+ggez play                 # consola interactiva: escribes código y ves el resultado al instante
+ggez run juego.ggez       # ejecuta un archivo sin abrir el IDE
+ggez compile juego.ggez   # solo revisa errores
+ggez game-over            # desinstala GGEZ (pide confirmación; tus archivos .ggez no se tocan)
+```
+
+```
+ ggez›  stash score vidas set 3
+✔ listo (no imprimió nada)
+ ggez›  stash score i set 0
+✔ listo (no imprimió nada)
+ ggez›  farm i set 0 | i under vidas | i buff glhf
+  ...       chat.send{"Vida " gain i}
+  ...   gg
+Vida 0
+Vida 1
+Vida 2
+ ggez›  chat.send{vidas split 0}
+✖ error en ejecucion (línea 1, columna 17): division entre cero
+  posible causa: Verifique que el divisor no sea 0 antes de dividir.
+```
+
+En la consola no hace falta `lobby.launch`. Las variables, `combo`, `guild` e `inventory` se recuerdan entre entradas, y los bloques se ejecutan al cerrar su `gg`. Escribe `ayuda` para ver los comandos y `salir` para terminar.
+
+---
+
 ## El IDE
 
 Un entorno completo en una sola ventana: explorador de archivos, editor con resaltado y minimapa, terminal integrada y un panel de **juego** que reacciona a tu código.
@@ -175,6 +206,7 @@ dotnet run --project ParadigmasLenguajePropio\src\ParadigmasLenguajePropio
 ```bash
 cd Traductor
 python ggezc.py run ejemplos/clasificador.ggez
+python ggezc.py play      # consola interactiva
 ```
 
 ### Publicar una versión

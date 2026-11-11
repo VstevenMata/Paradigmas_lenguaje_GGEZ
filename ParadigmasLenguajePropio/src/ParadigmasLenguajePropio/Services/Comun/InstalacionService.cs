@@ -8,7 +8,7 @@ namespace ParadigmasLenguajePropio.Services;
 // El ejecutable unico (publicar.sh) trae adentro un Python portatil y el traductor; aca se despliegan en la carpeta de datos
 public static class InstalacionService
 {
-    static readonly string CarpetaDatos = Path.Combine(
+    internal static readonly string CarpetaDatos = Path.Combine(
         // Create: sin eso, si ~/.config no existe .NET devuelve "" y todo cae en rutas relativas
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "ParadigmasLenguajePropio");
     static readonly Assembly Ensamblado = typeof(InstalacionService).Assembly;
@@ -30,12 +30,20 @@ public static class InstalacionService
     public static async Task<string?> ComandoTraductorAsync()
     {
         if (!EsEjecutableUnico) return BuscarEnRepo() is { } script ? $"python -X utf8 \"{script}\"" : null;
+        var (python, ggezc) = await TraductorAsync() ?? default;
+        return $"\"{python}\" -X utf8 \"{ggezc}\"";
+    }
+
+    // Python y ggezc.py por separado, para lanzarlos sin pasar por una cadena de comando (ggez play/run)
+    public static async Task<(string Python, string Script)?> TraductorAsync()
+    {
+        if (!EsEjecutableUnico) return BuscarEnRepo() is { } script ? ("python3", script) : null;
 
         await Task.Run(Desplegar);
         string python = OperatingSystem.IsWindows()
             ? Path.Combine(CarpetaDatos, "python", "python.exe")
             : Path.Combine(CarpetaDatos, "python", "bin", "python3");
-        return $"\"{python}\" -X utf8 \"{Path.Combine(CarpetaDatos, "Traductor", "ggezc.py")}\"";
+        return (python, Path.Combine(CarpetaDatos, "Traductor", "ggezc.py"));
     }
 
     // Desarrollo: sube desde bin/Debug/netX/ hasta encontrar Traductor/ggezc.py del repo

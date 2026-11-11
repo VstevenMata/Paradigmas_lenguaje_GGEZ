@@ -58,8 +58,8 @@
 
         # Ejecutable del release; al publicar otra version cambiar la url y el hash (nix-prefetch-url <url>)
         ggezRelease = pkgs.fetchurl {
-          url = "https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.0/GGEZ";
-          sha256 = "045zwjvzqkrp9ck0sipfl2bw7dckj0qjf4mgwqmj4db0978bczjm";
+          url = "https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.1/GGEZ";
+          sha256 = "1whpyn2rakd0h3hb3bm43jmg7m9jai5znskj4ixry9zkq6x6ls0k";
         };
         ggezBin = pkgs.runCommand "ggez-bin" { } "install -Dm755 ${ggezRelease} $out/bin/GGEZ";
 
