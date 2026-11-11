@@ -132,12 +132,15 @@
                     </Grid>
                 </Border>
 
-                <GridSplitter Grid.Column="1" Width="6" Background="Transparent" ResizeDirection="Columns"
+                <GridSplitter Grid.Column="1" Width="8" ResizeDirection="Columns"
                               IsVisible="{Binding ExploradorVisible}" />
 
-                <views:EditorAreaView Grid.Column="2" DataContext="{Binding Editor}" />
+                <!-- ClipToBounds: sin recorte el editor y la terminal tapaban los divisores y les robaban el clic -->
+                <Border Grid.Column="2" ClipToBounds="True">
+                    <views:EditorAreaView DataContext="{Binding Editor}" />
+                </Border>
 
-                <GridSplitter Grid.Column="3" Width="6" Background="Transparent" ResizeDirection="Columns"
+                <GridSplitter Grid.Column="3" Width="8" ResizeDirection="Columns"
                               IsVisible="{Binding PanelDerechoVisible}" />
 
                 <Border Grid.Column="4" ClipToBounds="True" IsVisible="{Binding PanelDerechoVisible}">
@@ -145,10 +148,10 @@
                 </Border>
             </Grid>
 
-            <GridSplitter Grid.Row="1" Grid.Column="2" Height="6" Background="Transparent" ResizeDirection="Rows"
+            <GridSplitter Grid.Row="1" Grid.Column="2" Height="8" ResizeDirection="Rows"
                           IsVisible="{Binding TerminalVisible}" />
 
-            <Border Grid.Row="2" Grid.Column="2" IsVisible="{Binding TerminalVisible}">
+            <Border Grid.Row="2" Grid.Column="2" ClipToBounds="True" IsVisible="{Binding TerminalVisible}">
                 <views:TerminalView DataContext="{Binding Terminal}" />
             </Border>
 

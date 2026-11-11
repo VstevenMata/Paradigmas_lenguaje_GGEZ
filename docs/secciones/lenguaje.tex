@@ -392,7 +392,7 @@ Se evalúan los argumentos de izquierda a derecha, se crea un entorno nuevo con 
 \kw{travel X from Y} carga \kw{X.ggez} de la carpeta \kw{Y}, relativa al archivo que importa. Todo lo que el archivo declara (\kw{combo}, \kw{guild}, \kw{inventory}) queda disponible con el prefijo del módulo: \kw{X.combo\{\}}, \kw{X.Tipo}. Cada archivo se carga una sola vez, las importaciones no son transitivas y un archivo importado no puede tener \kw{lobby.launch}.
 
 \subsubsection*{Cómo se manejan los errores}
-Los errores se clasifican en léxicos, sintácticos, de importación y semánticos (detectados al compilar) y en ejecución. A ellos se suma el error de proyecto que el IDE reporta si no hay archivo principal. Cada error indica tipo, archivo, línea, columna, descripción y posible causa. Un programa con errores de compilación no se ejecuta. Los errores en ejecución pueden atraparse con \kw{clutch}/\kw{revive}; si no se atrapan, detienen el programa. El detalle está en la sección~\ref{sec:errores}.
+Los errores se clasifican en léxicos, sintácticos, de importación y semánticos (detectados al compilar) y en ejecución. A ellos se suma el error de proyecto que el IDE reporta si no hay un \kw{.ggez} enfocado ni archivo principal. Cada error indica tipo, archivo, línea, columna, descripción y posible causa. Un programa con errores de compilación no se ejecuta. Los errores en ejecución pueden atraparse con \kw{clutch}/\kw{revive}; si no se atrapan, detienen el programa. El detalle está en la sección~\ref{sec:errores}.
 
 \subsection{Tipos de datos}
 
@@ -649,13 +649,13 @@ MiAventura/
 
 \subsection{Gestión desde el aplicativo}
 
-El árbol de archivos del IDE permite crear un proyecto, abrir una carpeta existente, crear archivos y carpetas, abrir archivos en pestañas, renombrarlos, eliminarlos y designar el archivo principal con clic derecho, «Marcar como principal». El archivo principal se identifica en el árbol con la etiqueta «(principal)», y la designación se guarda en el archivo \kw{.ggezproyecto} de la raíz del proyecto. El archivo activo se identifica por su pestaña y por la ruta que se muestra sobre el editor. Las pestañas abiertas se conservan al cerrar y volver a abrir el IDE.
+El árbol de archivos del IDE permite crear un proyecto, abrir una carpeta existente, crear archivos y carpetas, abrir archivos en pestañas, renombrarlos, eliminarlos y designar el archivo principal con clic derecho, «Marcar como principal». El archivo principal se identifica en el árbol con la etiqueta «(principal)», y la designación se guarda en el archivo \kw{.ggezproyecto} de la raíz del proyecto. El archivo activo se identifica por su pestaña y por la ruta que se muestra sobre el editor; Compilar y Ejecutar usan ese archivo si es un \kw{.ggez}, y el principal solo cuando no lo es. Las pestañas abiertas se conservan al cerrar y volver a abrir el IDE.
 
 \subsection{Validaciones del archivo principal}
 
 Antes de compilar o ejecutar un proyecto se verifica que:
 \begin{itemize}
-  \item Exista un archivo designado como principal y que ese archivo no haya sido borrado. Si no, el IDE reporta un \textbf{error de proyecto} que indica cómo designarlo.
+  \item Si la pestaña enfocada no es un \kw{.ggez}, exista un archivo designado como principal y que no haya sido borrado. Si no, el IDE reporta un \textbf{error de proyecto} que indica cómo designarlo.
   \item El archivo principal tenga exactamente un \kw{lobby.launch\{start THE GAME\}}.
   \item Todas sus importaciones sean válidas (sección~\ref{sec:importaciones}).
 \end{itemize}

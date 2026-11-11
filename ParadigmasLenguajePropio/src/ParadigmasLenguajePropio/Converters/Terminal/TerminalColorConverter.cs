@@ -13,12 +13,14 @@ public class TerminalColorConverter : IValueConverter
     static readonly IBrush Escrito = Brushes.White;
     static readonly IBrush Error = new SolidColorBrush(Color.FromRgb(255, 96, 96));
     static readonly IBrush Aviso = new SolidColorBrush(Color.FromRgb(255, 214, 96));
+    static readonly IBrush Salida = new SolidColorBrush(Color.FromRgb(110, 200, 255));
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
     {
         TerminalColorLinea.Prompt => Prompt,
         TerminalColorLinea.Error => Error,
         TerminalColorLinea.Aviso => Aviso,
+        TerminalColorLinea.Salida => Salida,
         _ => Escrito,
     };
 

@@ -51,7 +51,7 @@ El intérprete de \ggez\ (\kw{evaluador.py}) recorre directamente el árbol sint
 \subsection{Flujo de ejecución}
 
 \begin{itemize}
-  \item Al presionar Ejecutar (\kw{F5}), el IDE guarda todos los archivos y determina qué ejecutar: si el archivo activo está en una carpeta de nivel, ese archivo; si hay un proyecto abierto, su archivo principal; si no, el archivo activo.
+  \item Al presionar Ejecutar (\kw{F5}), el IDE guarda todos los archivos y ejecuta el archivo \kw{.ggez} de la pestaña enfocada; si la pestaña enfocada no es un \kw{.ggez}, usa el archivo principal del proyecto. Si el archivo está en una carpeta de nivel, corre las pruebas del nivel en vez de ejecutarlo.
   \item El IDE lanza \kw{ggezc run} en una terminal integrada libre, con la carpeta del proyecto como directorio de trabajo.
   \item El traductor realiza las cuatro fases de compilación. Si hay un error, lo reporta y termina con código 1 sin ejecutar nada.
   \item El intérprete registra los \kw{combo}, \kw{guild} e \kw{inventory} de todos los archivos y ejecuta el bloque de \kw{lobby.launch} instrucción por instrucción.
@@ -98,7 +98,7 @@ Sintácticos & Análisis sintáctico (fase 2) & Bloques sin \kw{gg}, \kw{combo} 
 De importación & Resolución de importaciones (fase 3) y llamadas a lo importado (fase 4) & Archivo o función inexistente, módulo duplicado, importación circular, argumentos incorrectos en una llamada importada \\\hline
 Semánticos & Análisis semántico (fase 4) & Variable no declarada, tipos incompatibles, cantidad de argumentos, redeclaración, sin punto de entrada \\\hline
 En ejecución & Interpretación del programa & División entre cero, índice fuera de rango, objeto \kw{afk}, \kw{wipe} no atrapado, sin maná, recursión excesiva \\\hline
-De proyecto & En el IDE, antes de compilar & No hay archivo principal o el archivo principal fue borrado \\\hline
+De proyecto & En el IDE, antes de compilar & La pestaña enfocada no es un \kw{.ggez} y no hay archivo principal, o este fue borrado \\\hline
 \end{longtable}
 
 \subsection{Formato estándar de los mensajes}
@@ -294,7 +294,7 @@ publicar.sh         genera el ejecutable unico
 
 \subsection{Flujo de una operación típica}
 
-Al presionar Compilar (\kw{F6}), el IDE guarda todos los archivos, limpia la pestaña Problemas, determina el archivo principal y lanza \kw{ggezc compile} en una terminal integrada. El traductor ejecuta las cuatro fases de la sección 13 y escribe «Compilacion exitosa» con sus advertencias, o un único error. El IDE lee la salida de errores línea por línea, colorea cada línea según su tipo y llena la pestaña Problemas. Al ejecutar (\kw{F5}) el flujo es el mismo con \kw{ggezc run --eventos}: la salida del programa aparece en la terminal, la entrada del usuario se envía al proceso y, al terminar, los eventos \kw{@ggez} actualizan el panel de juego.
+Al presionar Compilar (\kw{F6}), el IDE guarda todos los archivos, limpia la pestaña Problemas, toma el archivo \kw{.ggez} enfocado (o el principal, si no hay uno) y lanza \kw{ggezc compile} en una terminal integrada. El traductor ejecuta las cuatro fases de la sección 13 y escribe «Compilacion exitosa» con sus advertencias, o un único error. El IDE lee la salida de errores línea por línea, colorea cada línea según su tipo y llena la pestaña Problemas. Al ejecutar (\kw{F5}) el flujo es el mismo con \kw{ggezc run --eventos}: la salida del programa aparece en la terminal, la entrada del usuario se envía al proceso y, al terminar, los eventos \kw{@ggez} actualizan el panel de juego.
 
 \subsection{Distribución}
 

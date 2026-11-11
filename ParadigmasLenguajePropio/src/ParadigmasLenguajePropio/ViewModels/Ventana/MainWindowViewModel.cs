@@ -114,6 +114,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         Explorer.OnAbrirArchivo = nodo => AbrirArchivo(nodo.Nombre, nodo.RutaCompleta);
         Explorer.OnArchivoRenombrado = Editor.ActualizarRutaSiEstaAbierta;
+        Explorer.OnArchivoCambiadoFuera = Editor.RecargarSiCambio;
         Editor.OnAbrirArchivoExterno = AbrirArchivo;
         Editor.OnRevelarCarpeta = ruta => { Explorer.RevelarCarpeta(ruta); MostrarExplorador(); };
 
@@ -205,7 +206,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     Task Compilar(EditorTabViewModel? tab) => LanzarTraductorAsync(tab, soloCompilar: true);
 
-    // Con proyecto abierto corre su archivo principal; sin proyecto, la pestaña activa (tab = null: la del panel enfocado)
+    // Corre el .ggez enfocado (tab = null: la pestaña activa); sin uno, el principal del proyecto
     async Task LanzarTraductorAsync(EditorTabViewModel? tab, bool soloCompilar)
     {
         if (!HayLugarParaTerminal) return;
@@ -225,10 +226,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
         // El traductor lee del disco, no del buffer
         string? archivo = (tab ?? Editor.TabActiva)?.RutaCompleta;
-        // Un .ggez junto a un nivel.json es un nivel: F5 corre sus pruebas en vez de ejecutarlo
-        bool esNivel = !string.IsNullOrEmpty(archivo) && File.Exists(Path.Combine(Path.GetDirectoryName(archivo)!, "nivel.json"));
 
-        if (!esNivel && Explorer.HayProyecto)
+        // Sin un .ggez enfocado se usa el archivo principal del proyecto
+        bool hayGgezEnfocado = archivo?.EndsWith(".ggez", StringComparison.OrdinalIgnoreCase) == true;
+        if (!hayGgezEnfocado && Explorer.HayProyecto)
         {
             archivo = Explorer.RutaPrincipal;
             if (archivo == null)
@@ -255,7 +256,10 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        if (InstalacionService.FaltaDesplegar) terminal.EscribirAviso("Preparando el traductor (solo pasa la primera vez)...");
+        // Un .ggez junto a un nivel.json es un nivel: F5 corre sus pruebas en vez de ejecutarlo
+        bool esNivel = File.Exists(Path.Combine(Path.GetDirectoryName(archivo)!, "nivel.json"));
+
+        if (InstalacionService.FaltaDesplegar) terminal.EscribirAviso("Preparando el traductor...");
         string? ggezc = await InstalacionService.ComandoTraductorAsync();
         if (ggezc == null)
         {
@@ -268,10 +272,9 @@ public partial class MainWindowViewModel : ViewModelBase
             terminal.EjecutarComando($"{ggezc} compile \"{archivo}\"");
             return;
         }
-        string carpeta = Path.GetDirectoryName(archivo)!;
         string comando = esNivel ? "check" : "run";
         if (terminal.EjecutarComando($"{ggezc} {comando} \"{archivo}\" --eventos"))
-            PanelJuego.ReiniciarMana(esNivel ? carpeta : null);
+            PanelJuego.ReiniciarMana(esNivel ? Path.GetDirectoryName(archivo) : null);
     }
 
 

@@ -196,4 +196,12 @@
         <Setter Property="CornerRadius" Value="0" />
     </Style>
 
+    <!-- Divisores: transparentes pero con hit-test, y se resaltan al pasar el mouse para encontrarlos -->
+    <Style Selector="GridSplitter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="GridSplitter:pointerover">
+        <Setter Property="Background" Value="{DynamicResource TemaHoverBrush}" />
+    </Style>
+
 </Styles>

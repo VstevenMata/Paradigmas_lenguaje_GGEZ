@@ -206,9 +206,7 @@ public partial class EditorViewModel : ViewModelBase
         List<string> contenido;
         try
         {
-            string texto = File.ReadAllText(rutaCompleta);
-            contenido = texto.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n').ToList();
-            if (contenido.Count == 0) contenido.Add("");
+            contenido = LeerLineas(rutaCompleta);
         }
         catch (Exception ex)
         {
@@ -219,6 +217,23 @@ public partial class EditorViewModel : ViewModelBase
         var tab = new EditorTabViewModel(nombre, rutaCompleta, contenido);
         Tabs.Add(tab);
         CambiarArchivoActivo(tab);
+    }
+
+    static List<string> LeerLineas(string ruta) =>
+        File.ReadAllText(ruta).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n').ToList();
+
+    // Solo pestañas sin cambios sin guardar: si tiene ediciones propias no se pisan
+    public void RecargarSiCambio(string ruta)
+    {
+        foreach (var tab in Tabs.Where(t => t.RutaCompleta == ruta && !t.Modificado))
+        {
+            try
+            {
+                var lineas = LeerLineas(ruta);
+                if (!lineas.SequenceEqual(tab.Lineas)) tab.Recargar(lineas);
+            }
+            catch (Exception) { } // borrado o a medio escribir: se deja como esta
+        }
     }
 
     public void CambiarArchivoActivo(EditorTabViewModel tab)

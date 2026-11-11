@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ParadigmasLenguajePropio.Models;
@@ -68,8 +69,48 @@ public partial class ExplorerViewModel : ViewModelBase
         _dialogos = dialogos;
     }
 
+    // Cambios hechos fuera del IDE: se juntan 300 ms y se refresca el arbol una sola vez
+    FileSystemWatcher? _vigilante;
+    readonly HashSet<string> _cambiados = new();
+    DispatcherTimer? _espera;
+
+    // Archivo editado fuera del IDE: el editor lo recarga si esta abierto
+    public Action<string>? OnArchivoCambiadoFuera;
+
+    void Vigilar(string? ruta)
+    {
+        _vigilante?.Dispose();
+        _vigilante = null;
+        if (string.IsNullOrEmpty(ruta)) return;
+        _espera ??= new DispatcherTimer(TimeSpan.FromMilliseconds(300), DispatcherPriority.Background, (_, _) => AplicarCambios());
+        try
+        {
+            _vigilante = new FileSystemWatcher(ruta) { IncludeSubdirectories = true };
+            FileSystemEventHandler avisar = (_, e) => Dispatcher.UIThread.Post(() => { _cambiados.Add(e.FullPath); _espera.Stop(); _espera.Start(); });
+            _vigilante.Created += avisar;
+            _vigilante.Deleted += avisar;
+            _vigilante.Changed += avisar;
+            _vigilante.Renamed += (s, e) => avisar(s, e);
+            _vigilante.EnableRaisingEvents = true;
+        }
+        catch (Exception ex)
+        {
+            // p. ej. limite de inotify en Linux: el arbol sigue funcionando, solo sin refresco automatico
+            Console.WriteLine($"No se pudo vigilar la carpeta: {ex.Message}");
+        }
+    }
+
+    void AplicarCambios()
+    {
+        _espera?.Stop();
+        Raiz?.Sincronizar();
+        foreach (var ruta in _cambiados) OnArchivoCambiadoFuera?.Invoke(ruta);
+        _cambiados.Clear();
+    }
+
     public void AbrirCarpeta(string ruta)
     {
+        Vigilar(ruta);
         Raiz = NodoArchivos.CarpetaDesdeDisco(ruta);
         Seleccionado = null;
         HayProyecto = true;
@@ -90,6 +131,7 @@ public partial class ExplorerViewModel : ViewModelBase
     void CerrarCarpeta()
     {
         NodoArchivos.RutaPrincipal = null;
+        Vigilar(null);
         Raiz = null;
         Seleccionado = null;
         HayProyecto = false;

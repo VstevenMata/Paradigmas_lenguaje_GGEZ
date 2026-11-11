@@ -42,6 +42,11 @@ public partial class TerminalInstanceViewModel : ViewModelBase
 
     public Action? OnActivar;
 
+    public Action<TerminalInstanceViewModel>? OnAbrirClaude;
+
+    // La vista PTY lo teclea apenas abre su shell
+    public string? ComandoInicial { get; set; }
+
     readonly TerminalProcessService _proceso = new();
     readonly List<string> _historial = new();
     readonly DispatcherTimer _timer;
@@ -79,7 +84,7 @@ public partial class TerminalInstanceViewModel : ViewModelBase
                 OnEvento?.Invoke(texto[PrefijoEvento.Length..]);
                 continue;
             }
-            var color = !salida.EsError ? TerminalColorLinea.Escrito
+            var color = !salida.EsError ? TerminalColorLinea.Salida
                 : texto.Contains(": advertencia: ") ? TerminalColorLinea.Aviso : TerminalColorLinea.Error;
             Escribir(texto, color);
             if (salida.EsError) OnError?.Invoke(texto);
@@ -142,7 +147,7 @@ public partial class TerminalInstanceViewModel : ViewModelBase
             case "help": MostrarAyuda(); return true;
             // Por pipes claude no ve una terminal: espera 3 s por stdin y sale con "no stdin data received"
             case "claude":
-                Escribir("claude necesita una terminal real: instale la extension \"Claude para GGEZ\" en Extensiones.", TerminalColorLinea.Aviso);
+                OnAbrirClaude?.Invoke(this);
                 return true;
             default: return false;
         }

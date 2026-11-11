@@ -89,19 +89,24 @@ public partial class TerminalViewModel : ViewModelBase
     public TerminalViewModel(ExtensionInfo claudeExtension)
     {
         ClaudeExtension = claudeExtension;
-        // Al instalar Claude las terminales libres pasan a PTY; sin esto solo lo serian las nuevas
-        ClaudeExtension.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName != nameof(ExtensionInfo.Instalada) || !ClaudeExtension.Instalada) return;
-            foreach (var instancia in Instancias)
-                if (!instancia.HayProcesoActivo) instancia.EsReal = true;
-        };
-
         LineasErrores.Add(new TerminalLinea("", "Los errores no existen", TerminalColorLinea.Escrito));
         Problemas.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HayProblemas));
 
-        // Solo la primera se muestra; las creadas con "+" quedan ocultas hasta arrastrarlas
-        CrearInstancia(mostrarDeUna: true);
+        // La primera siempre es simulada: es la que usan Compilar y Ejecutar; las creadas con "+" quedan ocultas
+        CrearInstancia(mostrarDeUna: true, esReal: false);
+    }
+
+    // "claude" en una simulada abre una PTY visible al lado y lo corre ahi
+    void AbrirClaude(TerminalInstanceViewModel origen)
+    {
+        if (!ClaudeExtension.Instalada)
+        {
+            origen.EscribirAviso("claude necesita una terminal real: instale la extension \"Claude para GGEZ\" en Extensiones.");
+            return;
+        }
+        var pty = CrearInstancia(mostrarDeUna: true, esReal: true);
+        if (pty == null) { origen.EscribirAviso($"No hay terminal libre para claude: cierre una (maximo {MaxTerminales})."); return; }
+        pty.ComandoInicial = "claude";
     }
 
     [RelayCommand]
@@ -120,6 +125,7 @@ public partial class TerminalViewModel : ViewModelBase
         instancia.OnError = AgregarError;
         instancia.OnEvento = evento => OnEvento?.Invoke(evento);
         instancia.OnActivar = () => EnfocarInstancia(instancia);
+        instancia.OnAbrirClaude = AbrirClaude;
         instancia.PropertyChanged += Instancia_PropertyChanged;
 
         Instancias.Add(instancia);
@@ -219,7 +225,7 @@ public partial class TerminalViewModel : ViewModelBase
         OnPropertyChanged(nameof(MuestraBotonCrear));
 
         if (InstanciaActiva == instancia) EnfocarInstancia(InstanciasVisibles.FirstOrDefault());
-        if (Instancias.Count == 0) CrearInstancia(mostrarDeUna: true);
+        if (Instancias.Count == 0) CrearInstancia(mostrarDeUna: true, esReal: false);
     }
 
     public void AgregarError(string texto)

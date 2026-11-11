@@ -24,7 +24,7 @@ Advertencias & 1 & 1 \\\hline
 
 La prueba completa (\kw{6\_completa/01\_aventura\_del\_novato}) es un pequeño juego de rol por turnos, el tipo de programa que un estudiante de primer ingreso querría escribir. Está dividida en tres archivos: \kw{lib/personajes.ggez} con un \kw{inventory} y los \kw{guild} de los personajes (con herencia y polimorfismo); \kw{reglas.ggez} con los \kw{combo} de las reglas de daño (con recursión y manejo de errores); y \kw{principal.ggez}, que pide el nombre y la clase del jugador con \kw{chat.load}, arma el equipo en un \kw{squad} y simula el combate con ciclos y condicionales.
 
-Además de estas pruebas automáticas, el entorno de desarrollo se verificó manualmente: crear y abrir un proyecto, marcar el archivo principal, compilar con \kw{F6}, ejecutar con \kw{F5} con entrada interactiva, ver un error en Problemas con su posible causa y saltar a la línea con un clic, ver advertencias y obtener logros y avanzar misiones. Las capturas de este documento se tomaron durante esas verificaciones.
+Además de estas pruebas automáticas, el entorno de desarrollo se verificó manualmente: crear y abrir un proyecto, compilar con \kw{F6}, ejecutar con \kw{F5} con entrada interactiva, ver un error en Problemas con su posible causa y saltar a la línea con un clic, ver advertencias y obtener logros y avanzar misiones. Las capturas de este documento se tomaron durante esas verificaciones.
 
 \newpage
 % ================================================================ 19
@@ -139,7 +139,7 @@ La primera vez, el IDE despliega el traductor y su Python en la carpeta de datos
 \begin{enumerate}
   \item Menú \textbf{Archivo → Abrir carpeta} (\kw{Ctrl+O}) y elegir o crear una carpeta.
   \item En el explorador, clic derecho para crear archivos (\kw{.ggez}) y carpetas, renombrar o eliminar.
-  \item Clic derecho sobre el archivo que tiene \kw{lobby.launch} → \textbf{Marcar como principal}. El archivo aparece con la etiqueta «(principal)».
+  \item Opcional: clic derecho sobre un archivo con \kw{lobby.launch} → \textbf{Marcar como principal}. El archivo aparece con la etiqueta «(principal)» y se usa cuando la pestaña enfocada no es un \kw{.ggez}.
 \end{enumerate}
 
 Sin proyecto abierto, también se puede crear un archivo suelto con \kw{Ctrl+N}, guardarlo y ejecutarlo.
@@ -163,8 +163,8 @@ Sin proyecto abierto, también se puede crear un archivo suelto con \kw{Ctrl+N},
 \subsubsection*{Compilar y ejecutar}
 
 \begin{itemize}
-  \item \textbf{Compilar} (\kw{F6} o el martillo): revisa el proyecto sin ejecutarlo. Si todo está bien, la terminal muestra «Compilacion exitosa».
-  \item \textbf{Ejecutar} (\kw{F5} o el botón de reproducir): compila y, si no hay errores, ejecuta el archivo principal. Cuando el programa pide datos con \kw{chat.load}, se escriben en la terminal y se presiona \kw{Enter}.
+  \item \textbf{Compilar} (\kw{F6} o el martillo): revisa el archivo \kw{.ggez} de la pestaña enfocada sin ejecutarlo. Si todo está bien, la terminal muestra «Compilacion exitosa».
+  \item \textbf{Ejecutar} (\kw{F5} o el botón de reproducir): compila y, si no hay errores, ejecuta el archivo \kw{.ggez} de la pestaña enfocada. Cuando el programa pide datos con \kw{chat.load}, se escriben en la terminal y se presiona \kw{Enter}.
   \item \kw{Ctrl+C} en la terminal detiene un programa en ejecución.
 \end{itemize}
 

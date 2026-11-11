@@ -44,6 +44,17 @@ public partial class EditorTabViewModel : ViewModelBase
         if (lineas != null) Lineas = lineas;
     }
 
+    // El archivo cambio fuera del IDE: se reemplaza el contenido sin marcarlo como modificado
+    public void Recargar(List<string> lineas)
+    {
+        Lineas = lineas;
+        FilaCursor = Math.Min(FilaCursor, Lineas.Count - 1);
+        ColumnaCursor = ColumnaDeseada = Math.Min(ColumnaCursor, Lineas[FilaCursor].Length);
+        HaySeleccion = false;
+        AvisarContenido();
+        AvisarCursor();
+    }
+
     void AvisarContenido() => ContenidoCambiado?.Invoke();
     void AvisarCursor() => CursorCambiado?.Invoke();
 

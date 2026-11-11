@@ -84,10 +84,9 @@ public partial class EditorAreaView : UserControl
         var hijoB = Construir(nodo.B!, vm);
         var splitter = new GridSplitter
         {
-            Background = Brushes.Transparent,
             ResizeDirection = apilado ? GridResizeDirection.Rows : GridResizeDirection.Columns,
         };
-        if (apilado) splitter.Height = 6; else splitter.Width = 6;
+        if (apilado) splitter.Height = 8; else splitter.Width = 8;
 
         if (apilado)
         {

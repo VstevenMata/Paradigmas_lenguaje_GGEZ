@@ -78,6 +78,30 @@ public partial class NodoArchivos : ObservableObject
         if (Expandido) Expandir();
     }
 
+    // Iguala los hijos ya cargados con el disco sin cerrar las carpetas que estaban abiertas
+    public void Sincronizar()
+    {
+        if (!EsCarpeta || !_intentoCarga) return;
+        string[] carpetas, archivos;
+        try
+        {
+            carpetas = Directory.GetDirectories(RutaCompleta).OrderBy(r => r).ToArray();
+            archivos = Directory.GetFiles(RutaCompleta).OrderBy(r => r).ToArray();
+        }
+        catch (Exception) { return; }
+
+        var actuales = Hijos.ToDictionary(h => h.RutaCompleta);
+        var nuevos = carpetas.Select(r => actuales.GetValueOrDefault(r) is { EsCarpeta: true } h ? h : CarpetaDesdeDisco(r))
+            .Concat(archivos.Select(r => actuales.GetValueOrDefault(r) is { EsCarpeta: false } h ? h : Archivo(Path.GetFileName(r), r)))
+            .ToList();
+        if (!nuevos.SequenceEqual(Hijos))
+        {
+            Hijos.Clear();
+            foreach (var hijo in nuevos) { hijo.Padre = this; Hijos.Add(hijo); }
+        }
+        foreach (var hijo in nuevos) hijo.Sincronizar();
+    }
+
     public static NodoArchivos Archivo(string nombre, string rutaCompleta = "") => new()
     {
         Nombre = nombre,

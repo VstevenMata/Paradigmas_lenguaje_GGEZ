@@ -88,6 +88,11 @@ public partial class EditorAreaViewModel : ViewModelBase
         return panel;
     }
 
+    public void RecargarSiCambio(string ruta)
+    {
+        foreach (var panel in TodosLosPaneles()) panel.RecargarSiCambio(ruta);
+    }
+
     public IEnumerable<EditorViewModel> TodosLosPaneles() => Recorrer(Raiz);
 
     static IEnumerable<EditorViewModel> Recorrer(NodoPanel nodo)
