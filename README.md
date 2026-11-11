@@ -163,12 +163,34 @@ python ggezc.py run ejemplos/clasificador.ggez
 
 ### Publicar una versión
 
+Los comandos de instalación usan dos cosas distintas de GitHub, y cada una se actualiza de una forma:
+
+| Qué cambió | De dónde lo baja la gente | Cómo se actualiza |
+|---|---|---|
+| `instalar.sh` / `instalar.ps1` | la rama `main` | `git push` |
+| El IDE o el traductor (los ejecutables) | el release más reciente | `gh release` |
+
+**Cambiaste los instaladores:**
+
 ```bash
-./publicar.sh todo        # genera dist/GGEZ y dist/GGEZ.exe con Python portátil adentro
-gh release create v1.1 dist/GGEZ dist/GGEZ.exe --title "GGEZ 1.1"
+git add instalar.sh instalar.ps1
+git commit -m "Actualiza instaladores"
+git push
 ```
 
-Los instaladores siempre descargan el release más reciente, así que el comando de instalación no cambia entre versiones.
+**Cambiaste el IDE o el traductor:** primero genera los ejecutables (`dist/GGEZ` y `dist/GGEZ.exe`, con Python portátil adentro) y después elige una de estas dos opciones:
+
+```bash
+./publicar.sh todo
+
+# Opción A: versión nueva (recomendado)
+gh release create v1.1 dist/GGEZ dist/GGEZ.exe --title "GGEZ 1.1" --notes "Qué cambió"
+
+# Opción B: reemplazar los archivos del release que ya existe
+gh release upload v1.0 dist/GGEZ dist/GGEZ.exe --clobber
+```
+
+Los instaladores siempre descargan el release más reciente, así que el comando de instalación no cambia entre versiones. Para ver qué hay publicado: `gh release list`.
 
 ---
 
