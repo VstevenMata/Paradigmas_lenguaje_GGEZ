@@ -33,11 +33,17 @@ Se abre un instalador en la terminal con estética de Windows 95. Ahí eliges el
 
 Funciona en cualquier distro con glibc 2.27 o superior (Ubuntu 18.04+, Debian 10+, Arch, Fedora…). Distros con musl, como Alpine, no están soportadas.
 
-**NixOS** (o cualquier sistema con nix)
+**NixOS / [nix](https://nixos.org/download/)**
 
 ```bash
+# Abrir GGEZ sin instalarlo
 nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ
+
+# O instalar el comando ggez para tu usuario
+nix profile install github:VstevenMata/Paradigmas_lenguaje_GGEZ
 ```
+
+En nix no aparece el instalador: el propio nix descarga GGEZ y abre la app directamente. La primera vez tarda un poco más y después queda en caché. Si lo instalaste con `nix profile`, se abre escribiendo `ggez` y se actualiza con `nix profile upgrade --all`.
 
 NixOS no puede correr el ejecutable suelto, así que el flake lo ejecuta dentro de un entorno con las librerías que necesita.
 
