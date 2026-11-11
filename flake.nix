@@ -55,8 +55,30 @@
             dotnet run --project src/ParadigmasLenguajePropio
           '';
         };
+
+        # Ejecutable del release; al publicar otra version cambiar la url y el hash (nix-prefetch-url <url>)
+        ggezRelease = pkgs.fetchurl {
+          url = "https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.0/GGEZ";
+          sha256 = "045zwjvzqkrp9ck0sipfl2bw7dckj0qjf4mgwqmj4db0978bczjm";
+        };
+        ggezBin = pkgs.runCommand "ggez-bin" { } "install -Dm755 ${ggezRelease} $out/bin/GGEZ";
+
+        # NixOS no tiene /lib64/ld-linux ni libicu donde el ejecutable los espera: se corre en un entorno FHS
+        ggez = pkgs.buildFHSEnv {
+          name = "ggez";
+          targetPkgs = p: [
+            p.icu p.zlib p.openssl p.stdenv.cc.cc.lib
+            p.libX11 p.libxcursor p.libxi p.libxrandr p.libxext p.libxrender
+            p.libice p.libsm p.fontconfig p.freetype p.libGL
+          ];
+          runScript = "${ggezBin}/bin/GGEZ";
+        };
       in
       rec {
+        # En NixOS (o con nix en cualquier distro): nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ
+        packages.default = ggez;
+        apps.ggez = flake-utils.lib.mkApp { drv = ggez; };
+
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.dotnet-sdk_10
@@ -74,6 +96,6 @@
         # Compila y levanta la app grafica en un solo comando:
         #   nix run .#up
         apps.up = flake-utils.lib.mkApp { drv = up; };
-        apps.default = apps.up;
+        apps.default = apps.ggez;
       });
 }

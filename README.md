@@ -31,6 +31,16 @@ curl -fsSL https://raw.githubusercontent.com/VstevenMata/Paradigmas_lenguaje_GGE
 
 Se abre un instalador en la terminal con estética de Windows 95. Ahí eliges el sistema y la carpeta donde guardar el ejecutable. Al terminar, puedes abrir GGEZ escribiendo `ggez` en la terminal o desde el menú de aplicaciones.
 
+Funciona en cualquier distro con glibc 2.27 o superior (Ubuntu 18.04+, Debian 10+, Arch, Fedora…). Distros con musl, como Alpine, no están soportadas.
+
+**NixOS** (o cualquier sistema con nix)
+
+```bash
+nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ
+```
+
+NixOS no puede correr el ejecutable suelto, así que el flake lo ejecuta dentro de un entorno con las librerías que necesita.
+
 **Windows** (PowerShell)
 
 ```powershell
@@ -191,6 +201,12 @@ gh release upload v1.0 dist/GGEZ dist/GGEZ.exe --clobber
 ```
 
 Los instaladores siempre descargan el release más reciente, así que el comando de instalación no cambia entre versiones. Para ver qué hay publicado: `gh release list`.
+
+**NixOS:** el flake apunta a un release fijo con su hash. Al publicar una versión nueva, actualiza en `flake.nix` la `url` de `ggezRelease` y su `sha256`, que se obtiene con:
+
+```bash
+nix-prefetch-url https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.1/GGEZ
+```
 
 ---
 

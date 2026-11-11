@@ -4,6 +4,13 @@ set -euo pipefail
 shopt -s extglob
 export LC_ALL=C.UTF-8
 URL=https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/latest/download
+
+# NixOS no puede correr el ejecutable suelto (no tiene /lib64/ld-linux); el flake lo envuelve
+if [ -e /etc/NIXOS ]; then
+    echo "En NixOS, GGEZ se abre con nix:"
+    echo "  nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ"
+    exit 0
+fi
 DIR=$(dirname "$0")
 
 # Paleta de Windows 95 en color verdadero; T vuelve al texto normal sobre la ventana gris
