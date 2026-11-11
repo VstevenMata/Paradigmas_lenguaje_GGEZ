@@ -65,7 +65,7 @@ ETAPAS=("Sistema" "Carpeta" "Instalación" "Listo")
 OPCIONES=("Linux" "Windows" "Salir")
 DETALLES=(
 "Instala el comando ggez y lo agrega al menú de aplicaciones."
-"Descarga GGEZ.exe (desde Git Bash también lo abre)."
+"Descarga GGEZ.exe para Windows."
 "Cierra el instalador sin cambiar nada."
 )
 SPIN=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
@@ -292,7 +292,7 @@ instalar() {
     PASO=2
     if [ $sel = 0 ]; then
         destino="$CARPETA/ggez"
-        PASOS=("Descargando GGEZ" "Creando el comando ggez" "Abriendo GGEZ y agregándolo al menú")
+        PASOS=("Descargando GGEZ" "Creando el comando ggez" "Agregándolo al menú de aplicaciones")
         ESTADOS=(pendiente pendiente pendiente)
         paso 0 activo
         if [ -f "$DIR/dist/GGEZ" ]; then
@@ -314,10 +314,21 @@ instalar() {
         agregar_path
         PROG=90; tick; paso 1 ok
 
-        # Al abrirse, la app crea su entrada en el menu de aplicaciones
+        # Mismo acceso que crea la app al abrirse; el icono aparece tras la primera vez que se abre
         paso 2 activo
-        nohup "$destino" >/dev/null 2>&1 &
-        PROG=100; tick; tick; paso 2 ok
+        local apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+        mkdir -p "$apps"
+        cat >"$apps/ggez.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=GGEZ
+Comment=Un lenguaje de programación con alma de videojuego
+Exec="$destino"
+Icon=${XDG_CONFIG_HOME:-$HOME/.config}/ParadigmasLenguajePropio/ggez.png
+Terminal=false
+Categories=Development;IDE;
+EOF
+        PROG=100; tick; paso 2 ok
     else
         destino="$CARPETA/GGEZ.exe"
         PASOS=("Descargando GGEZ.exe")
@@ -325,7 +336,6 @@ instalar() {
         paso 0 activo
         if ! descargar "$URL/GGEZ.exe" "$destino"; then rm -f "$destino"; fallar 0; return; fi
         PROG=100; paso 0 ok
-        if [ $detectado = 1 ]; then start "" "$destino"; fi
     fi
     tick; tick
     PASO=3

@@ -298,8 +298,8 @@ function Instalar {
     $script:Paso = 2
     if ($Sel -eq 1 -and $EsWindows) {
         $script:Destino = Join-Path $Carpeta 'GGEZ.exe'
-        $script:Pasos = @('Descargando GGEZ.exe', 'Creando el comando ggez y el acceso en el menú Inicio', 'Abriendo GGEZ')
-        $script:Estados = @('pendiente', 'pendiente', 'pendiente')
+        $script:Pasos = @('Descargando GGEZ.exe', 'Creando el comando ggez y el acceso en el menú Inicio')
+        $script:Estados = @('pendiente', 'pendiente')
         Marcar 0 'activo'
         $tmp = "$Destino.tmp"
         if (-not (Descargar "$URL/GGEZ.exe" $tmp)) { Remove-Item $tmp -ErrorAction SilentlyContinue; Fallar 0; return }
@@ -311,11 +311,7 @@ function Instalar {
         $acceso = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\GGEZ.lnk")
         $acceso.TargetPath = $Destino
         $acceso.Save()
-        $script:Prog = 90; Tick; Marcar 1 'ok'
-
-        Marcar 2 'activo'
-        Start-Process $Destino
-        $script:Prog = 100; Tick; Tick; Marcar 2 'ok'
+        $script:Prog = 100; Tick; Marcar 1 'ok'
     } else {
         $nombre = if ($Sel -eq 0) { 'GGEZ' } else { 'GGEZ.exe' }
         $script:Destino = Join-Path $Carpeta $nombre
