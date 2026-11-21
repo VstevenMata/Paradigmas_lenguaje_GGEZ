@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Instalador de GGEZ con tematica Win95: curl -fsSL https://raw.githubusercontent.com/VstevenMata/Paradigmas_lenguaje_GGEZ/main/instalar.sh | bash
+# Instalador de GGEZ con tematica Win95: curl -fsSL https://raw.githubusercontent.com/VstevenMata/ggez-lang/main/instalar.sh | bash
 set -euo pipefail
 shopt -s extglob
 export LC_ALL=C.UTF-8
-URL=https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/latest/download
+URL=https://github.com/VstevenMata/ggez-lang/releases/latest/download
 
 # NixOS no puede correr el ejecutable suelto (no tiene /lib64/ld-linux); el flake lo envuelve
 if [ -e /etc/NIXOS ]; then
     echo "En NixOS, GGEZ se abre con nix:"
-    echo "  nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ"
+    echo "  nix run github:VstevenMata/ggez-lang"
     exit 0
 fi
 DIR=$(dirname "$0")

@@ -26,7 +26,7 @@ Basta con un comando. No necesitas instalar Python ni .NET: el ejecutable ya tra
 **Linux**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/VstevenMata/Paradigmas_lenguaje_GGEZ/main/instalar.sh | bash
+curl -fsSL https://raw.githubusercontent.com/VstevenMata/ggez-lang/main/instalar.sh | bash
 ```
 
 Se abre un instalador en la terminal con estética de Windows 95. Ahí eliges el sistema y la carpeta donde guardar el ejecutable. Al terminar, puedes abrir GGEZ escribiendo `ggez` en la terminal o desde el menú de aplicaciones.
@@ -37,10 +37,10 @@ Funciona en cualquier distro con glibc 2.27 o superior (Ubuntu 18.04+, Debian 10
 
 ```bash
 # Abrir GGEZ sin instalarlo
-nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ
+nix run github:VstevenMata/ggez-lang
 
 # O instalar el comando ggez para tu usuario
-nix profile install github:VstevenMata/Paradigmas_lenguaje_GGEZ
+nix profile install github:VstevenMata/ggez-lang
 ```
 
 En nix no aparece el instalador: el propio nix descarga GGEZ y abre la app directamente. La primera vez tarda un poco más y después queda en caché. Si lo instalaste con `nix profile`, se abre escribiendo `ggez` y se actualiza con `nix profile upgrade --all`.
@@ -50,10 +50,10 @@ NixOS no puede correr el ejecutable suelto, así que el flake lo ejecuta dentro 
 **Windows** (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/VstevenMata/Paradigmas_lenguaje_GGEZ/main/instalar.ps1 | iex
+irm https://raw.githubusercontent.com/VstevenMata/ggez-lang/main/instalar.ps1 | iex
 ```
 
-También puedes descargar `GGEZ` o `GGEZ.exe` directamente desde [Releases](https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/latest).
+También puedes descargar `GGEZ` o `GGEZ.exe` directamente desde [Releases](https://github.com/VstevenMata/ggez-lang/releases/latest).
 
 ---
 
@@ -169,7 +169,7 @@ Un entorno completo en una sola ventana: explorador de archivos, editor con resa
 ### Estructura
 
 ```
-Paradigmas_lenguaje_GGEZ/
+ggez-lang/
 ├── instalar.sh / instalar.ps1     ← instaladores de un comando (Linux / Windows)
 ├── publicar.sh                    ← genera los ejecutables únicos en dist/
 ├── flake.nix                      ← entorno reproducible para Linux (SDK .NET)
@@ -222,11 +222,7 @@ Todo entra por Pull Request a `main` (ver [CONTRIBUTING.md](CONTRIBUTING.md)). L
 
 Los instaladores siempre descargan el release más reciente, así que el comando de instalación no cambia entre versiones. Para ver qué hay publicado: `gh release list`.
 
-**NixOS:** el flake apunta a un release fijo con su hash. Al publicar una versión nueva, actualiza en `flake.nix` la `url` de `ggezRelease` y su `sha256`, que se obtiene con:
-
-```bash
-nix-prefetch-url https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.1/GGEZ
-```
+**NixOS:** el flake apunta a un release fijo con su hash. Al publicar una versión, el mismo workflow abre un PR que actualiza `flake.nix`; solo hay que fusionarlo.
 
 ---
 

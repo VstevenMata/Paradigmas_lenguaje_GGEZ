@@ -1,0 +1,70 @@
+
+=== 1. Tipos y operadores ===
+Heroe: Link, inicial: L
+Oro por multiplicador: 75
+7 split 2 = 3 y 7 split 2.0 = 3.5
+17 scrap 5 = 2
+Tiene espada y oro: hit
+No tiene espada: miss
+Oro final: 71 (nivel maximo 99)
+
+=== 2. Listas y ciclo for ===
+Puntaje 95 -> rango S
+Puntaje 72 -> rango A
+Puntaje 40 -> rango C
+Puntaje 88 -> rango A
+Puntaje 61 -> rango B
+Promedio (del modulo lib/estadisticas): 71.2
+Sin el primero quedan 4
+
+=== 3. Switch ===
+Elegiste: Arco
+
+=== 4. Break y continue ===
+Impar: 1
+Impar: 3
+Impar: 5
+Impar: 7
+
+=== 5. Registros ===
+Espada Maestra + Escudo Hyliano = poder 65
+
+=== 6. Clases, herencia y combate con while ===
+Conan (vida 120) grita: POR LA GLORIA!
+Merlin (vida 80) grita: Por el poder arcano!
+Ronda 1
+  Conan golpea por 17
+  Merlin lanza una bola de fuego por 25
+  Dragon (vida 158)
+Ronda 2
+  Conan golpea por 19
+  Merlin lanza una bola de fuego por 25
+  Dragon (vida 114)
+Ronda 3
+  Conan golpea por 21
+  Merlin lanza una bola de fuego por 25
+  Dragon (vida 68)
+Ronda 4
+  Conan golpea por 23
+  Dragon (vida 45)
+Ronda 5
+  Conan golpea por 25
+  Dragon (vida 20)
+Ronda 6
+  Conan golpea por 27
+  Dragon (vida 0)
+Dragon derrotado en 6 rondas
+
+=== 7. Do-while y funciones ===
+Curando... vida = 40
+Curando... vida = 70
+Curando... vida = 100
+
+=== 8. Errores de ejecucion ===
+El checkpoint siempre corre
+
+=== Fin de la prueba: GG! ===
+  Fallo el hechizo: Merlin no tiene mana
+  Fallo el hechizo: Merlin no tiene mana
+  Fallo el hechizo: Merlin no tiene mana
+Error atrapado en la linea 217: division entre cero

@@ -56,10 +56,10 @@
           '';
         };
 
-        # Ejecutable del release; al publicar otra version cambiar la url y el hash (nix-prefetch-url <url>)
+        # Ejecutable del release. No editar a mano: al publicar una version, release.yml abre un PR que cambia url y hash
         ggezRelease = pkgs.fetchurl {
-          url = "https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.1/GGEZ";
-          sha256 = "1whpyn2rakd0h3hb3bm43jmg7m9jai5znskj4ixry9zkq6x6ls0k";
+          url = "https://github.com/VstevenMata/ggez-lang/releases/download/v1.1/GGEZ";
+          hash = "sha256-E2hqusHzJ597JHJq+0tUMtXzqhykrrHggKBNlYX1F/I=";
         };
         ggezBin = pkgs.runCommand "ggez-bin" { } "install -Dm755 ${ggezRelease} $out/bin/GGEZ";
 
@@ -75,7 +75,7 @@
         };
       in
       rec {
-        # En NixOS (o con nix en cualquier distro): nix run github:VstevenMata/Paradigmas_lenguaje_GGEZ
+        # En NixOS (o con nix en cualquier distro): nix run github:VstevenMata/ggez-lang
         packages.default = ggez;
         apps.ggez = flake-utils.lib.mkApp { drv = ggez; };
 

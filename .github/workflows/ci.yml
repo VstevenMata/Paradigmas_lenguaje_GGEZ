@@ -1,4 +1,4 @@
-# En cada PR compila el IDE y los ejemplos del traductor. El PR muestra ✅ o ❌ antes de fusionar.
+# En cada PR compila el IDE y verifica la salida de los ejemplos del traductor. El PR muestra ✅ o ❌ antes de fusionar.
 name: CI
 
 on:
@@ -21,12 +21,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: dotnet build ParadigmasLenguajePropio/ParadigmasLenguajePropio.sln
-      - name: Compilar los ejemplos del traductor
-        working-directory: Traductor
-        run: |
-          for f in ejemplos/*.ggez; do
-            # paleta_colores es una vitrina del resaltado: usa palabras que el traductor aún no soporta
-            [ "$f" = ejemplos/paleta_colores.ggez ] && continue
-            echo "== $f"
-            python ggezc.py compile "$f"
-          done
+      # Corre cada ejemplo y compara su salida con Traductor/ejemplos/esperado/<nombre>.txt
+      - run: python Traductor/verificar_ejemplos.py

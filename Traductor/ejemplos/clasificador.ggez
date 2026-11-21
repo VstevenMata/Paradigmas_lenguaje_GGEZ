@@ -1,5 +1,3 @@
-travel physics from arsenal
-
 /w Clasifica a un jugador segun su puntaje
 combo clasificar{score puntos} drops lore glhf
     loadout puntos split 10 glhf
@@ -24,7 +22,11 @@ lobby.launch{start THE GAME} glhf
         gg
     gg
 
-    stash aim promedio set physics.avg{marcador} split marcador.size
+    stash score suma set 0
+    farm i set 0 | i under marcador.size | i buff glhf
+        suma boost marcador<i>
+    gg
+    stash aim promedio set suma split marcador.size
     chat.send{"Promedio: " gain promedio}
 
     clutch glhf

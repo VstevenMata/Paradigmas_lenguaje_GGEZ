@@ -1,0 +1,13 @@
+Rango: Decente
+Suma 1..6 sin el 4: 17
+Faltan: 3
+Faltan: 2
+Faltan: 1
+El grind siempre corre una vez
+Medio
+fila 2 col 1
+fila 2 col 2
+fila 2 col 3
+fila 1 col 1
+fila 1 col 2
+fila 1 col 3

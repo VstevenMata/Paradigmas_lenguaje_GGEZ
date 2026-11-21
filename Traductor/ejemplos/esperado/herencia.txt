@@ -1,0 +1,6 @@
+Conan (vida 150) hace 72 de dano en 3 rondas
+Merlin (vida 100) hace 62 de dano en 3 rondas
+Conan ataco 3 veces
+Conan (vida 110)
+Merlin (vida 100)
+Error en linea 22: el dano no puede ser negativo: -5

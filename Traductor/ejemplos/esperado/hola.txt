@@ -1,0 +1,9 @@
+Hola desde GGEZ
+Puntos: 85
+Promedio: 42.5
+Arobado: hit
+Despues de boost y buff: 96
+Y logico: hit
+Negado: hit
+Precedencia 2 gain 3 crit 4 = 14
+Hola 

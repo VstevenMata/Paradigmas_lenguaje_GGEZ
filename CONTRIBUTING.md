@@ -23,16 +23,17 @@ La rama `main` está protegida: todo cambio entra por Pull Request, el CI tiene 
 3. Verifica localmente antes de abrir el PR:
    ```sh
    dotnet build ParadigmasLenguajePropio/ParadigmasLenguajePropio.sln
-   cd Traductor && python ggezc.py compile ejemplos/hola.ggez
+   python Traductor/verificar_ejemplos.py
    ```
+   Si cambiaste a propósito lo que imprime un ejemplo, regenera lo esperado con `python Traductor/verificar_ejemplos.py --actualizar` y revisa el diff antes de subirlo.
 4. Abre el PR contra `main` y completa la plantilla.
-5. El CI compila el IDE y los ejemplos del traductor. El PR necesita ✅, las conversaciones resueltas y la aprobación del mantenedor (@VstevenMata, ver `.github/CODEOWNERS`). Se integra con *squash merge* y la rama se borra sola.
+5. El CI compila el IDE, corre cada ejemplo del traductor y compara su salida con `Traductor/ejemplos/esperado/`. El PR necesita ✅, las conversaciones resueltas y la aprobación del mantenedor (@VstevenMata, ver `.github/CODEOWNERS`). Se integra con *squash merge* y la rama se borra sola.
 
 ## Publicar una versión
 
 El release es automático: sube `<Version>` en `ParadigmasLenguajePropio/src/ParadigmasLenguajePropio/ParadigmasLenguajePropio.csproj` dentro de tu PR. Al fusionarlo, GitHub Actions genera `GGEZ` y `GGEZ.exe`, crea el tag `vX.Y` y publica el release. Si la versión no cambió, no se publica nada. Los tags `v*` están protegidos: no se pueden mover ni borrar.
 
-Después del release, actualiza en `flake.nix` la `url` y el `sha256` de `ggezRelease` (ver el README) en otro PR para que NixOS use la versión nueva.
+Después del release, el workflow abre un PR que apunta `flake.nix` a la versión nueva. GitHub no corre el CI en PRs creados por Actions, así que el mantenedor lo fusiona con la casilla de bypass.
 
 ## Mensajes de commit
 

@@ -1,0 +1,7 @@
+Pro
+Decente
+Eliminado
+Promedio: 69
+Partida finalizada
+clasificador.ggez:33:1: advertencia: la variable 'riesgo' se declaro pero su valor nunca se usa
+GAME OVER: division entre cero
