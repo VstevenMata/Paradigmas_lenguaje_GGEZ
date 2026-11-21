@@ -1,0 +1,32 @@
+# En cada PR compila el IDE y los ejemplos del traductor. El PR muestra ✅ o ❌ antes de fusionar.
+name: CI
+
+on:
+  pull_request:
+
+# Si se sube otro commit al mismo PR, cancela la revisión anterior
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: dotnet build ParadigmasLenguajePropio/ParadigmasLenguajePropio.sln
+      - name: Compilar los ejemplos del traductor
+        working-directory: Traductor
+        run: |
+          for f in ejemplos/*.ggez; do
+            # paleta_colores es una vitrina del resaltado: usa palabras que el traductor aún no soporta
+            [ "$f" = ejemplos/paleta_colores.ggez ] && continue
+            echo "== $f"
+            python ggezc.py compile "$f"
+          done

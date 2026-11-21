@@ -6,6 +6,8 @@
     <!-- Icono del .exe en Windows; sale de Icon_logo.png -->
     <ApplicationIcon>Assets/Icons/ggez.ico</ApplicationIcon>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Subirla en un PR publica el release vX.Y al fusionar (.github/workflows/release.yml) -->
+    <Version>1.1</Version>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

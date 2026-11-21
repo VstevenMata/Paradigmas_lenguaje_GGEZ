@@ -1,0 +1,43 @@
+# Al fusionar a main: si la <Version> del .csproj no tiene tag todavía, genera GGEZ y GGEZ.exe
+# con publicar.sh, crea el tag vX.Y y publica el release que descargan instalar.sh e instalar.ps1.
+# Si la versión no cambió, no hace nada.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# Dos merges seguidos no publican el mismo release dos veces
+concurrency: release
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: leer
+        run: |
+          version=$(grep -oP '(?<=<Version>)[^<]+' ParadigmasLenguajePropio/src/ParadigmasLenguajePropio/ParadigmasLenguajePropio.csproj)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "nuevo=false" >> "$GITHUB_OUTPUT"
+            echo "v$version ya existe; no se publica nada"
+          else
+            echo "nuevo=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.leer.outputs.nuevo == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      # Con dotnet en el PATH, publicar.sh no usa nix
+      - if: steps.leer.outputs.nuevo == 'true'
+        run: ./publicar.sh todo
+      # Crea el tag en el commit del merge y el release con los ejecutables
+      - if: steps.leer.outputs.nuevo == 'true'
+        run: gh release create "v$VERSION" dist/GGEZ dist/GGEZ.exe --target "$GITHUB_SHA" --title "GGEZ $VERSION" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.leer.outputs.version }}
