@@ -211,32 +211,14 @@ python ggezc.py play      # consola interactiva
 
 ### Publicar una versión
 
-Los comandos de instalación usan dos cosas distintas de GitHub, y cada una se actualiza de una forma:
+Todo entra por Pull Request a `main` (ver [CONTRIBUTING.md](CONTRIBUTING.md)). Los comandos de instalación usan dos cosas distintas de GitHub:
 
 | Qué cambió | De dónde lo baja la gente | Cómo se actualiza |
 |---|---|---|
-| `instalar.sh` / `instalar.ps1` | la rama `main` | `git push` |
-| El IDE o el traductor (los ejecutables) | el release más reciente | `gh release` |
+| `instalar.sh` / `instalar.ps1` | la rama `main` | al fusionar el PR |
+| El IDE o el traductor (los ejecutables) | el release más reciente | automático al fusionar un PR que sube la versión |
 
-**Cambiaste los instaladores:**
-
-```bash
-git add instalar.sh instalar.ps1
-git commit -m "Actualiza instaladores"
-git push
-```
-
-**Cambiaste el IDE o el traductor:** primero genera los ejecutables (`dist/GGEZ` y `dist/GGEZ.exe`, con Python portátil adentro) y después elige una de estas dos opciones:
-
-```bash
-./publicar.sh todo
-
-# Opción A: versión nueva (recomendado)
-gh release create v1.1 dist/GGEZ dist/GGEZ.exe --title "GGEZ 1.1" --notes "Qué cambió"
-
-# Opción B: reemplazar los archivos del release que ya existe
-gh release upload v1.0 dist/GGEZ dist/GGEZ.exe --clobber
-```
+**Versión nueva:** sube `<Version>` en `ParadigmasLenguajePropio/src/ParadigmasLenguajePropio/ParadigmasLenguajePropio.csproj` (por ejemplo de `1.1` a `1.2`) dentro del PR. Al fusionarlo, GitHub Actions corre `publicar.sh todo`, crea el tag `v1.2` y publica `GGEZ` y `GGEZ.exe`. Para probar los ejecutables localmente antes: `./publicar.sh todo` (quedan en `dist/`).
 
 Los instaladores siempre descargan el release más reciente, así que el comando de instalación no cambia entre versiones. Para ver qué hay publicado: `gh release list`.
 
@@ -245,6 +227,16 @@ Los instaladores siempre descargan el release más reciente, así que el comando
 ```bash
 nix-prefetch-url https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/download/v1.1/GGEZ
 ```
+
+---
+
+## Contribuir
+
+Lee [CONTRIBUTING.md](CONTRIBUTING.md) antes de abrir un PR. Bugs e ideas van como issue con su plantilla; las vulnerabilidades se reportan en privado ([SECURITY.md](SECURITY.md)). Al participar aceptas el [Código de Conducta](CODE_OF_CONDUCT.md).
+
+## Licencia
+
+GGEZ se distribuye bajo [MIT](LICENSE-MIT) o [Apache-2.0](LICENSE-APACHE), a elección de quien lo use.
 
 ---
 
