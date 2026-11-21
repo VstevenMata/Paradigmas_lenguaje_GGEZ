@@ -12,7 +12,7 @@ Al participar aceptas el [Código de Conducta](CODE_OF_CONDUCT.md).
 
 ## Flujo de trabajo
 
-La rama `main` está protegida: todo cambio entra por Pull Request y el CI tiene que pasar.
+La rama `main` está protegida: todo cambio entra por Pull Request, el CI tiene que pasar y el mantenedor tiene que aprobarlo.
 
 1. Crea una rama desde `main` (si no eres del equipo, primero haz un fork):
    ```sh
@@ -26,7 +26,7 @@ La rama `main` está protegida: todo cambio entra por Pull Request y el CI tiene
    cd Traductor && python ggezc.py compile ejemplos/hola.ggez
    ```
 4. Abre el PR contra `main` y completa la plantilla.
-5. El CI compila el IDE y los ejemplos del traductor. Con ✅ y las conversaciones resueltas, el PR se integra con *squash merge* y la rama se borra sola.
+5. El CI compila el IDE y los ejemplos del traductor. El PR necesita ✅, las conversaciones resueltas y la aprobación del mantenedor (@VstevenMata, ver `.github/CODEOWNERS`). Se integra con *squash merge* y la rama se borra sola.
 
 ## Publicar una versión
 
