@@ -1,6 +1,6 @@
-# Instalador de GGEZ con tematica Win95: irm https://raw.githubusercontent.com/VstevenMata/Paradigmas_lenguaje_GGEZ/main/instalar.ps1 | iex
+# Instalador de GGEZ con tematica Win95: irm https://raw.githubusercontent.com/VstevenMata/ggez-lang/main/instalar.ps1 | iex
 $ErrorActionPreference = 'Stop'
-$URL = 'https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases/latest/download'
+$URL = 'https://github.com/VstevenMata/ggez-lang/releases/latest/download'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 Add-Type -AssemblyName System.Net.Http

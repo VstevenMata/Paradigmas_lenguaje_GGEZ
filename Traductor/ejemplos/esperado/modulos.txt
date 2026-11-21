@@ -1,0 +1,4 @@
+Promedio: 73.75
+Mayor: 95, menor: 40
+modulos.ggez:19:1: advertencia: la variable 'nada' se declaro pero su valor nunca se usa
+No se pudo: no se puede resumir un squad vacio

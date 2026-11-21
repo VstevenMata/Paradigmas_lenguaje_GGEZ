@@ -1,6 +1,6 @@
 # Al fusionar a main: si la <Version> del .csproj no tiene tag todavía, genera GGEZ y GGEZ.exe
 # con publicar.sh, crea el tag vX.Y y publica el release que descargan instalar.sh e instalar.ps1.
-# Si la versión no cambió, no hace nada.
+# Después abre un PR que apunta flake.nix al release nuevo. Si la versión no cambió, no hace nada.
 name: Release
 
 on:
@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 # Dos merges seguidos no publican el mismo release dos veces
 concurrency: release
@@ -38,6 +39,18 @@ jobs:
       # Crea el tag en el commit del merge y el release con los ejecutables
       - if: steps.leer.outputs.nuevo == 'true'
         run: gh release create "v$VERSION" dist/GGEZ dist/GGEZ.exe --target "$GITHUB_SHA" --title "GGEZ $VERSION" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.leer.outputs.version }}
+      # nix baja un ejecutable fijo con su hash: un PR lo cambia al release nuevo (hash SRI = sha256 en base64)
+      - if: steps.leer.outputs.nuevo == 'true'
+        run: |
+          hash="sha256-$(openssl dgst -sha256 -binary dist/GGEZ | base64)"
+          sed -i -E "s#download/v[^/]+/GGEZ#download/v$VERSION/GGEZ#; s#hash = \"sha256-[^\"]+\"#hash = \"$hash\"#" flake.nix
+          git switch -c "chore/flake-v$VERSION"
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "chore: flake.nix apunta a v$VERSION"
+          git push origin "chore/flake-v$VERSION"
+          gh pr create --base main --head "chore/flake-v$VERSION" --title "chore: flake.nix apunta a v$VERSION" --body "PR automático del release v$VERSION para que NixOS instale la versión nueva."
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.leer.outputs.version }}

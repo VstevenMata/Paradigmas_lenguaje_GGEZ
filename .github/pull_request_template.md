@@ -19,7 +19,7 @@
 ## Verificación
 
 - [ ] `dotnet build ParadigmasLenguajePropio/ParadigmasLenguajePropio.sln` compila
-- [ ] Los ejemplos de `Traductor/ejemplos` compilan (`python ggezc.py compile <archivo>`)
+- [ ] `python Traductor/verificar_ejemplos.py` pasa (si cambié una salida a propósito, regeneré lo esperado con `--actualizar`)
 - [ ] Probé el cambio abriendo el IDE (si aplica)
 - [ ] Si sube la versión: cambié `<Version>` en el `.csproj`
 - [ ] Actualicé la documentación (si aplica)

@@ -1,0 +1,12 @@
+marcador = <95 | 72 | 40>
+primero  = 95
+cuantos  = 3
+promedio = 69
+tras recruit = <95 | 72 | 40 | 88>
+tras kick{0}  = <72 | 40 | 88>
+tras <0> set  = <99 | 40 | 88>
+turnos = <Angel | Maikel>
+arma = Arma{nombre: Espada larga | dano: 12}
+dano = 12
+dano mejorado = 20
+segunda arma = Daga

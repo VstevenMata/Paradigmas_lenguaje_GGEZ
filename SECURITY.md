@@ -2,7 +2,7 @@
 
 ## Versiones con soporte
 
-Solo la última versión publicada en [Releases](https://github.com/VstevenMata/Paradigmas_lenguaje_GGEZ/releases) recibe correcciones de seguridad.
+Solo la última versión publicada en [Releases](https://github.com/VstevenMata/ggez-lang/releases) recibe correcciones de seguridad.
 
 ## Reportar una vulnerabilidad
 

@@ -1,7 +1,11 @@
 PY := python
 ENTRADA := ggezc.py
 
-.PHONY: run tokens test clean
+.PHONY: run tokens test ejemplos clean
+
+# corre cada ejemplo y compara su salida con ejemplos/esperado/ (lo mismo que el CI)
+ejemplos:
+	$(PY) verificar_ejemplos.py
 
 # make run ARCHIVO=ruta/al/archivo.ggez
 run:
